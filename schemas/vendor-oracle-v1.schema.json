@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inventor comparison capture v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "file_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sha256",
+        "bytes",
+        "file_name"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": [
+            "autodesk.apprentice",
+            "autodesk.inventor",
+            "synthetic"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collector_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "platform",
+        "collector_sha256"
+      ]
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "acquired_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scope": {
+          "enum": [
+            "stored_document",
+            "active_model_state",
+            "synthetic"
+          ]
+        },
+        "model_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_modified": {
+          "const": false
+        },
+        "update_performed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "acquired_at",
+        "scope",
+        "model_state",
+        "source_modified",
+        "update_performed"
+      ]
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "part",
+            "assembly",
+            "drawing",
+            "other",
+            "unknown"
+          ]
+        },
+        "internal_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fmtid": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pid": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "name": {
+                "type": "string"
+              },
+              "value_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {},
+              "status": {
+                "enum": [
+                  "captured",
+                  "unsupported"
+                ]
+              }
+            },
+            "required": [
+              "fmtid",
+              "pid",
+              "name",
+              "value_type",
+              "value",
+              "status"
+            ]
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "full_file_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "missing": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "full_file_name",
+              "missing"
+            ]
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "internal_name",
+        "properties",
+        "references",
+        "diagnostics"
+      ]
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
+        },
+        "units": {
+          "const": "mm"
+        },
+        "body_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "solid_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "faces": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "volume_mm3": {
+          "type": "number",
+          "minimum": 0
+        },
+        "area_mm2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bbox_mm": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "bbox_kind": {
+          "enum": [
+            "precise",
+            "enclosing",
+            "unknown"
+          ]
+        },
+        "body_metrics": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "status",
+        "units"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "body_count",
+              "solid_count",
+              "faces",
+              "volume_mm3",
+              "area_mm2",
+              "bbox_mm",
+              "bbox_kind"
+            ]
+          },
+          "else": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "provider",
+    "capture",
+    "document",
+    "geometry",
+    "limitations"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "provider": {
+            "properties": {
+              "name": {
+                "const": "synthetic"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "capture": {
+            "properties": {
+              "scope": {
+                "const": "synthetic"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "capture": {
+            "properties": {
+              "scope": {
+                "enum": [
+                  "stored_document",
+                  "active_model_state"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provider": {
+            "properties": {
+              "name": {
+                "const": "autodesk.apprentice"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "capture": {
+            "properties": {
+              "scope": {
+                "const": "stored_document"
+              },
+              "update_performed": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capture": {
+            "properties": {
+              "scope": {
+                "const": "active_model_state"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "capture": {
+            "properties": {
+              "model_state": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

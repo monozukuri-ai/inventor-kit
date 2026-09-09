@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "scope": "Fixed public regression inputs; paths are relative to fixtures/public. No host-specific timing targets.",
+  "cases": [
+    {
+      "operation": "metadata",
+      "file": "SamplePart.ipt",
+      "sha256": "bee6799e31a05826adab73d807b14b68e6cfcef83bab1129efd9ab20b53937b4"
+    },
+    {
+      "operation": "read",
+      "file": "SamplePart.ipt",
+      "sha256": "bee6799e31a05826adab73d807b14b68e6cfcef83bab1129efd9ab20b53937b4"
+    },
+    {
+      "operation": "read",
+      "file": "INV_nist_ctc_02_asme1_2021.ipt",
+      "sha256": "d0027e6469e71bdc7c9ed75c67ee8dafea1dd16e78e72249c1825f918168573d"
+    },
+    {
+      "operation": "geometry",
+      "file": "Cylinder.ipt",
+      "sha256": "31ce6eacb36f0b9579aa5395508da34b2acddf665235515a845dfcbc91cfe552"
+    },
+    {
+      "operation": "assembly",
+      "file": "m5-samplebg/Subassembly.iam",
+      "sha256": "d3c7f29cc079297d14df26b5e81e906e646d856cbc68f001c5fa7f13f1e130ca"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+/target/
+/.venv/
+__pycache__/
+*.pyc
+*.so
+*.pyd
+/dist/
+/internal/
+/fixtures/public/
+/.cargo/config.toml
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+/fuzz/coverage/

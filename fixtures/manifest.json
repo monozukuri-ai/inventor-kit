@@ -1,0 +1,1520 @@
+[
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.1.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.1.ipt",
+    "bytes": 64000,
+    "sha256": "81991b3a259013dec1d96494f09bc15c067aabd27bb8b162cc7254b13e9c699e",
+    "file": "Demo-Status-0.1.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 1
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 2,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.2.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.2.ipt",
+    "bytes": 120320,
+    "sha256": "17281ca58a5b669058875a0e81e8f3dbea318e240afdea9587627b265d55329f",
+    "file": "Demo-Status-0.2.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 187
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 188,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.3.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.3.ipt",
+    "bytes": 137216,
+    "sha256": "70625c9de97a8bd7f523b1aba9a2f772039edae6e54b92f88ed57c753c1dad5f",
+    "file": "Demo-Status-0.3.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 636
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 637,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.4.1.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.4.1.ipt",
+    "bytes": 123904,
+    "sha256": "ed1e17ce4662d25084938cddec957df5bb72b297c0c91c164e86c8e6de6de4dd",
+    "file": "Demo-Status-0.4.1.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 345
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 346,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.4.2.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.4.2.ipt",
+    "bytes": 225280,
+    "sha256": "5eb0b62c7538c641ee2564e13ce27e376ae8368e10f901872368abfb84ba4372",
+    "file": "Demo-Status-0.4.2.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 317
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 318,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.4.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.4.ipt",
+    "bytes": 212992,
+    "sha256": "aef81f0d6ae05838337f7139bcb8bc31606873e57eaa10e9302316f0bd1a80b9",
+    "file": "Demo-Status-0.4.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 788
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 789,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "jmplonka/InventorLoader",
+    "commit": "e94bdf5e29052a0dc7ce6fdf755e956ae507caec",
+    "upstream_path": "Demo-Status/Demo-Status-0.6.ipt",
+    "url": "https://raw.githubusercontent.com/jmplonka/InventorLoader/e94bdf5e29052a0dc7ce6fdf755e956ae507caec/Demo-Status/Demo-Status-0.6.ipt",
+    "bytes": 838656,
+    "sha256": "a60735856b6c9ab1d2456bcc7519a392e88ecfd766a0dd45c7a3c72720389f8a",
+    "file": "Demo-Status-0.6.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "inventorloader-demo-status",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 19,
+      "sab_save_version": 22000,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 304
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 305,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/BoltedConnection.iam",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/BoltedConnection.iam",
+    "bytes": 223232,
+    "sha256": "f6052c03a5c028ff813c59fa277825abf98a6b613b89cc57cc9cd9f65e834679",
+    "file": "BoltedConnection.iam",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "inventory"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": null
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "geometry_unavailable",
+      "records": null,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/Cylinder.ipt",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/Cylinder.ipt",
+    "bytes": 252416,
+    "sha256": "31ce6eacb36f0b9579aa5395508da34b2acddf665235515a845dfcbc91cfe552",
+    "file": "Cylinder.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 31,
+      "sab_save_version": 23200,
+      "codec": "zstd",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 37
+      },
+      "geometry": {
+        "provider": "analytic",
+        "status": "regression_only"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 38,
+      "converted": true,
+      "geometry": [
+        {
+          "valid": true,
+          "volume_mm3": 4908.738521234052,
+          "area_mm2": 1767.1458676442585,
+          "faces": 3,
+          "solids": 1,
+          "bbox_mm": [
+            -12.5,
+            0.0,
+            -12.5,
+            12.5,
+            10.0,
+            12.5
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/Fishing Rod/Workspaces/_Fishing Reel Assembly.ipn",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/Fishing%20Rod/Workspaces/_Fishing%20Reel%20Assembly.ipn",
+    "bytes": 3956736,
+    "sha256": "c97e9637b69c2810dc2b774bee8cb084ea8df4f4e821d8f5ea14914a05808489",
+    "file": "_Fishing Reel Assembly.ipn",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "inventory"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": null
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "geometry_unavailable",
+      "records": null,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/Fishing Rod/Workspaces/_Fishing Rod Assembly.idw",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/Fishing%20Rod/Workspaces/_Fishing%20Rod%20Assembly.idw",
+    "bytes": 7021568,
+    "sha256": "e50760e2969eae8bb47565026fa52697d8698ec744b902bdc59fff508b1d8cdc",
+    "file": "_Fishing Rod Assembly.idw",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "inventory"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": null
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "geometry_unavailable",
+      "records": null,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/Fishing Rod/Workspaces/_Fishing Rod Label.ipn",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/Fishing%20Rod/Workspaces/_Fishing%20Rod%20Label.ipn",
+    "bytes": 559616,
+    "sha256": "911c1a53871cf199a83a6957e0d55dc3ed2408af04b7c830b666060ad24ed87c",
+    "file": "_Fishing Rod Label.ipn",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "inventory"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": null
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "geometry_unavailable",
+      "records": null,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/SampleBg.idw",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/SampleBg.idw",
+    "bytes": 1537536,
+    "sha256": "c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e",
+    "file": "SampleBg.idw",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "inventory"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": null
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "geometry_unavailable",
+      "records": null,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "TWiesendanger/ExtrabbitCode.Inventor.MetaReader",
+    "commit": "cf9b17c69800aaab729b855ab630759eae750e4f",
+    "upstream_path": "src/InventorMeta.App/Assets/SampleFiles/SampleBg/SamplePart.ipt",
+    "url": "https://raw.githubusercontent.com/TWiesendanger/ExtrabbitCode.Inventor.MetaReader/cf9b17c69800aaab729b855ab630759eae750e4f/src/InventorMeta.App/Assets/SampleFiles/SampleBg/SamplePart.ipt",
+    "bytes": 530432,
+    "sha256": "bee6799e31a05826adab73d807b14b68e6cfcef83bab1129efd9ab20b53937b4",
+    "file": "SamplePart.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "metareader-samplebg",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 31,
+      "sab_save_version": 23200,
+      "codec": "zstd",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 130
+      },
+      "geometry": {
+        "provider": "analytic",
+        "status": "regression_only"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 131,
+      "converted": true,
+      "geometry": [
+        {
+          "valid": true,
+          "volume_mm3": 3750.0,
+          "area_mm2": 1550.0,
+          "faces": 6,
+          "solids": 1,
+          "bbox_mm": [
+            -7.500000000000002,
+            0.0,
+            -12.5,
+            7.500000000000004,
+            10.0,
+            12.5
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "archive_member": "NIST-STC-PMI-v4/Inventor/INV_nist_ftc_06_asme1_2024.ipt",
+    "bytes": 990208,
+    "sha256": "3b6ef80aeb2aafb65327461ff04a33140d0a6888edc272c51273c7a1ab6e35e6",
+    "url": "https://www.nist.gov/document/nist-stc-pmi-v4",
+    "source_group": "nist-stc",
+    "archive_sha256": "bb4fb9939476542af6e90fd2616b4e897756916494a4c92f11404fc13dd1aba8",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/06/18/NIST-STC-PMI-v4.zip",
+    "file": "INV_nist_ftc_06_asme1_2024.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 28,
+      "sab_save_version": 22900,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 3002
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 3003,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-STC-PMI-v4/Inventor/INV_nist_ftc_07_asme1_2024.ipt",
+    "bytes": 1144832,
+    "sha256": "b691d3d29a73ee9e0be4290692f79a85c7829754f786beff2fa901971c4f6a68",
+    "url": "https://www.nist.gov/document/nist-stc-pmi-v4",
+    "source_group": "nist-stc",
+    "archive_sha256": "bb4fb9939476542af6e90fd2616b4e897756916494a4c92f11404fc13dd1aba8",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/06/18/NIST-STC-PMI-v4.zip",
+    "file": "INV_nist_ftc_07_asme1_2024.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 28,
+      "sab_save_version": 22900,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 4801
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 4802,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-STC-PMI-v4/Inventor/INV_nist_ftc_08_asme1_2024.ipt",
+    "bytes": 1047552,
+    "sha256": "8fde251df9385988984a6a81f2f6b07cb113a862f87d931ca08abac4da5867f1",
+    "url": "https://www.nist.gov/document/nist-stc-pmi-v4",
+    "source_group": "nist-stc",
+    "archive_sha256": "bb4fb9939476542af6e90fd2616b4e897756916494a4c92f11404fc13dd1aba8",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/06/18/NIST-STC-PMI-v4.zip",
+    "file": "INV_nist_ftc_08_asme1_2024.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 28,
+      "sab_save_version": 22900,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 5153
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 5154,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-STC-PMI-v4/Inventor/INV_nist_ftc_09_asme1_2024.ipt",
+    "bytes": 844800,
+    "sha256": "02cd8a89bedb341b39e65461859500769efde3ea33e78d142825d5d2bde71b37",
+    "url": "https://www.nist.gov/document/nist-stc-pmi-v4",
+    "source_group": "nist-stc",
+    "archive_sha256": "bb4fb9939476542af6e90fd2616b4e897756916494a4c92f11404fc13dd1aba8",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/06/18/NIST-STC-PMI-v4.zip",
+    "file": "INV_nist_ftc_09_asme1_2024.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 28,
+      "sab_save_version": 22900,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 2164
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 2165,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-STC-PMI-v4/Inventor/INV_nist_ftc_10_asme1_2024.ipt",
+    "bytes": 1199616,
+    "sha256": "142317b7adec77791951180379673b82e138bf9446b713fc79f4e19905a25deb",
+    "url": "https://www.nist.gov/document/nist-stc-pmi-v4",
+    "source_group": "nist-stc",
+    "archive_sha256": "bb4fb9939476542af6e90fd2616b4e897756916494a4c92f11404fc13dd1aba8",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/06/18/NIST-STC-PMI-v4.zip",
+    "file": "INV_nist_ftc_10_asme1_2024.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 28,
+      "sab_save_version": 22900,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 3880
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 3881,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ctc_01_asme1_2021.ipt",
+    "bytes": 492544,
+    "sha256": "c3716769b86d5fb7db9b65fa4c785c0f98db92258af0a801d544ab7d83251ec3",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ctc_01_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 3043
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 3044,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ctc_02_asme1_2021.ipt",
+    "bytes": 1330176,
+    "sha256": "d0027e6469e71bdc7c9ed75c67ee8dafea1dd16e78e72249c1825f918168573d",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ctc_02_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 8119
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 8120,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ctc_03_asme1_2021.ipt",
+    "bytes": 498688,
+    "sha256": "6015216e51931b3ff173f1fdccef1583b37d31540d12914319b59d5d6ef5011c",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ctc_03_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 2509
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 2510,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ctc_04_asme1_2021.ipt",
+    "bytes": 802816,
+    "sha256": "c4b483d35ecdeeae98f8bfc206fb5d5e0c459c622c9e0fe34d55593478089d7f",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ctc_04_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 6221
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 6222,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ctc_05_asme1_2021.ipt",
+    "bytes": 643072,
+    "sha256": "27af6adf58e41f13d18291c4e4ea5bf1ac4ed571751fb1c538c2d45feb255c26",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ctc_05_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 3147
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 3148,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ftc_06_asme1_2021.ipt",
+    "bytes": 753152,
+    "sha256": "b726dec98a86e26fe9987bbbdeaff34396859130d576ae5bc3be7a69d7e60891",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ftc_06_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 2928
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 2929,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ftc_07_asme1_2021.ipt",
+    "bytes": 1210368,
+    "sha256": "afa1293e6d8852d04c0733947578d8f19949d99f49227521c248b9dc4104d99c",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ftc_07_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 26,
+      "sab_save_version": 22700,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 5196
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 5197,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ftc_08_asme1_2021.ipt",
+    "bytes": 942080,
+    "sha256": "d501948d2e752d1a4a24165873340b7effcd31194092b0033c46a86939b61fd1",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ftc_08_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 5167
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 5168,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ftc_09_asme1_2021.ipt",
+    "bytes": 673280,
+    "sha256": "98e01cb4bca340c3d2e8604893ace7ed3252975e27de611844c004bc70e3b3ac",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ftc_09_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 2134
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 2135,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ftc_10_asme1_2021.ipt",
+    "bytes": 969728,
+    "sha256": "58db08fc38f417e63cea961e7cbb5d853ca5f9210c64a0ed9a0c4cbc1d556acd",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ftc_10_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 3948
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 3949,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "archive_member": "NIST-FTC-CTC-PMI-CAD-models/Inventor 2021/INV_nist_ftc_11_asme1_2021.ipt",
+    "bytes": 212992,
+    "sha256": "0f507d3d753855324a56088a387581fadfaf63b639c1231c2429f5632af76163",
+    "url": "https://www.nist.gov/document/nist-ftc-ctc-pmi-cad-models",
+    "source_group": "nist-ftc-ctc",
+    "archive_sha256": "17e14dbf207f447f16e0182a7eda5254ee19afff591dd409b8b510103dd05d10",
+    "resolved_url": "https://www.nist.gov/system/files/documents/noindex/2024/05/07/NIST-FTC-CTC-PMI-CAD-models.zip",
+    "file": "INV_nist_ftc_11_asme1_2021.ipt",
+    "license_notice": "Download-only fixture; see upstream terms. No source code incorporated.",
+    "family_id": "nist-pmi-suite",
+    "split": "regression",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": {
+      "rse_db_schema": 31,
+      "meta_version": 8,
+      "segment_major": 25,
+      "sab_save_version": 22600,
+      "codec": "zlib",
+      "evidence": "stage3 structural validation"
+    },
+    "comparison": {
+      "framing": {
+        "provider": "ezdxf",
+        "scope": "record framing only",
+        "records": 113
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "status": "not_collected",
+        "provider": null
+      }
+    },
+    "baseline": {
+      "status": "decoded_subset",
+      "records": 114,
+      "converted": false,
+      "geometry": null
+    }
+  },
+  {
+    "repo": "lis-epfl/iisr",
+    "commit": "1c910f665d439ac9b49e2bf0d10523e33c54ffda",
+    "upstream_path": "CAD/Battery.ipt",
+    "url": "https://raw.githubusercontent.com/lis-epfl/iisr/1c910f665d439ac9b49e2bf0d10523e33c54ffda/CAD/Battery.ipt",
+    "bytes": 92160,
+    "sha256": "92ab7090945293e4be24c9e3c06d6bfbd8e095cec9a2ea0b01c03f69b09e7494",
+    "file": "EPFL_Battery.ipt",
+    "license_notice": "Download-only CAD fixture; upstream repository MIT, individual CAD provenance not independently audited. Not redistributed.",
+    "family_id": "epfl-iisr",
+    "split": "holdout",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "provider": null,
+        "status": "not_collected"
+      }
+    },
+    "baseline": null,
+    "holdout_policy": "Selected by source paths before parsing; do not tune parser admission on these results. All IISR variants remain in one family."
+  },
+  {
+    "repo": "lis-epfl/iisr",
+    "commit": "1c910f665d439ac9b49e2bf0d10523e33c54ffda",
+    "upstream_path": "CAD/CFHoneycomb.ipt",
+    "url": "https://raw.githubusercontent.com/lis-epfl/iisr/1c910f665d439ac9b49e2bf0d10523e33c54ffda/CAD/CFHoneycomb.ipt",
+    "bytes": 228352,
+    "sha256": "3a11820de2e827f02ad14abaebde762af22c02a1a3d18da8ba205c3aa57eca52",
+    "file": "EPFL_CFHoneycomb.ipt",
+    "license_notice": "Download-only CAD fixture; upstream repository MIT, individual CAD provenance not independently audited. Not redistributed.",
+    "family_id": "epfl-iisr",
+    "split": "holdout",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "provider": null,
+        "status": "not_collected"
+      }
+    },
+    "baseline": null,
+    "holdout_policy": "Selected by source paths before parsing; do not tune parser admission on these results. All IISR variants remain in one family."
+  },
+  {
+    "repo": "lis-epfl/iisr",
+    "commit": "1c910f665d439ac9b49e2bf0d10523e33c54ffda",
+    "upstream_path": "CAD/Elytron_140mm_v1.ipt",
+    "url": "https://raw.githubusercontent.com/lis-epfl/iisr/1c910f665d439ac9b49e2bf0d10523e33c54ffda/CAD/Elytron_140mm_v1.ipt",
+    "bytes": 516608,
+    "sha256": "6cd73f8775ee9e4e9dc5769bc8aa9741f9536175af649afaa445dae448fd4382",
+    "file": "EPFL_Elytron_140mm_v1.ipt",
+    "license_notice": "Download-only CAD fixture; upstream repository MIT, individual CAD provenance not independently audited. Not redistributed.",
+    "family_id": "epfl-iisr",
+    "split": "holdout",
+    "purposes": [
+      "container",
+      "carrier",
+      "typed_decode",
+      "geometry"
+    ],
+    "profile": null,
+    "comparison": {
+      "framing": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "geometry": {
+        "provider": null,
+        "status": "not_collected"
+      },
+      "current_state": {
+        "provider": null,
+        "status": "not_collected"
+      }
+    },
+    "baseline": null,
+    "holdout_policy": "Selected by source paths before parsing; do not tune parser admission on these results. All IISR variants remain in one family."
+  }
+]

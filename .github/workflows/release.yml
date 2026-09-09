@@ -1,0 +1,158 @@
+name: Python distributions
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-distributions-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Check exact release tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+        run: python scripts/check_release.py --tag "$RELEASE_TAG"
+
+  verify:
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  wheels:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            manylinux: "2014"
+            interpreter: python3.11
+          - platform: windows-x86_64
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            manylinux: auto
+            interpreter: python
+          - platform: macos-arm64
+            runner: macos-15
+            target: aarch64-apple-darwin
+            manylinux: auto
+            interpreter: python
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            manylinux: auto
+            interpreter: python
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        id: minimum
+        with:
+          python-version: "3.10"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Build ABI3 wheel from registry dependencies
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          maturin-version: v1.11.5
+          rust-toolchain: 1.93.0
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --locked --out dist --interpreter ${{ matrix.interpreter }} --compatibility pypi
+      - name: Inspect archive and obtain pinned smoke fixtures
+        run: |
+          python scripts/check_distribution.py dist/*.whl
+          python scripts/fetch_public_samples.py
+          python scripts/fetch_assembly_samples.py
+          python scripts/check_corpus.py
+      - name: Cold install, parse, geometry and STEP checks on Python 3.10 and 3.11
+        env:
+          MINIMUM_PYTHON: ${{ steps.minimum.outputs.python-path }}
+        run: |
+          python scripts/smoke_distribution.py --wheel dist/*.whl --python "$MINIMUM_PYTHON"
+          python scripts/smoke_distribution.py --wheel dist/*.whl --python python
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distribution-${{ matrix.platform }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    needs: verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.93.0
+      - name: Build and independently rebuild source distribution
+        run: |
+          python -m pip install 'maturin[patchelf]==1.11.5'
+          cargo fetch --locked
+          maturin sdist --out dist
+          python scripts/check_distribution.py dist/*.tar.gz
+          python scripts/fetch_public_samples.py
+          python scripts/fetch_assembly_samples.py
+          python scripts/smoke_distribution.py --sdist dist/*.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distribution-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'release' && github.repository == 'monozukuri-ai/inventor-kit'
+    needs: [wheels, sdist]
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/inventor-kit
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: distribution-*
+          path: dist
+          merge-multiple: true
+      - name: Check all platforms, source lock and existing PyPI hashes
+        run: python scripts/check_release.py --dist dist --check-pypi
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist/
+          skip-existing: true
+          print-hash: true

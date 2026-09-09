@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  RUSTUP_TOOLCHAIN: 1.93.0
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.93.0
+          components: rustfmt, clippy
+      # No sibling checkout or development Cargo overrides. This deliberately
+      # requires the published bridge and a compatible published cq-acis wheel.
+      - name: Verify registry dependencies and Rust
+        run: |
+          python scripts/check_public_tree.py
+          python scripts/check_dependencies.py
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo test --workspace --all-features --locked
+      - name: Build Python extension
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install 'maturin[patchelf]==1.11.5'
+          source .venv/bin/activate
+          maturin develop --release --locked --extras validation
+      - name: Fetch pinned regression and holdout files
+        run: |
+          .venv/bin/python scripts/fetch_public_samples.py
+          .venv/bin/python scripts/fetch_assembly_samples.py
+      - name: Python and corpus checks
+        run: |
+          .venv/bin/python scripts/run_tests.py
+          .venv/bin/python scripts/validate_public_samples.py
+          .venv/bin/python scripts/validate_document_samples.py
+          .venv/bin/python scripts/validate_candidate_samples.py
+          .venv/bin/python scripts/validate_geometry.py
+          .venv/bin/python scripts/validate_components.py
+          .venv/bin/python scripts/validate_topology.py
+          .venv/bin/python scripts/validate_assembly.py
+          .venv/bin/python scripts/benchmark_parser.py
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: nightly-2026-02-02
+      - name: ASan fuzz smoke on regression seeds
+        run: |
+          cargo install cargo-fuzz --version 0.13.2 --locked
+          cargo fetch --manifest-path fuzz/Cargo.toml --locked
+          .venv/bin/python scripts/seed_fuzz_corpus.py
+          .venv/bin/python scripts/run_fuzz.py --seconds 30
+      - name: Prepare public validation summary
+        run: .venv/bin/python scripts/summarize_validation.py --environment github-actions --output dist/validation-summary.json
+      - name: Build and inspect distributions
+        run: |
+          source .venv/bin/activate
+          maturin build --release --locked --out dist
+          maturin sdist --out dist
+          python scripts/check_distribution.py dist/*.whl dist/*.tar.gz
+      - name: Install wheel and rebuild sdist outside checkout
+        run: |
+          .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl
+          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: validation-report
+          path: dist/validation-summary.json
+          if-no-files-found: warn

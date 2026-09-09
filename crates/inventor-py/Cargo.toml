@@ -1,0 +1,17 @@
+[package]
+name = "inventor-py"
+version = "0.1.0"
+edition = "2021"
+description = "Python bindings for the Inventor part carrier reader"
+license = "MIT"
+publish = false
+
+[lib]
+name = "_inventor"
+crate-type = ["cdylib"]
+
+[dependencies]
+inventor-core = { path = "../inventor-core" }
+acis-py-bridge.workspace = true
+pyo3.workspace = true
+serde_json.workspace = true

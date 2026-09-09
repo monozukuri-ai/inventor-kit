@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "scope": "Saved B-rep regression metrics from the local 0.1.0 validation with cq-acis 0.3.1; same-converter regression, not a vendor/current-state oracle. Holdouts are excluded.",
+  "packages": {
+    "inventor-kit": "0.1.0",
+    "cq-acis": "0.3.1",
+    "cadquery": "2.8.0",
+    "cadquery-ocp": "7.9.3.1.1"
+  },
+  "results": [
+    {
+      "file": "Demo-Status-0.2.ipt",
+      "sha256": "17281ca58a5b669058875a0e81e8f3dbea318e240afdea9587627b265d55329f",
+      "split": "regression",
+      "family_id": "inventorloader-demo-status",
+      "converted": true,
+      "metrics": {
+        "solid_count": 3,
+        "faces": 12,
+        "volume_mm3": 1268.2612883398176,
+        "area_mm2": 917.9875000077577,
+        "bbox_mm": [
+          -15.325255417951414,
+          -11.74631297568691,
+          -9.288263888866556,
+          15.167668833393066,
+          13.135588762535349,
+          9.288263888866553
+        ]
+      }
+    },
+    {
+      "file": "Demo-Status-0.3.ipt",
+      "sha256": "70625c9de97a8bd7f523b1aba9a2f772039edae6e54b92f88ed57c753c1dad5f",
+      "split": "regression",
+      "family_id": "inventorloader-demo-status",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 32,
+        "volume_mm3": 508.9657502635671,
+        "area_mm2": 502.35953941023223,
+        "bbox_mm": [
+          -7.0,
+          -4.0,
+          -2.0,
+          7.0,
+          4.000000000000002,
+          12.0
+        ]
+      }
+    },
+    {
+      "file": "Demo-Status-0.4.ipt",
+      "sha256": "aef81f0d6ae05838337f7139bcb8bc31606873e57eaa10e9302316f0bd1a80b9",
+      "split": "regression",
+      "family_id": "inventorloader-demo-status",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 49,
+        "volume_mm3": 111.57235244689993,
+        "area_mm2": 125.42808557017761,
+        "bbox_mm": [
+          -2.5,
+          -2.5,
+          -2.5000000000000004,
+          2.5,
+          2.5,
+          2.5
+        ]
+      }
+    },
+    {
+      "file": "Cylinder.ipt",
+      "sha256": "31ce6eacb36f0b9579aa5395508da34b2acddf665235515a845dfcbc91cfe552",
+      "split": "regression",
+      "family_id": "metareader-samplebg",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 3,
+        "volume_mm3": 4908.738521234052,
+        "area_mm2": 1767.1458676442585,
+        "bbox_mm": [
+          -12.5,
+          0.0,
+          -12.5,
+          12.5,
+          10.0,
+          12.5
+        ]
+      }
+    },
+    {
+      "file": "SamplePart.ipt",
+      "sha256": "bee6799e31a05826adab73d807b14b68e6cfcef83bab1129efd9ab20b53937b4",
+      "split": "regression",
+      "family_id": "metareader-samplebg",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 6,
+        "volume_mm3": 3750.0,
+        "area_mm2": 1550.0,
+        "bbox_mm": [
+          -7.500000000000002,
+          0.0,
+          -12.5,
+          7.500000000000004,
+          10.0,
+          12.5
+        ]
+      }
+    },
+    {
+      "file": "INV_nist_ftc_09_asme1_2024.ipt",
+      "sha256": "02cd8a89bedb341b39e65461859500769efde3ea33e78d142825d5d2bde71b37",
+      "split": "regression",
+      "family_id": "nist-pmi-suite",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 91,
+        "volume_mm3": 136162.8328545775,
+        "area_mm2": 95437.41811046725,
+        "bbox_mm": [
+          -139.70000000000002,
+          0.0,
+          -95.25000000000003,
+          139.70000000000005,
+          3.048,
+          95.25000000000006
+        ]
+      }
+    },
+    {
+      "file": "INV_nist_ctc_03_asme1_2021.ipt",
+      "sha256": "6015216e51931b3ff173f1fdccef1583b37d31540d12914319b59d5d6ef5011c",
+      "split": "regression",
+      "family_id": "nist-pmi-suite",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 131,
+        "volume_mm3": 331765.3777648014,
+        "area_mm2": 354882.71737543156,
+        "bbox_mm": [
+          -59.05500000000017,
+          -76.19999999999996,
+          -249.55500000000015,
+          426.3898000000006,
+          87.26453864004395,
+          54.17884410081429
+        ]
+      }
+    },
+    {
+      "file": "INV_nist_ftc_09_asme1_2021.ipt",
+      "sha256": "98e01cb4bca340c3d2e8604893ace7ed3252975e27de611844c004bc70e3b3ac",
+      "split": "regression",
+      "family_id": "nist-pmi-suite",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 91,
+        "volume_mm3": 136162.8328545775,
+        "area_mm2": 95437.41811046725,
+        "bbox_mm": [
+          -139.70000000000002,
+          0.0,
+          -95.25000000000003,
+          139.70000000000005,
+          3.048,
+          95.25000000000006
+        ]
+      }
+    },
+    {
+      "file": "INV_nist_ftc_11_asme1_2021.ipt",
+      "sha256": "0f507d3d753855324a56088a387581fadfaf63b639c1231c2429f5632af76163",
+      "split": "regression",
+      "family_id": "nist-pmi-suite",
+      "converted": true,
+      "metrics": {
+        "solid_count": 1,
+        "faces": 8,
+        "volume_mm3": 5138.52197251457,
+        "area_mm2": 5471.088951573921,
+        "bbox_mm": [
+          -31.500000000000004,
+          -31.500000000000004,
+          0.0,
+          31.500000000000004,
+          31.500000000000004,
+          3.0200001000000003
+        ]
+      }
+    }
+  ]
+}

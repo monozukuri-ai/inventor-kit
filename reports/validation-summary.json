@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-10",
+  "environment": "local",
+  "status": "passed",
+  "scope": "Fixed public corpus regression; not vendor/current-state or platform release qualification",
+  "python_tests": {
+    "tests": 63,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  "corpus": {
+    "fixtures": 45,
+    "holdouts": 4
+  },
+  "parts": {
+    "regression": {
+      "total": 30,
+      "decoded_subset": 25,
+      "converted": 9
+    },
+    "holdout": {
+      "total": 3,
+      "decoded_subset": 3,
+      "converted": 1
+    }
+  },
+  "assembly": {
+    "fixture_entries": 12,
+    "regression_passed": true,
+    "unsupported_profile_holdout_retained": true,
+    "current_state_verified": false
+  },
+  "fuzz": {
+    "passed": true,
+    "holdouts_used": false,
+    "scope": "Time-bounded ASan mutation smoke; not exhaustive safety proof"
+  },
+  "release_qualification": "Reported separately by the platform build/install jobs"
+}

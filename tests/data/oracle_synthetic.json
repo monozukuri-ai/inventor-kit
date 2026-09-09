@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bytes": 512,
+    "file_name": "synthetic.ipt"
+  },
+  "provider": {
+    "name": "synthetic",
+    "version": "test-1",
+    "platform": "test",
+    "collector_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "capture": {
+    "acquired_at": "2026-09-09T00:00:00Z",
+    "scope": "synthetic",
+    "model_state": null,
+    "source_modified": false,
+    "update_performed": false
+  },
+  "document": {
+    "kind": "part",
+    "internal_name": null,
+    "properties": [],
+    "references": [],
+    "diagnostics": []
+  },
+  "geometry": {
+    "status": "available",
+    "units": "mm",
+    "body_count": 1,
+    "solid_count": 1,
+    "faces": 6,
+    "volume_mm3": 6.0,
+    "area_mm2": 22.0,
+    "bbox_mm": [
+      0,
+      0,
+      0,
+      1,
+      2,
+      3
+    ],
+    "bbox_kind": "precise"
+  },
+  "limitations": [
+    "Synthetic test data, not an Autodesk capture."
+  ]
+}

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "inventor-kit"
+version = "0.1.0"
+description = "Bounded Rust Inventor part carrier reader with shared ACIS models"
+requires-python = ">=3.10"
+dependencies = ["cq-acis>=0.3.1,<0.4"]
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*.txt"]
+readme = "README.md"
+
+[project.optional-dependencies]
+validation = ["jsonschema>=4.23,<5", "olefile==0.46", "Pillow>=10,<13", "zstandard>=0.23,<1"]
+oracle = ["jsonschema>=4.23,<5", "pywin32; sys_platform == 'win32'"]
+
+[tool.maturin]
+manifest-path = "crates/inventor-py/Cargo.toml"
+module-name = "inventor_kit._inventor"
+python-source = "python"
+features = ["pyo3/extension-module"]
+exclude = ["internal/**", "fixtures/public/**", "reports/**", "target/**", "fuzz/**"]
+include = [
+    {path = "docs/*.md", format = "sdist"},
+    {path = "schemas/vendor-oracle-v1.schema.json", format = "sdist"},
+    {path = "python/inventor_kit/capabilities.json", format = "sdist"},
+]

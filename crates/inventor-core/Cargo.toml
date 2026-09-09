@@ -1,0 +1,22 @@
+[package]
+name = "inventor-core"
+version = "0.1.0"
+edition = "2021"
+description = "Bounded CFB and RSe Inventor part carrier reader"
+license = "MIT"
+
+[features]
+fuzzing = []
+
+[dependencies]
+acis-core.workspace = true
+cfb = "0.14.0"
+flate2 = "1.1.9"
+zstd = "0.13.3"
+serde.workspace = true
+encoding_rs = "0.8.35"
+crc32fast = "1.5"
+sha2 = "0.10.9"
+
+[dev-dependencies]
+serde_json.workspace = true
