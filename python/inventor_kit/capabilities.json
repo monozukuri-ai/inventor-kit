@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "support_level": "verified_subset",
-  "runtime": {"offline": true, "inventor_required": false, "python_minimum": "3.10"},
+  "runtime": {"offline": true, "inventor_required": false, "python_minimum": "3.11"},
   "document_metadata": {
     "extensions": ["ipt", "iam", "idw", "ipn"],
     "scope": "bounded OLE properties and thumbnails; not drawing or feature semantics"

@@ -14,7 +14,7 @@ IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
 
 ## インストール
 
-Python 3.10 以降、`cq-acis>=0.3.1,<0.4`、共通モデル API 2 を使用します。
+Python 3.11 以降、`cq-acis>=0.3.2,<0.4`、共通モデル API 2 を使用します。
 公開済みの互換 wheel がある環境では、次のようにインストールできます。
 
 ```sh
@@ -22,8 +22,8 @@ python -m pip install inventor-kit
 ```
 
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.2.1 が必要です。互換依存の公開を前提とする手順であり、必要版が未公開の場合は
-利用できません。[開発・検証手順](docs/development.md)と[リリース条件](docs/releasing.md)を参照してください。
+0.3.2 を crates.io から取得します。[開発・検証手順](docs/development.md)と
+[リリース条件](docs/releasing.md)を参照してください。
 
 ## 部品の読み込み
 

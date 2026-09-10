@@ -2,8 +2,9 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.2.1` と `acis-py-bridge=0.2.1`、Python は
-`cq-acis>=0.3.1,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.3.2` と `acis-py-bridge=0.3.2`、Python は
+`cq-acis>=0.3.2,<0.4` と共通モデル API 2 を必要とします。
+Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。
 この資料は公開済み・CI 通過済みという宣言ではありません。
@@ -25,15 +26,17 @@ Rust は `acis-core=0.2.1` と `acis-py-bridge=0.2.1`、Python は
 
 | artifact | ビルド対象 | インストール確認 |
 | --- | --- | --- |
-| ABI3 wheel | Linux x86_64 / manylinux2014 | Python 3.10 / 3.11 |
-| ABI3 wheel | Windows x86_64 | Python 3.10 / 3.11 |
-| ABI3 wheel | macOS arm64 | Python 3.10 / 3.11 |
-| ABI3 wheel | macOS x86_64 | Python 3.10 / 3.11 |
+| ABI3 wheel | Linux x86_64 / manylinux2014 | Python 3.11 / 3.12 |
+| ABI3 wheel | Windows x86_64 | Python 3.11 / 3.12 |
+| ABI3 wheel | macOS arm64 | Python 3.11 / 3.12 |
+| ABI3 wheel | macOS x86_64 | Python 3.11 / 3.12 |
 | sdist | ソース一式 | 別ディレクトリ・新規 target で locked/offline 再ビルド |
 
 wheel の名前・版・ABI/platform tag、CRC、RECORD の hash/size、必要なモジュールと
 ライセンスを照合します。隔離環境で属性読込、形状変換、アセンブリ STEP 往復を行い、
 子プロセスの正常終了を確認します。
+インストール検査は依存先も wheel に限定します。`cp310-abi3` は拡張の ABI 下限で、
+パッケージの利用可能な Python バージョンは `Requires-Python: >=3.11` で制限します。
 
 ```sh
 maturin build --release --locked --out dist

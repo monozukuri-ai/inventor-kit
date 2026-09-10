@@ -20,8 +20,8 @@ def check_graph(metadata, root_name='inventor-py', allow_local_bridge=False, all
     result = {}
     for name in ('acis-core', 'acis-py-bridge'):
         found = [packages[i] for i in visited if packages[i]['name'] == name]
-        if len(found) != 1 or found[0]['version'] != '0.2.1':
-            raise ValueError(f'Expected exactly one {name} 0.2.1 in the resolved extension graph')
+        if len(found) != 1 or found[0]['version'] != '0.3.2':
+            raise ValueError(f'Expected exactly one {name} 0.3.2 in the resolved extension graph')
         p = found[0]
         registry = p['source'] == 'registry+https://github.com/rust-lang/crates.io-index'
         if not registry and not (((name == 'acis-py-bridge' and allow_local_bridge) or (name == 'acis-core' and allow_local_core)) and p['source'] is None):

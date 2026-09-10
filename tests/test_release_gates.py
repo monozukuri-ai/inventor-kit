@@ -1,5 +1,6 @@
 """Reject missing corpus, incomplete platform sets and conflicting publish retries."""
 from copy import deepcopy
+from email.message import Message
 import hashlib
 import io
 import json
@@ -13,10 +14,25 @@ import urllib.error
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from check_corpus import verify
 from check_release import artifact_set, check_tag, pypi_conflicts
+from check_distribution import check_metadata
 import inventor_kit as ik
 
 
 class ReleaseGates(unittest.TestCase):
+    def test_distribution_rejects_stale_python_and_cq_acis_requirements(self):
+        meta = Message()
+        for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
+                            ('License-Expression', 'MIT'), ('Requires-Python', '>=3.11'),
+                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.2')]:
+            meta[name] = value
+        check_metadata(meta, '0.1.0')
+        for name, value in [('Requires-Python', '>=3.10'),
+                            ('Requires-Dist', 'cq-acis>=0.3.1,<0.4')]:
+            bad = deepcopy(meta)
+            bad.replace_header(name, value)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                check_metadata(bad, '0.1.0')
+
     def test_corpus_missing_changed_and_escaped_are_errors(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

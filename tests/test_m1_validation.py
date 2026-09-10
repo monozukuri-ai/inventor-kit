@@ -51,14 +51,14 @@ class DependencyIdentity(unittest.TestCase):
     def graph(self):
         registry = 'registry+https://github.com/rust-lang/crates.io-index'
         return {
-            'packages': [dict(id=i, name=name, version='0.2.1', source=source, manifest_path='/fixture/'+i+'/Cargo.toml')
+            'packages': [dict(id=i, name=name, version='0.3.2', source=source, manifest_path='/fixture/'+i+'/Cargo.toml')
                          for i,name,source in [('root','inventor-py',None),('core','acis-core',registry),('bridge','acis-py-bridge',registry)]],
             'resolve': {'nodes': [dict(id='root', dependencies=['core','bridge']),dict(id='core',dependencies=[]),dict(id='bridge',dependencies=['core'])]},
         }
 
     def test_registry_graph_and_explicit_development_override(self):
         graph = self.graph()
-        self.assertEqual(check_graph(graph)['acis-core']['version'], '0.2.1')
+        self.assertEqual(check_graph(graph)['acis-core']['version'], '0.3.2')
         graph['packages'][2]['source'] = None
         with self.assertRaises(ValueError):
             check_graph(graph)
@@ -69,12 +69,19 @@ class DependencyIdentity(unittest.TestCase):
 
     def test_second_core_identity_is_rejected_only_when_linked(self):
         graph = self.graph()
-        graph['packages'].append(dict(id='other-core', name='acis-core', version='0.2.1', source=None, manifest_path='/other/Cargo.toml'))
+        graph['packages'].append(dict(id='other-core', name='acis-core', version='0.3.2', source=None, manifest_path='/other/Cargo.toml'))
         graph['resolve']['nodes'].append(dict(id='other-core', dependencies=[]))
         check_graph(graph)  # An unrelated workspace member is not linked here.
         graph['resolve']['nodes'][2]['dependencies'].append('other-core')
         with self.assertRaises(ValueError):
             check_graph(graph, allow_local_bridge=True)
+
+    def test_previous_dependency_version_is_rejected(self):
+        for name in ('acis-core', 'acis-py-bridge'):
+            graph = self.graph()
+            next(p for p in graph['packages'] if p['name'] == name)['version'] = '0.2.1'
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, '0.3.2'):
+                check_graph(graph)
 
 
 class OracleContract(unittest.TestCase):
@@ -153,9 +160,9 @@ class DevelopmentCoreDependencyTests(unittest.TestCase):
     def test_local_core_needs_its_own_explicit_opt_in(self):
         registry = 'registry+https://github.com/rust-lang/crates.io-index'
         graph = {
-            'packages': [dict(id=i,name=name,version='0.2.1',source=source,manifest_path='/fixture/'+i+'/Cargo.toml')
+            'packages': [dict(id=i,name=name,version='0.3.2',source=source,manifest_path='/fixture/'+i+'/Cargo.toml')
                          for i,name,source in [('root','inventor-py',None),('core','acis-core',None),('bridge','acis-py-bridge',registry)]],
             'resolve': {'nodes': [dict(id='root',dependencies=['core','bridge']),dict(id='core',dependencies=[]),dict(id='bridge',dependencies=['core'])]},
         }
         with self.assertRaises(ValueError):check_graph(graph,allow_local_bridge=True)
-        self.assertEqual(check_graph(graph,allow_local_core=True)['acis-core']['version'],'0.2.1')
+        self.assertEqual(check_graph(graph,allow_local_core=True)['acis-core']['version'],'0.3.2')

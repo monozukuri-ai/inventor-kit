@@ -115,7 +115,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.2.1'):
+                if (package['name'], package['version']) != (name, '0.3.2'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:
@@ -131,10 +131,11 @@ def main():
         subprocess.run([args.python, '-m', 'venv', str(root/'venv')], env=environment, check=True)
         python = root/'venv'/('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
         packages = [str(wheel)] + ([str(args.cq_wheel.resolve())] if args.cq_wheel else [])
-        subprocess.run([str(python), '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', *packages], env=environment, check=True)
+        subprocess.run([str(python), '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--only-binary=:all:', *packages], env=environment, check=True)
         subprocess.run([str(python), '-m', 'pip', 'check'], env=environment, check=True)
-        subprocess.run([str(python), '-I', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve())], cwd=root, env=environment, check=True)
+        subprocess.run([str(python), '-I', '-X', 'faulthandler', '-u', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve())], cwd=root, env=environment, check=True)
         print(json.dumps({'dependency_mode': 'local cq-acis release candidate' if args.cq_wheel else 'PyPI',
+                          'interpreter_shutdown': 'passed',
                           'bridge_mode': 'staged unpublished crate' if args.bridge_crate else 'registry or prebuilt wheel',
                           'core_mode': 'staged unpublished crate' if args.core_crate else 'registry or prebuilt wheel'}))
 

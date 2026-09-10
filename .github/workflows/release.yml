@@ -69,10 +69,10 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         id: minimum
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Build ABI3 wheel from registry dependencies
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
@@ -87,7 +87,7 @@ jobs:
           python scripts/fetch_public_samples.py
           python scripts/fetch_assembly_samples.py
           python scripts/check_corpus.py
-      - name: Cold install, parse, geometry and STEP checks on Python 3.10 and 3.11
+      - name: Cold install, parse, geometry and STEP checks on Python 3.11 and 3.12
         env:
           MINIMUM_PYTHON: ${{ steps.minimum.outputs.python-path }}
         run: |

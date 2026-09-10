@@ -15,6 +15,16 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def check_metadata(meta, version):
+    if (meta['Name'], meta['Version'], meta['License-Expression']) != ('inventor-kit', version, 'MIT'):
+        raise ValueError('Unexpected package name, version or license')
+    if meta['Requires-Python'] != '>=3.11':
+        raise ValueError('Distribution must require Python >=3.11')
+    requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
+    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.2', '<0.4'}:
+        raise ValueError('Distribution does not require the compatible cq-acis API series')
+
+
 def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False):
     version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
     if path.name.endswith('.whl'):
@@ -84,7 +94,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
-            if len(entries) != 1 or entries[0]['version'] != '0.2.1':
+            if len(entries) != 1 or entries[0]['version'] != '0.3.2':
                 raise ValueError(f'Expected one pinned {package}')
             entry = entries[0]
             registry = entry.get('source') == 'registry+https://github.com/rust-lang/crates.io-index' and len(entry.get('checksum', '')) == 64
@@ -102,11 +112,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
     if len(metadata) != 1:
         raise ValueError('Expected one distribution metadata file')
     meta = BytesParser().parsebytes(metadata[0])
-    if (meta['Name'], meta['Version'], meta['License-Expression']) != ('inventor-kit', version, 'MIT'):
-        raise ValueError('Unexpected package name, version or license')
-    requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
-    if len(requirements) != 1 or '>=0.3.1' not in requirements[0] or '<0.4' not in requirements[0]:
-        raise ValueError('Distribution does not require the compatible cq-acis API series')
+    check_metadata(meta, version)
     for suffix in ('LICENSE', 'THIRD_PARTY_NOTICES.md', 'licenses/cadmpeg-Apache-2.0.txt', 'licenses/ezdxf-MIT.txt', 'licenses/cq-acis-MIT.txt', 'licenses/encoding_rs-MIT.txt', 'licenses/encoding_rs-WHATWG.txt', 'licenses/encoding_rs-COPYRIGHT.txt', 'licenses/crc32fast-MIT.txt', 'licenses/sha2-dependencies-MIT.txt'):
         if not any(n == suffix or n.endswith('/'+suffix) for n in contents):
             raise ValueError(f'Missing license/notice: {suffix}')
