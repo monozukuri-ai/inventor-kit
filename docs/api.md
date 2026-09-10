@@ -1,6 +1,8 @@
-# API ガイド
+# API guide
 
-## 文書情報
+English | [日本語](api.ja.md)
+
+## Document metadata
 
 ```python
 import inventor_kit as ik
@@ -14,41 +16,48 @@ for diagnostic in info.diagnostics:
     print(diagnostic.code, diagnostic.severity, diagnostic.source)
 ```
 
-`inspect(bytes, source_id="...")` も利用できます。`read` / `read_file` の結果にも
-同じ `metadata` が付きます。`inspect` は通常は形状を解析せず、cq-acis / CadQuery を
-import しません。対応するサムネイルは `info.thumbnails` に PNG bytes・寸法・出典を返します。
+`inspect(bytes, source_id="...")` is also available. Results from `read` /
+`read_file` include the same `metadata`. By default, `inspect` does not parse
+geometry or import cq-acis / CadQuery. Supported thumbnails are returned in
+`info.thumbnails` with PNG bytes, dimensions, and provenance.
 
-属性は FMTID/PID、型、コードページ、元バイト列、値、出典を保持します。
-文書本体と `MemberDocs` の値を分け、格納場所が異なる候補をすべて返します。
-Model State ごとの有効な上書き値や全状態共通値は確定しません。
+Properties retain their FMTID/PID, type, code page, original bytes, value, and
+provenance. Values from the main document and `MemberDocs` remain separate, and
+all candidates from different storage locations are returned. The reader does
+not determine effective overrides for individual Model States or values shared
+across all states.
 
-## 保存候補と形状
+## Saved candidates and geometry
 
 ```python
 inventory = ik.inspect_file("part.ipt", include_candidates=True)
 for candidate in inventory.geometry.candidates:
     print(candidate.id, candidate.table_status, candidate.state_binding)
 
-# 一覧の候補 ID を確認した後に明示指定できます。
+# Select a candidate explicitly after inspecting its ID in the list.
 # doc = ik.read_file("part.ipt", candidate_id=chosen_id)
 doc = ik.read_file("part.ipt", require_current_state=True)
 ```
 
-候補 ID は入力全体の SHA-256 に結び付きます。別ファイルの ID や古い ID では
-別候補へフォールバックしません。明示選択も現在状態の証明にはなりません。
-`require_current_state=True` は、状態未検証のモデルを返さず診断を残します。
+Candidate IDs are bound to the SHA-256 of the entire input. An ID from another
+file or an outdated ID does not fall back to a different candidate. Explicit
+selection does not prove that a candidate represents the current state.
+`require_current_state=True` withholds unverified models and records diagnostics.
 
-壊れた CFB や入力上限違反は `ValueError`、未対応・曖昧な構造は
-`geometry_unavailable` と診断を返します。`decoded_subset` は保存済み B-rep を
-共通モデルに取り込めたことを表し、形状変換成功やファイル全体の解釈成功を意味しません。
-`doc.model` があっても `doc.to_cadquery()` は未対応曲線・曲面・トリムで停止します。
+Malformed CFB data and input limit violations raise `ValueError`. Unsupported or
+ambiguous structures return `geometry_unavailable` with diagnostics.
+`decoded_subset` means that a saved B-rep was imported into the shared model; it
+does not indicate successful geometry conversion or interpretation of the entire
+file. Even when `doc.model` is available, `doc.to_cadquery()` stops on unsupported
+curves, surfaces, or trims.
 
-`doc.kernel_bytes` は選択したカーネルの元データです。エンティティの `SourceSpan` は
-展開後 B ストリーム内の位置で、IPT の位置ではありません。
-`doc.summary["carrier"]["kernel_offset"]` を引くと `kernel_bytes` 内の位置になります。
-形状座標は Inventor の cm から mm に変換し、SAB ヘッダー倍率は `header_scale` に別途保持します。
+`doc.kernel_bytes` contains the original selected kernel payload. Entity
+`SourceSpan` offsets refer to the decompressed B stream, not the IPT file.
+Subtract `doc.summary["carrier"]["kernel_offset"]` to obtain offsets within
+`kernel_bytes`. Geometry coordinates are converted from Inventor's centimetres
+to millimetres; the SAB header scale is retained separately as `header_scale`.
 
-## アセンブリ
+## Assemblies
 
 ```python
 saved = ik.inspect_assembly_file("assembly.iam")
@@ -62,31 +71,37 @@ report = converted.export_step("assembly.step", allow_partial=True)
 print(report["roundtrip"]["status"])
 ```
 
-`inspect_assembly` とファイル版は、他ファイルや Python の形状モジュールを読み込みません。
-部品定義と occurrence を分け、配置行列は mm・行優先で列ベクトルに作用します。
-検索は入力 IAM の親ディレクトリと明示ルート内に限定し、ネット取得は行いません。
-文書 ID 不一致、同名衝突、欠落、循環、配置未解決を保持し、未知の配置に単位行列を補いません。
+`inspect_assembly` and its file variant do not read other files or import Python
+geometry modules. Part definitions and occurrences remain distinct. Placement
+matrices use millimetres, are stored in row-major order, and act on column vectors.
+File searches are restricted to the input IAM's parent directory and explicit
+search roots, without network retrieval. Document ID mismatches, name collisions,
+missing references, cycles, and unresolved placements remain recorded. Unknown
+placements are not replaced with identity matrices.
 
-`allow_partial=False` が既定です。不完全な変換では部分結果付き
-`AssemblyConversionError` を返します。`allow_unverified_state=True` は保存配置の
-利用を許可する指定であり、現在状態の検証にはなりません。
-`stored_occurrences` は未解釈の UFRx プロパティも型・tag・元位置付きで保持します。
+`allow_partial=False` is the default. Incomplete conversion raises
+`AssemblyConversionError` with partial results. `allow_unverified_state=True`
+permits using saved placements; it does not verify the current state.
+`stored_occurrences` also retains uninterpreted UFRx properties with their types,
+tags, and original offsets.
 
-STEP は既存ファイルを上書きせず、付属 JSON に入力 hash と不足情報を保存します。
-XDE 再読込で階層・名前・配置・形状量・部品単位の不透明 RGB を照合します。
-色の対象は CadQuery に設定した値で、Inventor の native 色は未解析です。
+Assembly STEP export refuses to overwrite existing files. Its accompanying JSON
+report records input hashes and omissions. XDE reimport checks hierarchy, names,
+placements, geometry metrics, and opaque RGB values per part. Colors are the
+values set in CadQuery; native Inventor colors are not decoded.
 
-## 文書単位の上限
+## Per-document limits
 
-`Limits` は `read` / `inspect` とファイル版、アセンブリの検査・解決 API に渡せます。
-Python と Rust の両方が 0 以上の整数であること、既定値以下であることを検証します。
+`Limits` can be passed to `read` / `inspect`, their file variants, and the
+assembly inspection and resolution APIs. Both Python and Rust validate that
+values are nonnegative integers no greater than the defaults.
 
-| フィールド | 既定の最大値 |
+| Field | Default maximum |
 | --- | ---: |
 | `max_file_bytes` | 128 MiB |
 | `max_stream_bytes` | 64 MiB |
 | `max_inflated_bytes` | 64 MiB |
-| `max_total_inflated_bytes` | 128 MiB / 文書 |
+| `max_total_inflated_bytes` | 128 MiB / document |
 | `max_records` | 500,000 |
 | `max_streams` | 65,536 |
 | `max_property_bytes` | 16 MiB |
@@ -94,10 +109,12 @@ Python と Rust の両方が 0 以上の整数であること、既定値以下�
 | `max_property_depth` | 16 |
 | `max_candidates` | 256 |
 
-ファイル版は読み込み前後にサイズを確認します。呼び出し元が作成済みの `bytes` は
-パーサに渡す前からメモリを使用しています。解析途中の資源不足は既存の部分結果・診断契約に従います。
+File variants check size before and after reading. Caller-created `bytes` already
+occupy memory before being passed to the parser. Resource exhaustion during
+parsing follows the existing partial-result and diagnostic contracts.
 
-アセンブリの後続部品変換にも同じ `Limits` を伝えます。グラフ全体の探索量は
-`FileSystemResolver` の `max_documents`、`max_instances`、`max_depth`、
-`max_total_file_bytes`、`max_directory_entries` で別途制限します。
-これらはプロセス RSS・実行時間や OCCT の計算量を保証する値ではありません。
+The same `Limits` are propagated to subsequent assembly part conversion.
+Graph-wide traversal is limited separately by `FileSystemResolver` parameters:
+`max_documents`, `max_instances`, `max_depth`, `max_total_file_bytes`, and
+`max_directory_entries`. These limits do not guarantee bounds on process RSS,
+runtime, or OCCT computation.

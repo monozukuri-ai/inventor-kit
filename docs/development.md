@@ -1,14 +1,16 @@
-# 開発と公開ディレクトリ
+# Development and public directories
 
-## ビルドと検証
+English | [日本語](development.ja.md)
 
-ライブラリと開発スクリプトは Python 3.11 以降を使用します。
-Rust は CI と同じ 1.93、maturin は 1.11.5 を検証用の基準にします。
-共通依存 `acis-core` / `acis-py-bridge` 0.3.2 と `cq-acis>=0.3.2,<0.4` が
-公開レジストリから取得できることが、通常の開発・CI の前提です。
-以前の開発用 `.cargo/config.toml` で bridge を差し替えている場合は、設定を
-`internal/` へ退避してからビルドしてください。`scripts/check_dependencies.py` は
-core と bridge がそれぞれ一つの公開 crate として解決されることを確認します。
+## Build and validate
+
+The library and development scripts require Python 3.11 or later. Use Rust 1.93
+to match CI; maturin 1.11.5 is the validation baseline. Normal development and
+CI require `acis-core` / `acis-py-bridge` 0.3.2 and `cq-acis>=0.3.2,<0.4`
+from public registries. If an earlier development `.cargo/config.toml`
+overrides the bridge, move that configuration into `internal/` before building.
+`scripts/check_dependencies.py` verifies that core and bridge each resolve to a
+single published crate.
 
 ```sh
 python3.11 -m venv .venv
@@ -25,9 +27,10 @@ python scripts/fetch_assembly_samples.py
 python scripts/run_tests.py
 ```
 
-Windows の仮想環境では `.venv/Scripts/python.exe` を使用します。
-fixture の取得は明示的なネット操作です。取得後の通常パーサと検証はオフラインで実行できます。
-`run_tests.py` はマニフェスト全件の存在・サイズ・SHA-256 を確認し、skip を失敗にします。
+On Windows, use `.venv/Scripts/python.exe` in the virtual environment. Fetching
+fixtures is an explicit network operation. Once fetched, normal parsing and
+validation can run offline. `run_tests.py` checks every manifest entry for
+existence, size, and SHA-256, and treats skipped tests as failures.
 
 ```sh
 python scripts/validate_public_samples.py
@@ -40,12 +43,12 @@ python scripts/validate_assembly.py
 python scripts/benchmark_parser.py
 ```
 
-生成された詳細結果は既定で `internal/reports/latest/` に書き込みます。
-初回実行に内部資料は不要です。形状の比較値は公開の
-[geometry-baseline.json](../tests/data/geometry-baseline.json)、計測入力は
-[cases.json](../benchmarks/cases.json) を使用します。
+Detailed results are written to `internal/reports/latest/` by default. No internal
+material is required for the first run. Geometry comparisons use the public
+[geometry-baseline.json](../tests/data/geometry-baseline.json); benchmark inputs
+are defined in [cases.json](../benchmarks/cases.json).
 
-## Fuzz
+## Fuzzing
 
 ```sh
 rustup toolchain install nightly-2026-02-02 --profile minimal
@@ -55,26 +58,38 @@ python scripts/seed_fuzz_corpus.py
 python scripts/run_fuzz.py --seconds 30
 ```
 
-`fuzz/` は独立 lockfile を持ちます。回帰用 seed と合成入力を使い、保留入力は使いません。
-二つの ASan ターゲットは CFB 文書と RSe/UFRx/SAB ストリームを検査します。
-短時間の smoke は網羅性の証明ではありません。
+`fuzz/` has its own lockfile. Seeds use regression fixtures and synthetic inputs,
+with holdouts excluded. Two ASan targets exercise CFB documents and RSe/UFRx/SAB
+streams. A short smoke run does not establish exhaustive coverage.
 
-## 公開対象の役割
+## Public directory roles
 
-| パス | 保存するもの |
+| Path | Contents |
 | --- | --- |
-| `python/`, `crates/` | ライブラリ実装と Rust テスト |
-| `docs/`, `README.md` | API、対応範囲、検証・配布手順 |
-| `scripts/` | 再現可能なビルド・検証・配布ツール |
-| `tests/`, `schemas/`, `fixtures/*.json` | テスト、公開契約、固定した入力の出典と hash |
-| `benchmarks/` | 固定入力と計測方法 |
-| `reports/` | 確認済みの集計だけを含む公開サマリー |
-| `internal/` | 作業日誌、旧計画、調査用コード、ホスト情報、詳細結果 |
+| `python/`, `crates/` | Library implementation and Rust tests |
+| `docs/`, `README.md`, `README.ja.md` | English and Japanese API, scope, validation, and distribution guides |
+| `scripts/` | Reproducible build, validation, and distribution tools |
+| `tests/`, `schemas/`, `fixtures/*.json` | Tests, public contracts, and pinned input sources and hashes |
+| `benchmarks/` | Fixed inputs and measurement methods |
+| `reports/` | Public summaries containing verified aggregates only |
+| `internal/` | Work logs, old plans, exploratory code, host details, and detailed results |
 
-`internal/` は Git と wheel/sdist の対象外です。外部 CAD の実ファイル、fuzz の
-corpus/artifacts、ローカル Cargo 設定も公開パッケージに含めません。
-公開コードは内部ファイルを入力として要求しません。任意に指定した比較結果やオラクルは例外です。
-`.gitignore`、Git archive の `export-ignore`、配布物検査と CI の公開リンク検査で境界を維持します。
+`internal/` is excluded from Git and wheel/sdist packages. External CAD files,
+fuzz corpora/artifacts, and local Cargo configuration are also excluded from
+public packages. Public code does not require internal files as inputs, except
+for comparison results or oracles explicitly supplied by the user. `.gitignore`,
+Git archive `export-ignore`, distribution checks, and CI checks of public links
+maintain this boundary.
 
-ローカルの開発用依存で通った結果を、公開依存だけでのビルド成功と扱わないでください。
-リリースは [配布手順](releasing.md)の条件を別途満たす必要があります。
+Successful checks with local development dependencies do not establish a
+successful build using published dependencies alone. Releases must separately
+meet the [distribution requirements](releasing.md).
+
+## Documentation languages
+
+Use English in `README.md` and public guides. Keep Japanese translations in
+sibling `.ja.md` files and link both versions at the top of each page. When
+changing commands, dependency versions, API behavior, or support and validation
+claims, update both languages in the same change. Japanese guides should link
+to Japanese versions where available; API identifiers and commands stay the same.
+Run `python scripts/check_public_tree.py` after editing links.

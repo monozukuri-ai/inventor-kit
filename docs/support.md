@@ -1,28 +1,38 @@
-# 対応範囲
+# Supported scope
 
-`inventor_kit.capabilities()` は [機械可読な対応表](../python/inventor_kit/capabilities.json) を返します。
-この表は形式の対応範囲を宣言し、実行ホストや各 OS の CI 成功を証明するものではありません。
+English | [日本語](support.ja.md)
 
-| 対象 | 確認済みの範囲 | 未対応・未検証 |
+`inventor_kit.capabilities()` returns the
+[machine-readable capability table](../python/inventor_kit/capabilities.json).
+It declares format support; it does not prove successful execution on a
+particular host or successful CI on each operating system.
+
+| Area | Validated scope | Unsupported or unverified |
 | --- | --- | --- |
-| IPT / IAM / IDW / IPN | CFB、上限付き OLE プロパティ、限定サムネイル | 図面、フィーチャ、PMI の意味解析 |
-| IPT 保存形状 | RSeDb schema 31、Meta 8、PmBRep major 19 / 25 / 26 / 28 / 31 の検証済み構造 | 隣接版や未知レイアウトへの外挿 |
-| カーネル | 観測した SAB save version 22000 / 22600 / 22700 / 22900 / 23200、zlib / zstd | 各版の全エンティティ、履歴再評価 |
-| 形状出力 | 解析曲面と限定 NURBS・トリム・トレラント情報 | 未対応曲線・曲面の近似 |
-| IAM | UFRx schema 15 / save major 31 と固定 section-version 列、保存参照・配置 | `.ipj` 解決、拘束ソルバー、native 色 |
-| 状態 | 保存候補・出典・診断、明示的な未検証状態 | 現在の Model State、非表示・代替状態の確定 |
-| STEP | XDE 再読込による階層・名前・剛体配置・部品 RGB・形状量の往復 | Inventor native 状態・色の独立比較 |
+| IPT / IAM / IDW / IPN | CFB, OLE properties with resource limits, and selected thumbnails | Drawing, feature, and PMI semantics |
+| Saved IPT geometry | Validated structures for RSeDb schema 31, Meta 8, and PmBRep major 19 / 25 / 26 / 28 / 31 | Extrapolation to adjacent versions or unknown layouts |
+| Kernel | Observed SAB save versions 22000 / 22600 / 22700 / 22900 / 23200, zlib / zstd | All entities in each version; history reevaluation |
+| Geometry output | Analytic surfaces and limited NURBS, trims, and tolerance data | Approximation of unsupported curves or surfaces |
+| IAM | UFRx schema 15 / save major 31 with a fixed section-version sequence; saved references and placements | `.ipj` resolution, constraint solving, native colors |
+| State | Saved candidates, provenance, diagnostics, and explicit unverified status | Determining the current Model State, visibility, or substitution state |
+| STEP | XDE roundtrip checks for hierarchy, names, rigid placements, part RGB, and geometry metrics | Independent comparison against native Inventor state or colors |
 
-IAM の完全な section-version 列は capabilities JSON に保持します。
-版番号だけで受け入れず、ヘッダー・索引・レコード構造も検証します。
-`MODEL_API_VERSION=2`、文書・候補・アセンブリ API version 1 を使用します。
+The complete IAM section-version sequence is recorded in the capabilities JSON.
+Acceptance requires header, index, and record structure validation in addition
+to version checks. The library uses `MODEL_API_VERSION=2` and version 1 of the
+document, candidate, and assembly APIs.
 
-形状変換は、平面、直線、円/楕円、円筒/円錐、楕円円筒、球面/トーラスの限定範囲、
-明示 NURBS、限定 subtype 参照、円錐頂点の縮退辺、球面の円形穴、楕円円錐の同軸断面を扱います。
-ASM 22700 のトレラント情報は部分ビューで読み、保存端点と元の許容差内で一致する頂点だけを使います。
-未対応の subtype・トリム・トレラント edge/coedge は元データと診断を保持し、変換時に停止します。
-部分形状を完成ソリッドとして返しません。
+Geometry conversion handles planes, lines, circles and ellipses, cylinders and
+cones, elliptical cylinders, selected sphere and torus forms, explicit NURBS,
+limited subtype references, degenerate edges at cone apices, circular holes on
+spheres, and coaxial sections of elliptical cones. ASM 22700 tolerance data is
+read through partial views; only vertices that match stored endpoints within
+the source tolerance are used. Unsupported subtypes, trims, and tolerant
+edges/coedges retain their original data and diagnostics, and stop conversion.
+Partial geometry is not returned as a complete solid.
 
-履歴を元バイト列で保持できても、意味解析や現在状態の一致を示す証拠にはなりません。
-複数データベース・複数候補を保存して返す機能と、現在状態を選択する機能は区別します。
-フィーチャ再編集、履歴再構築、拘束計算、PMI/GD&T、板金展開、表示メッシュは対象外です。
+Retaining history as original bytes does not establish semantic interpretation
+or agreement with the current state. Returning multiple stored databases or
+candidates is distinct from selecting the current state. Feature editing,
+history reconstruction, constraint solving, PMI/GD&T, sheet metal unfolding,
+and display meshes are outside the supported scope.

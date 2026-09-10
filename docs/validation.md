@@ -1,64 +1,74 @@
-# 検証の範囲と再現性
+# Validation scope and reproducibility
 
-コンテナ、候補選択、型付き解析、形状構築、現在状態との照合を分けて検証します。
-取得した値や元バイト列の保持だけで、モデル全体を正しく解釈したとは判定しません。
+English | [日本語](validation.ja.md)
 
-公開サンプルの出典・ライセンス条件・サイズ・SHA-256 は
-[部品マニフェスト](../fixtures/manifest.json)と
-[アセンブリマニフェスト](../fixtures/assembly-manifest.json)にあります。
-二つのマニフェストは合計 45 エントリ、うち保留検証は 4 エントリです。
-関連するモデルや同一内容を含むため、45 の独立したモデル系列とは数えません。
-CAD ファイル本体は取得スクリプトで入手し、Git や配布物には含めません。
+Container parsing, candidate selection, typed parsing, geometry construction,
+and comparison against the current state are validated separately. Retaining
+values or original bytes alone does not establish correct interpretation of the
+entire model.
 
-## 公開する結果
+The [part manifest](../fixtures/manifest.json) and
+[assembly manifest](../fixtures/assembly-manifest.json) record public sample
+sources, license conditions, sizes, and SHA-256 hashes. Together they contain
+45 entries, including four holdouts. They include related models and duplicate
+content, so they do not represent 45 independent model families. Download scripts
+retrieve the CAD files; the files are excluded from Git and distributions.
 
-[検証サマリー](../reports/validation-summary.json)は、実行環境の区分、テスト件数、
-コーパスの段階別件数、fuzz の結果だけを保存します。ローカルパス、詳細診断、
-生の属性・モデルデータ、実行ログは含めません。
-固定コーパスでは部品 33 件のうち 28 件で保存テーブルを解析し、10 件を有効ソリッドへ
-変換しています（回帰 9/30、保留 1/3）。未対応ケースの診断も回帰検証の対象です。
-保留 IAM は未対応プロファイルとして保持し、対応条件の調整には使いません。
+## Published results
 
-これは限定した公開サンプルの結果です。現在状態やベンダー実装との同一性、
-Windows/macOS を含む配布 CI の成功は示しません。
+The [validation summary](../reports/validation-summary.json) contains only the
+execution environment category, test counts, corpus counts by stage, and fuzz
+results. It excludes local paths, detailed diagnostics, raw property or model
+data, and execution logs. In the fixed corpus of 33 parts, saved tables were
+parsed in 28 files and 10 files were converted to valid solids (regression: 9/30;
+holdout: 1/3). Diagnostics for unsupported cases are also regression checks.
+The holdout IAM remains an unsupported profile and is not used to tune acceptance
+criteria.
 
-2026-09-10 の依存更新では、公開済み `acis-core` / `acis-py-bridge` / `cq-acis`
-0.3.2 を使い、Linux で Rust 41件と Python 68件（skip 0）のテストを確認しました。
-Python 3.11 / 3.12 の新規環境で wheel のインストール、保存部品の形状変換、
-アセンブリ STEP 往復、子プロセスの正常終了が通っています。sdist もローカル
-path patch なしで locked/offline 再ビルドし、公開 PyPI 依存でインストール・検証しました。
-他の OS を含むリリース確認は、配布 CI で別途行います。
+These results cover a limited set of public samples. They do not establish
+agreement with the current state or vendor implementation, or successful
+distribution CI on Windows and macOS.
 
-## 比較の種類
+For the dependency update on 2026-09-10, published `acis-core` / `acis-py-bridge` /
+`cq-acis` 0.3.2 passed 41 Rust tests and 68 Python tests with zero skips on Linux.
+Fresh Python 3.11 / 3.12 environments passed wheel installation, saved part
+geometry conversion, assembly STEP roundtrips, and normal subprocess shutdown.
+The sdist was also rebuilt in locked/offline mode without local path patches,
+then installed and validated with public PyPI dependencies. Release verification
+on other operating systems is performed separately through distribution CI.
 
-| 比較 | 確認できる内容 | 限界 |
+## Comparison methods
+
+| Comparison | What it checks | Limits |
 | --- | --- | --- |
-| 固定入力と固定した形状量 | 体積、面積、ソリッド数、境界箱の後退検知 | 同じ変換器に由来する比較値 |
-| 円筒・直方体の解析式 | 寸法と mm 単位の体積・面積 | 複雑なモデルや現在状態のオラクルではない |
-| olefile / Pillow | 対応する属性の値、PNG の独立展開 | 比較器の未対応を一致に含めない |
-| ezdxf | SAB のレコード境界とタグ | 形状・保存状態の一致ではない |
-| STEP / XDE 往復 | 階層、名前、配置、部品 RGB、形状量の維持 | Inventor native 状態・色の確認ではない |
-| Apprentice / Inventor の取得値 | 同じ入力・状態で取得できた項目の独立比較 | 実機取得と出典が必要、未取得項目は未検証 |
+| Fixed inputs and frozen geometry metrics | Regressions in volume, area, solid count, and bounding boxes | Reference values originate from the same converter |
+| Analytic cylinder and box formulas | Dimensions and volume/area in millimetre-based units | Not an oracle for complex models or the current state |
+| olefile / Pillow | Supported property values and independent PNG decoding | Unsupported comparator cases are not counted as matches |
+| ezdxf | SAB record boundaries and tags | Does not establish geometry or saved-state agreement |
+| STEP / XDE roundtrip | Preservation of hierarchy, names, placements, part RGB, and geometry metrics | Does not verify native Inventor state or colors |
+| Apprentice / Inventor captures | Independent comparison of fields captured from the same input and state | Requires an actual provider capture and provenance; uncaptured fields remain unverified |
 
-固定した形状 baseline は回帰入力だけを含み、holdout を fitted baseline に追加しません。
-新しい出典・モデル系列を保留にする方針はマニフェストで維持します。
-入力不在、hash 不一致、テスト skip は成功扱いしません。
+The frozen geometry baseline contains regression inputs only; holdouts are not
+added to the fitted baseline. Manifests maintain the policy of reserving new
+sources or model families as holdouts. Missing inputs, hash mismatches, and
+skipped tests are not treated as success.
 
-## 再現と任意のオラクル
+## Reproduction and optional oracles
 
-通常の再現手順は [開発ガイド](development.md)、性能計測は
-[ベンチマーク手順](../benchmarks/README.md)を参照してください。
+See the [development guide](development.md) for standard reproduction steps and
+the [benchmark guide](../benchmarks/README.md) for performance measurement.
 
 ```sh
 python scripts/summarize_validation.py --input internal/reports/latest --output reports/validation-summary.json
 ```
 
-このサマリー生成は必要な詳細結果が欠けていれば失敗します。
-CI は同じ選択方式のサマリーだけを artifact にし、生の実行結果はアップロードしません。
+Summary generation fails if required detailed results are missing. CI publishes
+only a summary selected in the same way; it does not upload raw execution results.
 
-Windows 上の `capture_vendor_oracle.py` は Apprentice から読み取り、
-`capture_model_states.py` は Inventor 本体を使って入力のコピーで状態を切り替えます。
-後者の保存はコピーに対して行い、状態切替・更新の成功を記録します。
-`compare_state_candidates.py` は入力 hash と取得根拠が合う候補だけを比較します。
-合成オラクルは比較パイプラインのテストであり、実機検証に数えません。
-保存先には `internal/` 配下を明示してください。
+On Windows, `capture_vendor_oracle.py` reads through Apprentice, while
+`capture_model_states.py` uses Inventor itself to switch states on a copy of the
+input. The latter saves only the copy and records whether state switching and
+updating succeeded. `compare_state_candidates.py` compares only candidates whose
+input hashes and capture evidence match. Synthetic oracles test the comparison
+pipeline and do not count as validation against an actual Autodesk installation.
+Explicitly choose an output location under `internal/` for captures.

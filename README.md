@@ -1,31 +1,35 @@
 # inventor-kit
 
-Autodesk Inventor の文書情報と保存済み部品形状を Rust で読み、Python から利用する
-ライブラリです。対応する形状を `cq_acis.AcisModel` と CadQuery に接続できます。
-実行時のネット接続、Inventor、Windows、ユーザー提供スキーマは不要です。
+English | [日本語](README.ja.md)
+
+Read Autodesk Inventor document metadata and saved part geometry with a Rust
+parser and a Python API. Supported geometry can be converted to
+`cq_acis.AcisModel` and CadQuery objects. Runtime use does not require network
+access, Inventor, Windows, or user-provided schemas.
 
 ```text
-IPT → CFB / RSe → 保存された SAB / ASM → acis-core → AcisModel → CadQuery
-IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
+IPT → CFB / RSe → saved SAB / ASM → acis-core → AcisModel → CadQuery
+IAM → saved references and placements → local part resolution → CadQuery Assembly
 ```
 
-このライブラリは確認済みプロファイルの限定パーサです。現在の Model State、
-フィーチャ履歴の再評価、未対応形状の近似は行いません。
+The parser supports a limited set of validated format profiles. It does not
+determine the current Model State, reevaluate feature history, or approximate
+unsupported geometry.
 
-## インストール
+## Installation
 
-Python 3.11 以降、`cq-acis>=0.3.2,<0.4`、共通モデル API 2 を使用します。
-公開済みの互換 wheel がある環境では、次のようにインストールできます。
+Requires Python 3.11 or later, `cq-acis>=0.3.2,<0.4`, and shared model API 2.
+Where compatible published wheels are available, install with:
 
 ```sh
 python -m pip install inventor-kit
 ```
 
-ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.3.2 を crates.io から取得します。[開発・検証手順](docs/development.md)と
-[リリース条件](docs/releasing.md)を参照してください。
+Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.2
+from crates.io. See the [development guide](docs/development.md) and
+[release requirements](docs/releasing.md).
 
-## 部品の読み込み
+## Reading parts
 
 ```python
 import inventor_kit as ik
@@ -34,11 +38,12 @@ import cadquery as cq
 doc = ik.read_file("part.ipt")
 print(doc.summary["status"], doc.summary["diagnostics"])
 if doc.model is not None:
-    shape = doc.to_cadquery()  # 未対応の曲面・トリムなどは例外
+    shape = doc.to_cadquery()  # Raises for unsupported surfaces, trims, etc.
     cq.exporters.export(shape, "part.step")
 ```
 
-属性だけが必要な場合は、Python の形状モジュールを import しない `inspect_file` を使います。
+For metadata alone, use `inspect_file`, which does not import the Python geometry
+modules.
 
 ```python
 info = ik.inspect_file("part.ipt").metadata
@@ -53,7 +58,7 @@ python -m inventor_kit drawing.idw --metadata-only
 python -m inventor_kit part.ipt --list-candidates
 ```
 
-## アセンブリの読み込み
+## Reading assemblies
 
 ```python
 assembly = ik.read_assembly_file("assembly.iam", search_roots=["parts"])
@@ -62,11 +67,12 @@ print(converted.omissions, converted.reference_issues)
 report = converted.export_step("assembly.step", allow_partial=True)
 ```
 
-保存配置の利用は明示的に許可します。欠落部品や未対応形状は結果に残し、
-現在状態が未検証のため `complete` は `False` です。
-STEP 出力は既存ファイルを上書きせず、出典・欠落情報を付属 JSON に保存します。
+Using saved placements requires explicit opt-in. Missing parts and unsupported
+geometry remain recorded in the result. Because the current state is unverified,
+`complete` is `False`. Assembly STEP export refuses to overwrite existing files
+and writes provenance and omission details to an accompanying JSON report.
 
-## 上限と対応範囲
+## Limits and supported scope
 
 ```python
 limits = ik.Limits(max_file_bytes=32 * 1024 * 1024, max_candidates=16)
@@ -74,17 +80,19 @@ doc = ik.read_file("part.ipt", limits=limits)
 print(ik.capabilities())
 ```
 
-上限は文書ごとに引き下げられます。プロセスのメモリ・実行時間や OCCT の計算量を
-保証するものではありません。既定値、診断、保存候補の選び方は [API ガイド](docs/api.md)を参照してください。
+Limits can be lowered per document. They do not guarantee bounds on process
+memory, runtime, or OCCT computation. See the [API guide](docs/api.md) for defaults,
+diagnostics, and saved candidate selection.
 
-| 資料 | 内容 |
+| Guide | Contents |
 | --- | --- |
-| [対応範囲](docs/support.md) | 形式プロファイル、形状・状態・アセンブリの制限 |
-| [API ガイド](docs/api.md) | 属性、保存候補、単位、参照解決、上限 |
-| [検証](docs/validation.md) | 回帰・保留検証、比較の根拠、実行済み範囲 |
-| [開発](docs/development.md) | ビルド、テスト、fuzz、公開ディレクトリの役割 |
-| [リリース](docs/releasing.md) | wheel / sdist、CI、公開前の条件 |
-| [形式資料](docs/format-reference.md) | 実装に使用した資料とライセンス |
+| [Supported scope](docs/support.md) | Format profiles and geometry, state, and assembly limitations |
+| [API](docs/api.md) | Metadata, saved candidates, units, reference resolution, and limits |
+| [Validation](docs/validation.md) | Regression and holdout checks, comparison evidence, and completed validation |
+| [Development](docs/development.md) | Builds, tests, fuzzing, and public directory roles |
+| [Releasing](docs/releasing.md) | Wheels, sdists, CI, and publication requirements |
+| [Format references](docs/format-reference.md) | Implementation references and licenses |
 
-ライセンスは MIT。第三者の権利表示は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)にあります。
-公開サンプルは hash と出典を固定して検証し、CAD ファイル自体は配布パッケージに含めません。
+Licensed under MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
+third-party notices. Public samples are validated against pinned hashes and
+sources; the CAD files themselves are excluded from distribution packages.

@@ -1,42 +1,48 @@
-# リリース手順
+# Release guide
 
-## 依存契約
+English | [日本語](releasing.ja.md)
 
-Rust は `acis-core=0.3.2` と `acis-py-bridge=0.3.2`、Python は
-`cq-acis>=0.3.2,<0.4` と共通モデル API 2 を必要とします。
-Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
-必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
-保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。
-この資料は公開済み・CI 通過済みという宣言ではありません。
+## Dependency contract
 
-## 手順
+Rust requires `acis-core=0.3.2` and `acis-py-bridge=0.3.2`. Python requires
+`cq-acis>=0.3.2,<0.4` and shared model API 2. The minimum Python version is 3.11,
+matching cq-acis. Dependencies must be published, and Cargo.lock must retain
+registry sources and checksums for both bridge and core. Results obtained with
+local path patches or unpublished wheels do not satisfy this requirement.
+This guide does not assert that a release has been published or that CI has passed.
 
-1. 公開依存だけを使うクリーンな checkout で `scripts/check_dependencies.py`、
-   通常 CI、コーパスと保留検証を通す。`.cargo/config.toml` を持ち込まない。
-2. Python と二つの Rust パッケージの版をそろえる。`scripts/check_release.py` が版を検査する。
-3. `Python distributions` workflow を手動実行する。4 種類の wheel と sdist が
-   artifact に保存される。手動実行は PyPI に公開しない。
-4. 各 artifact をダウンロードし、hash・ライセンス・配布内容・実インストール結果を確認する。
-5. PyPI の Trusted Publisher を repository `monozukuri-ai/inventor-kit`、
-   workflow `release.yml`、environment `pypi` に設定・確認する。
-6. パッケージ版と一致する `v<version>` の GitHub Release を公開する。
-   全ゲート通過後に Trusted Publishing で配布する。
+## Procedure
 
-## CI の配布対象と検査
+1. In a clean checkout using published dependencies only, pass
+   `scripts/check_dependencies.py`, normal CI, corpus checks, and holdout
+   validation. Do not carry over `.cargo/config.toml`.
+2. Align the Python package version with both Rust package versions.
+   `scripts/check_release.py` validates the versions.
+3. Manually run the `Python distributions` workflow. It produces four wheel
+   variants and an sdist as artifacts. Manual runs do not publish to PyPI.
+4. Download each artifact and verify its hash, licenses, contents, and actual
+   installation results.
+5. Configure or verify the PyPI Trusted Publisher for repository
+   `monozukuri-ai/inventor-kit`, workflow `release.yml`, and environment `pypi`.
+6. Publish a GitHub Release tagged `v<version>` matching the package version.
+   After all gates pass, the workflow publishes through Trusted Publishing.
 
-| artifact | ビルド対象 | インストール確認 |
+## CI distribution targets and checks
+
+| Artifact | Build target | Installation checks |
 | --- | --- | --- |
 | ABI3 wheel | Linux x86_64 / manylinux2014 | Python 3.11 / 3.12 |
 | ABI3 wheel | Windows x86_64 | Python 3.11 / 3.12 |
 | ABI3 wheel | macOS arm64 | Python 3.11 / 3.12 |
 | ABI3 wheel | macOS x86_64 | Python 3.11 / 3.12 |
-| sdist | ソース一式 | 別ディレクトリ・新規 target で locked/offline 再ビルド |
+| sdist | Source package | Locked, offline rebuild in a separate directory with a fresh target directory |
 
-wheel の名前・版・ABI/platform tag、CRC、RECORD の hash/size、必要なモジュールと
-ライセンスを照合します。隔離環境で属性読込、形状変換、アセンブリ STEP 往復を行い、
-子プロセスの正常終了を確認します。
-インストール検査は依存先も wheel に限定します。`cp310-abi3` は拡張の ABI 下限で、
-パッケージの利用可能な Python バージョンは `Requires-Python: >=3.11` で制限します。
+Checks cover wheel names, versions, ABI/platform tags, CRCs, RECORD hashes and
+sizes, required modules, and licenses. Isolated environments exercise metadata
+reading, geometry conversion, and assembly STEP roundtrips, and verify normal
+subprocess shutdown. Installation checks require wheels for dependencies as well.
+`cp310-abi3` denotes the extension's minimum ABI; the package's supported Python
+versions are restricted by `Requires-Python: >=3.11`.
 
 ```sh
 maturin build --release --locked --out dist
@@ -46,10 +52,14 @@ python scripts/smoke_distribution.py --wheel dist/*.whl
 python scripts/smoke_distribution.py --sdist dist/*.tar.gz
 ```
 
-`internal/`、外部 CAD、実行ログ、fuzz corpus、ローカル Cargo 設定を配布しません。
-sdist には公開 `docs/` とビルド入力、wheel には API・capabilities・ライセンスを含めます。
-リポジトリ用の取得・検証スクリプトと fixture 索引はソースリポジトリから使用します。
+Distributions exclude `internal/`, external CAD files, execution logs, fuzz
+corpora, and local Cargo configuration. The sdist includes both README languages,
+public `docs/` in English and Japanese, and build inputs. Wheels include the API,
+capabilities, and licenses; their package description uses the English README.
+Use the source repository for fixture download and validation scripts and fixture
+indexes.
 
-Release workflow は全 4 プラットフォームと sdist の集合を検査し、同じ版の既存 PyPI
-ファイルがあれば SHA-256 一致を要求します。異なる内容や 404 以外の照合失敗は停止します。
-再実行時の `skip-existing` もこの検査後に限ります。
+The release workflow checks the complete set of four platforms and the sdist.
+If files for the same version already exist on PyPI, their SHA-256 hashes must
+match. Different content or a lookup failure other than HTTP 404 stops the release.
+On reruns, `skip-existing` is allowed only after this check.

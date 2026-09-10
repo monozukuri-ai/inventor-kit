@@ -1,11 +1,18 @@
-# 利用・開発資料
+# User and developer documentation
 
-- [API ガイド](api.md): 読み込み、属性、保存候補、アセンブリ、上限。
-- [対応範囲](support.md): 確認済みプロファイルと未対応・未検証の境界。
-- [検証](validation.md): 比較方法、保留検証と結果の読み方。
-- [開発](development.md): 公開ソースだけを使うビルドと再現手順。
-- [リリース](releasing.md): 配布 CI、依存契約、公開条件。
-- [形式資料](format-reference.md): 参照した資料と出典。
+English | [日本語](README.ja.md)
 
-作業日誌、段階別の計画、ホスト固有の計測値、調査用コードは公開資料に含めません。
-公開契約は Python API と [capabilities.json](../python/inventor_kit/capabilities.json) を基準にします。
+- [API guide](api.md): Reading files, metadata, saved candidates, assemblies, and limits.
+- [Supported scope](support.md): Validated profiles and unsupported or unverified behavior.
+- [Validation](validation.md): Comparison methods, holdouts, and interpreting results.
+- [Development](development.md): Building and reproducing checks using public sources only.
+- [Releasing](releasing.md): Distribution CI, dependency contracts, and publication requirements.
+- [Format references](format-reference.md): Source material and attribution.
+
+Public guides use English by default and provide Japanese versions in sibling
+`.ja.md` files. Use the language link at the top of each guide to switch languages.
+Update both versions when changing documented behavior or commands.
+
+Work logs, milestone plans, host-specific measurements, and exploratory code are
+excluded from public documentation. The Python API and
+[capabilities.json](../python/inventor_kit/capabilities.json) define the public contract.

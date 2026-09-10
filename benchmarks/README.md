@@ -1,20 +1,25 @@
-# ベンチマーク
+# Benchmarks
 
-[cases.json](cases.json) は、公開回帰サンプルから固定した 5 件の処理・パス・SHA-256 を定義します。
-CAD 本体は [取得手順](../docs/development.md)で取得し、ここには同梱しません。
+English | [日本語](README.ja.md)
+
+[cases.json](cases.json) defines operations, paths, and SHA-256 hashes for five
+fixed public regression samples. Retrieve the CAD files using the
+[development guide](../docs/development.md); they are not bundled here.
 
 ```sh
 python scripts/benchmark_parser.py --output internal/reports/latest/benchmark.json
 ```
 
-各ケースを別プロセスで初回 + 7 回実行し、cold 時間、warm 中央値・最大値、
-プロセス peak RSS を記録します。部品 API は入力ファイルの読み込みと inventor-kit import を
-計時外にし、アセンブリ API 内のファイル解決は計時します。
-形状モジュールの初回 import は cold 時間に含まれます。
-RSS は Python と依存ライブラリを含む最大値です。Linux は KiB、macOS は bytes から
-統一し、Windows は取得未対応として null を返します。
+Each case runs in a separate process for one initial call and seven subsequent
+calls. Measurements record cold time, warm median and maximum time, and process
+peak RSS. Part API timings exclude reading the input file and importing
+inventor-kit; file resolution within the assembly API is timed. The first import
+of geometry modules is included in cold time. RSS is the process peak, including
+Python and dependencies. Measurements normalize Linux KiB and macOS bytes to a
+common unit; Windows RSS measurement is unsupported and returns null.
 
-数値はホストごとの観測値で、速度・メモリ使用量の汎用保証ではありません。
-ホスト固有の目標は `--goals <JSON>` で任意指定できます。公開ケースは
-ローカルの目標ファイルや過去の計測結果に依存しません。
-詳細結果・ホスト情報・目標は `internal/benchmarks/` または `internal/reports/` に保存してください。
+Results are observations on a particular host, not general guarantees of speed
+or memory use. Optional host-specific targets can be supplied with `--goals <JSON>`.
+Public cases do not depend on local target files or previous measurements. Store
+detailed results, host information, and targets in `internal/benchmarks/` or
+`internal/reports/`.
