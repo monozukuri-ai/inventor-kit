@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-import urllib.request
+from fixture_download import download
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,8 +22,7 @@ def main():
         if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() == row['sha256']:
             print(f'cached {relative}')
             continue
-        with urllib.request.urlopen(row['url'], timeout=60) as response:
-            data = response.read(row['bytes'] + 1)
+        data = download(row['url'], max_bytes=row['bytes'], timeout=60)
         if len(data) != row['bytes'] or hashlib.sha256(data).hexdigest() != row['sha256']:
             raise ValueError(f'Fixture mismatch: {relative}')
         target.parent.mkdir(parents=True, exist_ok=True)

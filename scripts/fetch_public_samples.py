@@ -4,9 +4,9 @@ from pathlib import Path
 import argparse
 import hashlib
 import io
-import urllib.request
 import zipfile
 from corpus_manifest import load_manifest
+from fixture_download import download
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,14 +30,14 @@ def main():
             sha = item['archive_sha256']
             if sha not in archives:
                 cached = args.cache / f'{sha}.zip'
-                data = cached.read_bytes() if cached.exists() else urllib.request.urlopen(url, timeout=120).read()
+                data = cached.read_bytes() if cached.exists() else download(url)
                 if hashlib.sha256(data).hexdigest() != sha:
                     raise ValueError(f'Archive SHA-256 mismatch: {url}')
                 cached.write_bytes(data)
                 archives[sha] = zipfile.ZipFile(io.BytesIO(data))
             data = archives[sha].read(item['archive_member'])
         else:
-            data = urllib.request.urlopen(url, timeout=120).read()
+            data = download(url, max_bytes=item['bytes'])
         if len(data) != item['bytes'] or hashlib.sha256(data).hexdigest() != item['sha256']:
             raise ValueError(f'Fixture mismatch: {target.name}')
         target.write_bytes(data)
