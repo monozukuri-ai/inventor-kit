@@ -4,7 +4,7 @@ import multiprocessing
 from pathlib import Path
 import time
 
-from .scene import build_scene, diagnostic, empty_scene, write_scene
+from .scene import build_scene, diagnostic, discard_geometry, empty_scene, write_scene
 
 
 def run_worker(path, directory, options):
@@ -39,7 +39,8 @@ class Job:
             pending.replace(self.directory / "state.json")
         else:
             scene = json.loads((self.directory / "state.json").read_text(encoding="utf-8"))
-            scene.update(job_status="failed", nodes=[], meshes=[])
+            scene["job_status"] = "failed"
+            discard_geometry(scene, "worker_failed", "Conversion process did not complete")
             diagnostic(scene, "viewer.timeout" if timeout else "viewer.worker_failed",
                        "Conversion exceeded its time limit." if timeout else f"Conversion process exited with code {self.process.exitcode}.")
             write_scene(self.directory, scene)

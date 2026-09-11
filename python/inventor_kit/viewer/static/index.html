@@ -6,14 +6,14 @@
     <meta name="color-scheme" content="light" />
     <title>Inventor Kit · Viewer</title>
     <link rel="icon" href="data:," />
-    <script type="module" crossorigin src="./assets/index-mND-tCFG.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CSx6K2th.css">
+    <script type="module" crossorigin src="./assets/index-CiQOm2A2.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-OCuZY8UW.css">
   </head>
   <body>
     <header><a class="brand" href="./">IK<span>Inventor Kit</span></a><span class="local">LOCAL VIEWER</span><span id="file-name">Opening document…</span></header>
     <div class="notice">Saved geometry · Current Model State is unverified</div>
     <main>
-      <aside class="bodies"><h1>Bodies <span id="body-count">0</span></h1><p class="hint">Select a body to inspect it.</p><div id="body-list"></div><p id="selected" aria-live="polite">No body selected</p><div class="source-note">Display colors are assigned by the viewer.</div></aside>
+      <aside class="bodies"><h1><b id="tree-title">Bodies</b> <span id="body-count">0</span></h1><p class="hint">Select a component to inspect it.</p><div class="tree-controls"><button id="isolate" disabled>Isolate</button><button id="show-all" disabled>Show all</button></div><div id="body-list"></div><p id="selected" aria-live="polite">No component selected</p><div class="source-note">Display colors are assigned by the viewer. Display toggles do not change saved state.</div></aside>
       <section class="viewport" aria-label="3D model">
         <nav aria-label="View controls">
           <button data-view="fit" disabled>Fit</button><span class="divider"></span>
@@ -25,6 +25,8 @@
       </section>
       <aside class="details">
         <section><h2>Document</h2><dl id="document-info"></dl></section>
+        <section id="selection-info"><p class="hint">Select a component to inspect its source and saved placement.</p></section>
+        <section id="assembly-section" hidden><h2>Saved assembly</h2><div id="assembly-info"></div><h2>Omitted components</h2><div id="omissions"></div><h2>Reference issues</h2><div id="reference-issues"></div></section>
         <section><h2>Saved previews</h2><p class="hint">Images stored in the file; they may show a different state.</p><div id="previews"></div></section>
         <section><h2>Properties <span id="property-count">0</span></h2><div id="properties"></div></section>
         <section><h2>Geometry candidates</h2><div id="candidates"></div></section>

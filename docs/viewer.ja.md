@@ -1,8 +1,8 @@
-# ローカル部品 viewer
+# ローカル部品・アセンブリ viewer
 
 [English](viewer.md) | 日本語
 
-追加機能の viewer は、対応する IPT の保存形状、文書属性、保存プレビュー、
+追加機能の viewer は、対応する IPT の保存形状と IAM の保存配置、文書属性、保存プレビュー、
 形状候補、読み込み診断を表示します。Python API と同じ限定パーサと
 CadQuery 変換を使い、ローカルで実行します。
 
@@ -22,6 +22,9 @@ python -m inventor_kit.viewer part.ipt --quality fine
 python -m inventor_kit.viewer part.ipt --candidate-id CANDIDATE_ID
 python -m inventor_kit.viewer part.ipt --require-current-state
 python -m inventor_kit.viewer drawing.idw --metadata-only
+python -m inventor_kit.viewer assembly.iam
+python -m inventor_kit.viewer assembly.iam --allow-unverified-state
+python -m inventor_kit.viewer assembly.iam --search-root parts --allow-unverified-state --allow-partial
 ```
 
 `--port 0` は空きポートを選びます。`--no-browser` はブラウザを開かず URL を出力します。
@@ -29,16 +32,37 @@ python -m inventor_kit.viewer drawing.idw --metadata-only
 候補・現在状態の指定とは併用できません。候補 ID は同じ入力全体に結び付きます。
 [API ガイド](api.ja.md)を参照してください。候補選択は起動時に行います。
 別の入力や候補を確認するときは、パスや ID を指定してコマンドを起動し直します。
+アセンブリ用の指定は `--metadata-only` や IPT の候補・現在状態指定とは併用できません。
+
+IAM は既定で参照グラフと occurrence のツリーを表示し、形状モジュールを import しません。
+保存配置を 3D 表示する場合は `--allow-unverified-state` を指定します。
+これは現在の Model State、表示状態、代替部品の選択が未検証であることを了承する指定であり、
+検証済みに変更するものではありません。必要な形状が揃わない場合はツリーと理由を残し、
+`--allow-partial` も指定した場合に限り表示できる部分を描画します。
+既存変換器の欠落だけでなく、メッシュ生成の失敗にも適用します。
+`--allow-partial` には `--allow-unverified-state` が必要です。
+
+参照先の探索ディレクトリは `--search-root` を繰り返して指定できます。
+既存のオフライン resolver はルート文書のディレクトリと明示した探索先を検索し、再帰探索はしません。
+参照 ID 不一致、同名衝突、循環、欠落、未対応配置は元の理由を保持します。
+配置不明の部品もツリーに残し、未知の配置を原点へ置き換えて描画することはありません。
+解決済みの部品・アセンブリ・別名パスのファイルが変更された場合は未確定の形状を拒否します。
+resolver の対応範囲は[アセンブリ API](api.ja.md)を参照してください。
 
 マウスで回転、パン、ズームできます。ツールバーには Fit、Isometric、Front、Top、Edges があります。
 左の一覧でボディを選択するか、3D 上でダブルクリックすると選択枠が表示されます。
-チェックボックスでボディの表示を切り替えます。色は viewer が割り当てた表示色で、
+IAM は欠落部品とアセンブリのグループも含む階層ツリーを表示します。
+チェックボックスで表示を切り替え、グループの操作は配下の部品に適用します。
+**Isolate** は選択した occurrence またはグループだけを表示し、**Show all** は表示可能な全形状を戻します。
+同じ定義の occurrence はメッシュとバッファの取得を共有しつつ、別々に選択できます。
+これらは閲覧中の表示操作であり、保存された表示状態や Model State を変更しません。
+色は viewer が割り当てた表示色で、
 Inventor の外観は未解析です。
 
 **Current Model State is unverified** の表示は、メッシュを描画できた場合も適用されます。
 保存プレビューは別の保存状態を示す場合があり、3D 表示と区別します。
 形状変換に失敗しても、取得済みの属性、プレビュー、候補、元の診断を残します。
-IAM、IDW、IPN は現時点では文書情報のみで、アセンブリ配置や図面描画は初版に含みません。
+IDW、IPN は現時点では文書情報のみで、図面描画やプレゼンテーションのアニメーションには対応しません。
 [対応範囲](support.ja.md)を参照してください。
 
 `--quality` は `draft`、`normal`（既定）、`fine` から選びます。
@@ -50,8 +74,10 @@ B-rep の辺は別途離散化します。CadQuery 変換器が拒否する曲�
 変換は spawn 方式の子プロセスで実行し、既定の期限は 120 秒です。`--timeout` で変更できます。
 パーサの[文書単位の上限](api.ja.md#文書単位の上限)も適用します。
 表示出力の上限は三角形 200 万個、メッシュバッファ 128 MiB、シーン JSON 16 MiB、
-保存プレビュー 64 枚 / PNG 合計 32 MiB です。OCCT の中間メモリ確保やプロセス RSS の上限を
-保証するものではありません。期限超過や異常終了時は未確定の形状を破棄し、公開済み文書情報を残します。
+保存プレビュー 64 枚 / PNG 合計 32 MiB です。三角形数の上限は重複 occurrence の展開後にも適用します。
+resolver の既定上限（文書 256 件、instance 10,000 件、深さ 32、入力ファイル合計 512 MiB、
+ディレクトリエントリ 100,000 件）も引き継ぎます。OCCT の中間メモリ確保やプロセス RSS の上限を
+保証するものではありません。期限超過や異常終了時は未確定の形状を破棄し、公開済み文書情報と occurrence 一覧を残します。
 viewer の正常起動はモデルの完全性を示しません。読み込み失敗は UI に表示し、
 不正な引数や起動失敗は CLI の非ゼロ終了とします。
 
@@ -79,6 +105,15 @@ viewer の Python 統合試験は基本テストから分けて `viewer_tests/` 
 実部品、未対応形状、現在状態指定による拒否、文書情報のみの表示、破損入力を確認します。
 スクリーンショットはローカル試験結果で、Inventor との照合の証拠ではありません。
 メッシュ試験では解析式を持つ円筒管も使い、穴、符号付き体積、三角形の向きを確認します。
+IAM は実データの Subassembly と、SampleBg の表示できる 5 部品・欠落 2 件を確認します。
+合成試験で定義の共有、順序によって結果が異なる親子回転、形状自体の位置、未知配置、
+元ファイル変更、一部のメッシュ生成失敗、選択の独立性を確認します。
+holdout の IAM は未対応の native プロファイルとして拒否されることを維持します。
+
+内部シーンの行列は行優先の 4×4、列ベクトルへの作用、単位 mm です。
+定義メッシュはローカル形状を保持し、階層の各辺で local 配置を一度だけ適用します。
+合成結果を保存済み world 行列と変換器の実際の配置に照合し、フロントエンドで local 回転を
+renderer の quaternion に変換します。境界箱はカメラの表示範囲に使い、正確な CAD 寸法とは扱いません。
 
 ```sh
 python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser

@@ -38,5 +38,7 @@ history reconstruction, constraint solving, PMI/GD&T, sheet metal unfolding,
 and reading native display meshes are outside the supported scope.
 
 The optional [local viewer](viewer.md) generates display meshes from successfully
-converted IPT B-rep shapes. It also shows document information and saved previews.
+converted IPT B-rep shapes and explicitly permitted IAM saved placements. IAM
+retains the occurrence hierarchy and omission reasons; partial display requires
+an additional opt-in. It also shows document information and saved previews.
 It does not extend native geometry, assembly-state, or drawing support.

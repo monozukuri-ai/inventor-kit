@@ -8,7 +8,7 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from inventor_kit.viewer.scene import Options, empty_scene, write_scene
+from inventor_kit.viewer.scene import Options, build_scene, empty_scene, write_scene
 from inventor_kit.viewer.server import create_server
 from inventor_kit.viewer.worker import Job
 
@@ -28,6 +28,16 @@ def slow_worker(path, directory, options):
     scene['stages']['metadata'] = 'available'
     write_scene(Path(directory), scene)
     time.sleep(30)
+
+
+def assembly_crash_worker(path, directory, options):
+    scene = build_scene(ROOT/'fixtures/public/m5-samplebg/Subassembly.iam', Path(directory), Options())
+    scene['job_status'] = 'running'
+    scene['nodes'][0]['status'] = 'pending'
+    write_scene(Path(directory), scene)
+    scene['nodes'][0]['mesh_id'] = 'uncommitted-geometry'
+    write_scene(Path(directory), scene, 'pending.json')
+    os._exit(9)
 
 
 class Processes(unittest.TestCase):
@@ -63,6 +73,15 @@ class Processes(unittest.TestCase):
         self.assertEqual(scene['source']['name'], 'metadata survives')
         self.assertEqual(scene['diagnostics'][-1]['code'], 'viewer.timeout')
         self.assertEqual(scene['job_status'], 'failed')
+
+    def test_assembly_crash_keeps_occurrence_tree_but_rejects_pending_mesh(self):
+        scene = self.run_job(assembly_crash_worker)
+        self.assertEqual(scene['job_status'], 'failed')
+        self.assertEqual(len(scene['nodes']), 1)
+        self.assertEqual(scene['nodes'][0]['occurrence_path'], [1])
+        self.assertEqual(scene['nodes'][0]['status'], 'worker_failed')
+        self.assertIsNone(scene['nodes'][0]['mesh_id'])
+        self.assertFalse(scene['meshes'])
 
     def test_server_serves_only_session_resources_and_checks_origin(self):
         with tempfile.TemporaryDirectory() as temporary:
