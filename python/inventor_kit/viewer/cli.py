@@ -1,6 +1,7 @@
 """Entry point for the local saved-part viewer."""
 import argparse
 from importlib.util import find_spec
+from pathlib import Path
 import tempfile
 import webbrowser
 
@@ -8,7 +9,7 @@ from .scene import Options
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="View saved Inventor part geometry and document information locally")
+    parser = argparse.ArgumentParser(description="View saved Inventor part and assembly geometry locally")
     parser.add_argument("path")
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--port", type=int, default=0)
@@ -16,6 +17,9 @@ def main(argv=None):
     parser.add_argument("--metadata-only", action="store_true")
     parser.add_argument("--candidate-id")
     parser.add_argument("--require-current-state", action="store_true")
+    parser.add_argument("--search-root", action="append", default=[], help="IAM reference search directory (repeatable)")
+    parser.add_argument("--allow-unverified-state", action="store_true", help="Allow saved IAM placements with unverified current state")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow incomplete IAM geometry and display every omission")
     parser.add_argument("--timeout", type=float, default=120, help="Conversion time limit in seconds (default: 120)")
     args = parser.parse_args(argv)
     if not 0 <= args.port <= 65535:
@@ -23,10 +27,17 @@ def main(argv=None):
     try:
         options = Options(quality=args.quality, metadata_only=args.metadata_only,
                           candidate_id=args.candidate_id, require_current_state=args.require_current_state,
+                          search_roots=tuple(args.search_root), allow_unverified_state=args.allow_unverified_state,
+                          allow_partial=args.allow_partial,
                           timeout=args.timeout)
     except ValueError as error:
         parser.error(str(error))
-    if not args.metadata_only and find_spec("ocp_tessellate") is None:
+    suffix = Path(args.path).suffix.lower()
+    if suffix in (".iam", ".idw", ".ipn") and (args.candidate_id or args.require_current_state):
+        parser.error("Candidate and current-state options apply to IPT parts only")
+    if suffix in (".ipt", ".idw", ".ipn") and (args.search_root or args.allow_unverified_state or args.allow_partial):
+        parser.error("Assembly options apply to IAM assemblies only")
+    if not args.metadata_only and (suffix != ".iam" or args.allow_unverified_state) and find_spec("ocp_tessellate") is None:
         parser.error("Install viewer dependencies: python -m pip install 'inventor-kit[viewer]'")
     from .server import create_server
     from .worker import Job

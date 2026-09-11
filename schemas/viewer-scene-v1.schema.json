@@ -3,7 +3,7 @@
   "title": "Inventor Kit internal viewer scene v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "job_status", "source", "units", "current_state", "complete", "stages", "selection", "candidates", "nodes", "meshes", "properties", "thumbnails", "diagnostics", "tessellation"],
+  "required": ["schema_version", "job_status", "source", "units", "current_state", "complete", "stages", "selection", "candidates", "nodes", "meshes", "properties", "thumbnails", "diagnostics", "tessellation", "assembly", "omissions", "reference_issues"],
   "properties": {
     "schema_version": {"const": 1},
     "job_status": {"enum": ["queued", "running", "finished", "failed"]},
@@ -21,9 +21,14 @@
     "candidates": {"type": "array", "items": {"type": "object", "required": ["id", "table_status", "profile_status", "state_binding", "source"]}},
     "nodes": {"type": "array", "items": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "parent", "name", "body_index", "source_sha256", "candidate_id", "mesh_id"],
+      "required": ["id", "parent", "name", "body_index", "source_sha256", "candidate_id", "mesh_id", "kind", "status", "reason", "local_transform_mm", "world_transform_mm"],
       "properties": {"id": {"type": "string"}, "parent": {"type": ["string", "null"]}, "name": {"type": "string"},
-        "body_index": {"type": "integer"}, "source_sha256": {"type": "string"}, "candidate_id": {"type": "string"}, "mesh_id": {"type": "string"}}
+        "body_index": {"type": ["integer", "null"]}, "source_sha256": {"type": ["string", "null"]}, "candidate_id": {"type": ["string", "null"]}, "mesh_id": {"type": ["string", "null"]},
+        "kind": {"type": "string"}, "status": {"type": "string"}, "reason": {"type": ["string", "null"]},
+        "definition_key": {"type": ["string", "null"]}, "instance_index": {"type": "integer", "minimum": 0},
+        "occurrence_path": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+        "local_transform_mm": {"$ref": "#/$defs/matrix"}, "world_transform_mm": {"$ref": "#/$defs/matrix"},
+        "suppressed": {"type": ["boolean", "null"]}, "visible": {"type": ["boolean", "null"]}, "substitute": {"type": ["boolean", "null"]}, "source": {"type": "object"}}
     }},
     "meshes": {"type": "array", "items": {
       "type": "object", "required": ["id", "buffers", "bounds", "face_count", "triangle_count"], "additionalProperties": false,
@@ -39,9 +44,15 @@
       "properties": {"resource": {"$ref": "#/$defs/resource"}, "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}}}},
     "diagnostics": {"type": "array", "items": {"type": "object", "required": ["code", "severity", "message", "source"],
       "properties": {"code": {"type": "string"}, "severity": {"type": "string"}, "message": {"type": "string"}}}},
-    "tessellation": {"type": ["object", "null"], "required": ["quality", "linear_deflection_mm", "angular_deflection_radians", "mode", "triangle_count", "buffer_bytes", "packages"]}
+    "tessellation": {"type": ["object", "null"], "required": ["quality", "linear_deflection_mm", "angular_deflection_radians", "mode", "triangle_count", "buffer_bytes", "packages"]},
+    "assembly": {"type": ["object", "null"], "required": ["structure_status", "current_state", "complete", "allow_unverified_state", "allow_partial", "converted_instances", "converted_definitions", "displayed_instances", "displayed_definitions", "source_documents"],
+      "properties": {"current_state": {"const": "unverified"}, "complete": {"const": false}}},
+    "omissions": {"type": "array", "items": {"type": "object", "required": ["instance", "path", "reason", "detail"]}},
+    "reference_issues": {"type": "array", "items": {"type": "object", "required": ["owner", "status"]}}
   },
   "$defs": {
+    "matrix": {"type": ["array", "null"], "minItems": 4, "maxItems": 4,
+      "items": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}}},
     "resource": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+\\.(bin|png)$"},
     "buffer": {"type": "object", "required": ["resource", "dtype", "count", "bytes"], "additionalProperties": false,
       "properties": {"resource": {"$ref": "#/$defs/resource"}, "dtype": {"enum": ["float32", "uint32"]},

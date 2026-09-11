@@ -7,7 +7,7 @@ header { height: 62px; padding: 0 24px; display: flex; align-items: center; gap:
 .local { font-size: 10px; letter-spacing: 1.4px; padding: 5px 8px; border: 1px solid #d5e6e4; border-radius: 4px; color: #39716e; }
 #file-name { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #556376; }
 .notice { padding: 9px 24px; background: #fff7e7; color: #795725; font-size: 12px; border-bottom: 1px solid #ebdfc8; }
-main { display: grid; grid-template-columns: 205px minmax(280px, 1fr) 320px; height: calc(100dvh - 97px); min-height: 420px; }
+main { display: grid; grid-template-columns: 245px minmax(280px, 1fr) 320px; height: calc(100dvh - 97px); min-height: 420px; }
 aside { overflow: auto; background: #fff; }
 .bodies { padding: 22px 15px; border-right: 1px solid #e1e6ec; display: flex; flex-direction: column; }
 h1, h2 { font-size: 12px; font-weight: 650; margin: 0 0 12px; }
@@ -16,6 +16,14 @@ h1 span, h2 span { float: right; color: #738094; font-weight: 400; }
 .body-row { display: flex; gap: 7px; align-items: center; padding: 6px; border-radius: 5px; }
 .body-row.active { background: #e7f3f0; }
 .body-row button { flex: 1; text-align: left; border: 0; background: transparent; }
+.component-label { flex: 1; min-width: 0; }
+.component-label button { width: 100%; overflow-wrap: anywhere; padding: 5px; }
+.component-status { display: block; padding: 0 5px 4px; font-size: 10px; color: #7a8594; overflow-wrap: anywhere; }
+.component-tree { margin: 0; padding: 0; list-style: none; }
+.component-tree .component-tree { padding-left: 13px; border-left: 1px solid #e1e6ec; margin-left: 10px; }
+.tree-controls { display: flex; gap: 4px; margin-bottom: 12px; }
+#tree-title { font-weight: inherit; }
+[hidden] { display: none !important; }
 input { accent-color: #247e73; }
 #selected { font-size: 11px; color: #576678; }
 .source-note { margin-top: auto; padding-top: 25px; font-size: 11px; line-height: 1.6; color: #7a8594; }

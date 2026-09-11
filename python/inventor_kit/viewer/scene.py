@@ -18,6 +18,9 @@ class Options:
     timeout: float = 120.0
     max_triangles: int = 2_000_000
     max_buffer_bytes: int = 128 * 1024 * 1024
+    search_roots: tuple[str, ...] = ()
+    allow_unverified_state: bool = False
+    allow_partial: bool = False
 
     def __post_init__(self):
         if self.quality not in ("draft", "normal", "fine"):
@@ -29,6 +32,12 @@ class Options:
                 raise ValueError(f"{name} must be a nonnegative integer")
         if self.metadata_only and (self.candidate_id or self.require_current_state):
             raise ValueError("Selection options require geometry")
+        if self.metadata_only and (self.search_roots or self.allow_unverified_state or self.allow_partial):
+            raise ValueError("Assembly options cannot be combined with metadata-only")
+        if self.allow_partial and not self.allow_unverified_state:
+            raise ValueError("--allow-partial requires --allow-unverified-state")
+        if (self.search_roots or self.allow_unverified_state or self.allow_partial) and (self.candidate_id or self.require_current_state):
+            raise ValueError("Assembly options cannot be combined with IPT selection options")
 
 
 def empty_scene(name):
@@ -36,7 +45,21 @@ def empty_scene(name):
                 units="mm", current_state="unverified", complete=False,
                 stages={key: "not_attempted" for key in ("metadata", "geometry", "conversion", "tessellation")},
                 selection=None, candidates=[], nodes=[], meshes=[], properties=[], thumbnails=[],
-                diagnostics=[], tessellation=None)
+                diagnostics=[], tessellation=None, assembly=None, omissions=[], reference_issues=[])
+
+
+def discard_geometry(scene, status="not_displayed", reason="Geometry was not published"):
+    """Keep the IAM inventory when a worker or conversion fails."""
+    scene["meshes"] = []
+    scene["tessellation"] = None
+    if scene["assembly"] is None:
+        scene["nodes"] = []
+        return
+    scene["assembly"].update(displayed_instances=0, displayed_definitions=0)
+    for node in scene["nodes"]:
+        if node["mesh_id"] or node["status"] in ("pending", "displayable"):
+            node.update(status=status, reason=reason)
+        node["mesh_id"] = None
 
 
 def diagnostic(scene, code, message, severity="error", source=None):
@@ -104,9 +127,17 @@ def build_scene(path, directory, options, publish=lambda scene: None):
             scene["job_status"] = "finished"
             return scene
         stage = "geometry"
+        kind = doc.metadata.identification.kind
+        if kind != "assembly" and (options.search_roots or options.allow_unverified_state or options.allow_partial):
+            raise ValueError("Search roots and assembly permission options apply to IAM assemblies only")
+        if kind == "assembly":
+            if options.candidate_id or options.require_current_state:
+                raise ValueError("Candidate and current-state options apply to IPT parts only")
+            from .assembly import build_assembly_scene
+            return build_assembly_scene(path, directory, options, scene, publish)
         if doc.metadata.identification.kind != "part":
             scene["stages"][stage] = "unsupported"
-            diagnostic(scene, "viewer.document_kind", "3D viewing currently supports IPT parts. Document information is available.", "warning")
+            diagnostic(scene, "viewer.document_kind", "3D viewing supports IPT parts and saved IAM assemblies. Document information is available.", "warning")
             if options.candidate_id or options.require_current_state:
                 diagnostic(scene, "viewer.selection_kind", "Candidate and current-state options apply to IPT parts only.")
             scene["job_status"] = "finished"
@@ -135,6 +166,6 @@ def build_scene(path, directory, options, publish=lambda scene: None):
     except Exception as error:
         scene["stages"][stage] = "failed"
         diagnostic(scene, getattr(error, "code", f"viewer.{stage}_failed"), str(error))
-        scene.update(nodes=[], meshes=[])
+        discard_geometry(scene)
     scene["job_status"] = "finished"
     return scene

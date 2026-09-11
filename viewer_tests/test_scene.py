@@ -66,8 +66,10 @@ class Scenes(unittest.TestCase):
         self.assertEqual(self.scene(options=Options(metadata_only=True))['stages']['geometry'], 'not_attempted')
         scene = self.scene('BoltedConnection.iam')
         self.assertEqual(scene['source']['kind'], 'assembly')
-        self.assertEqual(scene['stages']['geometry'], 'unsupported')
-        self.assertFalse(scene['nodes'])
+        self.assertEqual(scene['stages']['conversion'], 'not_attempted')
+        self.assertIsNotNone(scene['assembly'])
+        self.assertTrue(scene['nodes'])
+        self.assertFalse(scene['meshes'])
 
     def test_resource_limits_and_corrupt_input(self):
         for options in (Options(max_triangles=0), Options(max_buffer_bytes=0)):

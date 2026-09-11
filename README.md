@@ -58,7 +58,7 @@ python -m inventor_kit drawing.idw --metadata-only
 python -m inventor_kit part.ipt --list-candidates
 ```
 
-For local visual inspection, install the optional [part viewer](docs/viewer.md).
+For local visual inspection of parts and saved assemblies, install the optional [viewer](docs/viewer.md).
 
 ```sh
 python -m pip install 'inventor-kit[viewer]'

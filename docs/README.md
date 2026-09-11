@@ -3,7 +3,7 @@
 English | [日本語](README.ja.md)
 
 - [API guide](api.md): Reading files, metadata, saved candidates, assemblies, and limits.
-- [Local viewer](viewer.md): Saved IPT geometry, previews, properties, and read diagnostics.
+- [Local viewer](viewer.md): Saved IPT geometry and IAM placements, previews, properties, and read diagnostics.
 - [Supported scope](support.md): Validated profiles and unsupported or unverified behavior.
 - [Validation](validation.md): Comparison methods, holdouts, and interpreting results.
 - [Development](development.md): Building and reproducing checks using public sources only.

@@ -21,6 +21,10 @@ with TemporaryDirectory() as d:
     s = build_scene(Path('fixtures/public/SamplePart.ipt'), Path(d), Options(metadata_only=True))
     assert s['stages']['metadata'] == 'available'
     assert s['properties'] and s['thumbnails']
+    s = build_scene(Path('fixtures/public/m5-samplebg/Subassembly.iam'), Path(d), Options())
+    assert s['assembly']['structure_status'] == 'resolved'
+    assert len(s['nodes']) == 1 and not s['meshes']
+    assert s['stages']['conversion'] == 'not_attempted'
 '''
         subprocess.run([sys.executable, '-c', code], check=True)
 
@@ -30,4 +34,8 @@ with TemporaryDirectory() as d:
         self.assertIn('--candidate-id', help_.stdout)
         for args in (['--metadata-only','--candidate-id','bad'], ['--port','-1'], ['--timeout','nan']):
             result = subprocess.run([sys.executable, '-m', 'inventor_kit.viewer', 'part.ipt', *args], capture_output=True)
+            self.assertEqual(result.returncode, 2)
+        for name, args in [('part.ipt', ['--search-root', 'parts']), ('assembly.iam', ['--candidate-id', 'bad']),
+                           ('assembly.iam', ['--allow-partial']), ('assembly.iam', ['--metadata-only', '--allow-unverified-state'])]:
+            result = subprocess.run([sys.executable, '-m', 'inventor_kit.viewer', name, *args], capture_output=True)
             self.assertEqual(result.returncode, 2)

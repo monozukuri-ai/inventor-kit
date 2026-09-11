@@ -127,6 +127,104 @@ test('metadata-only and IAM do not claim part geometry', async ({ page }) => {
   await expect(page.locator('#stages')).toContainText('not_attempted');
 });
 
+test('IAM inventory requires explicit saved-state permission', async ({ page }) => {
+  await open(page, 'm5-samplebg/Subassembly.iam');
+  await expect(page.getByRole('heading', { name: 'No 3D geometry to display' })).toBeVisible();
+  await expect(page.locator('#body-list')).toContainText('Triangle');
+  await expect(page.locator('#diagnostics')).toContainText('--allow-unverified-state');
+  await expect(page.getByLabel('Show Triangle', { exact: true })).toBeDisabled();
+});
+
+test('native IAM displays a saved part and its occurrence provenance', async ({ page }, info) => {
+  const url = await open(page, 'm5-samplebg/Subassembly.iam', ['--allow-unverified-state']);
+  await expect(page.locator('#cad')).toHaveAttribute('data-displayed', '1');
+  await page.getByRole('button', { name: 'Triangle', exact: true }).click();
+  await expect(page.locator('#selected')).toHaveAttribute('data-node-id', '/document/occ-1');
+  const scene = await (await page.request.get(url + 'state.json')).json();
+  expect(scene.nodes[0].occurrence_path).toEqual([1]);
+  expect(scene.assembly.displayed_instances).toBe(1);
+  expect(scene.current_state).toBe('unverified'); expect(scene.complete).toBe(false);
+  await page.screenshot({ path: info.outputPath('subassembly.png') });
+});
+
+test('incomplete IAM keeps its tree and reasons without partial permission', async ({ page }) => {
+  await open(page, 'm5-samplebg/SampleBg.iam', ['--allow-unverified-state', '--search-root', resolve(corpus, 'm5-samplebg/iPartSample')]);
+  await expect(page.getByRole('heading', { name: 'No 3D geometry to display' })).toBeVisible();
+  await expect(page.locator('.body-row')).toHaveCount(7);
+  await expect(page.locator('#omissions')).toContainText('identity mismatch');
+  await expect(page.locator('#omissions')).toContainText('geometry unavailable');
+  await expect(page.locator('#diagnostics')).toContainText('--allow-partial');
+  expect(await page.locator('.body-row input:enabled').count()).toBe(0);
+});
+
+test('partial IAM renders five parts and isolates an occurrence', async ({ page }, info) => {
+  const url = await open(page, 'm5-samplebg/SampleBg.iam', ['--allow-unverified-state', '--allow-partial', '--search-root', resolve(corpus, 'm5-samplebg/iPartSample')]);
+  await expect(page.locator('#cad')).toHaveAttribute('data-displayed', '5');
+  await expect(page.locator('.body-row')).toHaveCount(7);
+  await expect(page.getByLabel('Show Subassembly', { exact: true })).toBeDisabled();
+  const scene = await (await page.request.get(url + 'state.json')).json();
+  expect(scene.omissions.map((o: { reason: string }) => o.reason).sort()).toEqual(['geometry_unavailable', 'identity_mismatch']);
+  const all = await page.locator('#cad canvas').screenshot();
+  await page.getByRole('button', { name: 'Cylinder', exact: true }).click();
+  await page.getByRole('button', { name: 'Isolate', exact: true }).click();
+  await expect(page.locator('.body-row[data-visible="true"]')).toHaveCount(1);
+  expect((await page.locator('#cad canvas').screenshot()).equals(all)).toBe(false);
+  await page.getByRole('button', { name: 'Show all', exact: true }).click();
+  await expect(page.locator('.body-row[data-visible="true"]')).toHaveCount(5);
+  expect(await (await page.request.get(url + 'state.json')).json()).toEqual(scene);
+  await page.screenshot({ path: info.outputPath('samplebg.png') });
+});
+
+test('synthetic nested repeated parts share downloads and keep selection independent', async ({ page }, info) => {
+  const url = await open(page, 'm5-samplebg/Subassembly.iam', ['--allow-unverified-state']);
+  await expect(page.locator('#cad')).toHaveAttribute('data-rendered', 'true');
+  const source = await (await page.request.get(url + 'state.json')).json();
+  const original = source.nodes[0];
+  const a = [[0, -1, 0, 11], [1, 0, 0, 2], [0, 0, 1, 3], [0, 0, 0, 1]];
+  const b = [[1, 0, 0, 0], [0, 0, -1, 4], [0, 1, 0, 0], [0, 0, 0, 1]];
+  const ab = [[0, 0, 1, 7], [1, 0, 0, 2], [0, 1, 0, 3], [0, 0, 0, 1]];
+  const c = [[1, 0, 0, 120], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
+  const scene = { ...source, nodes: [
+    { ...original, name: 'Nested', kind: 'assembly', mesh_id: null, status: 'group', local_transform_mm: a, world_transform_mm: a },
+    { ...original, id: '/document/occ-1/occ-1', parent: '/document/occ-1', name: 'Repeated', occurrence_path: [1, 1], local_transform_mm: b, world_transform_mm: ab },
+    { ...original, id: '/document/occ-2', name: 'Repeated', occurrence_path: [2], local_transform_mm: c, world_transform_mm: c },
+    { ...original, id: '/document/occ-3', name: 'Unknown placement', occurrence_path: [3], mesh_id: null, status: 'placement_unavailable', local_transform_mm: null, world_transform_mm: null },
+  ], assembly: { ...source.assembly, structure_status: 'partial', allow_partial: true, displayed_instances: 2, displayed_definitions: 1 },
+    omissions: [{ instance: 3, path: [3], reason: 'placement_unavailable', detail: 'Synthetic unknown placement' }] };
+  await page.route('**/state.json', route => route.fulfill({ json: scene }));
+  const downloads = new Map<string, number>();
+  page.on('request', request => { if (request.url().endsWith('.bin')) downloads.set(request.url(), (downloads.get(request.url()) ?? 0) + 1); });
+  await page.reload();
+  await expect(page.locator('#cad')).toHaveAttribute('data-displayed', '2');
+  expect(downloads.size).toBe(Object.keys(source.meshes[0].buffers).length);
+  expect([...downloads.values()].every(n => n === 1)).toBe(true);
+  // Exercise the real canvas picking callback, then the reverse tree-to-view path.
+  const box = (await page.locator('#cad canvas').boundingBox())!;
+  let picked: string | null = null;
+  for (const [x, y] of [[.25, .3], [.75, .7], [.3, .35], [.8, .7]]) {
+    await page.mouse.dblclick(box.x + x * box.width, box.y + y * box.height);
+    await page.waitForTimeout(100);
+    picked = await page.locator('#selected').getAttribute('data-node-id');
+    if (picked) break;
+  }
+  expect(['/document/occ-1/occ-1', '/document/occ-2']).toContain(picked);
+  const first = page.locator('.body-row[data-node-id="/document/occ-1/occ-1"]');
+  const second = page.locator('.body-row[data-node-id="/document/occ-2"]');
+  await expect(first.locator('xpath=../..')).toHaveClass('component-tree');
+  await first.getByRole('button').click();
+  await expect(first).toHaveClass(/active/); await expect(second).not.toHaveClass(/active/);
+  await second.getByRole('button').click();
+  await expect(second).toHaveClass(/active/); await expect(first).not.toHaveClass(/active/);
+  await first.locator('input').uncheck();
+  await expect(second.locator('input')).toBeChecked();
+  await page.getByRole('button', { name: 'Nested', exact: true }).click();
+  await page.getByRole('button', { name: 'Isolate', exact: true }).click();
+  await expect(first.locator('input')).toBeChecked(); await expect(second.locator('input')).not.toBeChecked();
+  await expect(page.getByLabel('Show Unknown placement', { exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Show all', exact: true }).click();
+  await page.screenshot({ path: info.outputPath('synthetic-nested.png') });
+});
+
 test('broken input reports failure without a blank page', async ({ page }) => {
   const directory = mkdtempSync(resolve(tmpdir(), 'inventor-broken-'));
   try {

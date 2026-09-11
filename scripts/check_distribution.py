@@ -127,7 +127,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         raise ValueError('Expected one distribution metadata file')
     meta = BytesParser().parsebytes(metadata[0])
     check_metadata(meta, version)
-    for name in ('__init__.py', '__main__.py', 'cli.py', 'scene.py', 'server.py', 'worker.py', 'tessellation.py'):
+    for name in ('__init__.py', '__main__.py', 'cli.py', 'scene.py', 'server.py', 'worker.py', 'tessellation.py', 'assembly.py'):
         if package_prefix+'viewer/'+name not in contents:
             raise ValueError(f'Missing viewer Python module: {name}')
     check_bundle(contents.__getitem__, set(contents), package_prefix+'viewer/static/', viewer_sources)

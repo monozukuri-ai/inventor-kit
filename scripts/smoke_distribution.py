@@ -11,7 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def installed_viewer(corpus):
+def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurrences=1, omissions=0):
     import queue
     import signal
     import threading
@@ -21,7 +21,7 @@ def installed_viewer(corpus):
     assert Path(inventor_kit.viewer.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
     with tempfile.TemporaryFile(mode='w+') as log:
         process = subprocess.Popen([sys.executable, '-I', '-m', 'inventor_kit.viewer',
-            str(corpus/'SamplePart.ipt'), '--no-browser'], stdout=subprocess.PIPE, stderr=log, text=True)
+            str(corpus/file), '--no-browser', *options], stdout=subprocess.PIPE, stderr=log, text=True)
         lines = queue.Queue()
         thread = threading.Thread(target=lambda: lines.put(process.stdout.readline()), daemon=True)
         thread.start()
@@ -40,7 +40,12 @@ def installed_viewer(corpus):
                 if time.monotonic() >= deadline:
                     raise AssertionError('Installed viewer conversion timed out')
                 time.sleep(.1)
-            assert scene['stages']['tessellation'] == 'available' and len(scene['nodes']) == 1
+            assert scene['stages']['tessellation'] in ('available', 'partial') and len(scene['nodes']) == occurrences
+            assert sum(n['mesh_id'] is not None for n in scene['nodes']) == parts
+            assert len(scene['omissions']) == omissions
+            if scene['assembly'] is not None:
+                assert scene['assembly']['displayed_instances'] == parts
+                assert scene['assembly']['allow_unverified_state'] is True
             assert scene['complete'] is False and scene['thumbnails']
             for mesh in scene['meshes']:
                 for buffer in mesh['buffers'].values():
@@ -60,7 +65,8 @@ def installed_viewer(corpus):
             stderr = log.read()
         if process.returncode != 0:
             raise AssertionError(f'Installed viewer shutdown failed: {process.returncode}: {stderr}')
-    print(json.dumps({'installed_viewer': 'passed', 'scope': 'Linux startup, assets, part mesh, shutdown; not browser rendering'}))
+    print(json.dumps({'installed_viewer': 'passed', 'input': file, 'displayed_instances': parts,
+                      'scope': 'Linux startup, assets, geometry and shutdown; not browser rendering'}))
 
 
 def installed(corpus):
@@ -146,6 +152,10 @@ def main():
         installed(args.corpus)
         if args.viewer:
             installed_viewer(args.corpus)
+            installed_viewer(args.corpus, 'm5-samplebg/Subassembly.iam', ('--allow-unverified-state',))
+            installed_viewer(args.corpus, 'm5-samplebg/SampleBg.iam',
+                ('--allow-unverified-state', '--allow-partial', '--search-root', str(args.corpus/'m5-samplebg/iPartSample')),
+                parts=5, occurrences=7, omissions=2)
         return
     if args.wheel is None and args.sdist is None:
         parser.error('--wheel or --sdist is required')
