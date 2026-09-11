@@ -214,7 +214,10 @@ fn read_document(
     for entry in file.walk() {
         if entry.is_stream() {
             streams.push(StreamInfo {
-                path: entry.path().to_string_lossy().into_owned(),
+                // CFB paths identify internal streams, not host filesystem
+                // locations. The cfb crate returns native PathBuf separators;
+                // our selectors and public source spans use '/' on every OS.
+                path: entry.path().to_string_lossy().replace('\\', "/"),
                 bytes: entry.len(),
             });
         }
