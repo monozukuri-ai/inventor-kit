@@ -13,8 +13,20 @@ python -m inventor_kit.viewer part.ipt
 
 コマンドはローカル URL を出力し、ブラウザを開きます。閲覧中はプロセスを起動したままにし、
 終了時は端末で Ctrl-C を押してください。タブを閉じるだけでは終了しません。
-利用時の Node.js、Inventor、ネット接続は不要です。初版の viewer は Linux を検証対象とし、
-他 OS のインストール・ブラウザ確認は、既存パーサの配布確認とは別に扱います。
+利用時の Node.js、Inventor、ネット接続は不要です。Windows は Ctrl-Break でも正常終了します。
+
+配布 workflow は Linux x86_64、Windows x86_64、macOS arm64 / x86_64 のそれぞれで、
+Python 3.11 / 3.12 の新規環境に viewer extra を導入します。IPT、保存配置を許可した IAM、
+部分表示を明示許可した IAM のシーン・メッシュ配信、正常終了、一時データ削除を必須にしています。
+フルのブラウザ試験は Linux Chromium のソフトウェア描画で実行します。
+Windows/macOS のブラウザ描画と実機 GPU 性能は、サーバー試験の確認範囲に含めません。
+必要な結果と artifact は[リリース手順](releasing.ja.md)を参照してください。
+
+未リリースの版を試す場合は、成功した `Python distributions` workflow から対象 OS の wheel を
+ダウンロードし、実際のファイル名を使って
+`python -m pip install './inventor_kit-<version>-<abi>-<platform>.whl[viewer]'` で導入します。
+上記の PyPI コマンドは公開済みの版を導入するため、その版には開発中の viewer の変更が
+まだ含まれていない場合があります。
 
 ```sh
 python -m inventor_kit.viewer part.ipt --no-browser --port 0
@@ -120,7 +132,12 @@ python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.1.0-cp310-abi3-
 python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.1.0.tar.gz --viewer --browser
 ```
 
-wheel 名は実際にビルドしたファイル名に合わせてください。Linux のこれらの確認では、
-checkout 外へインストールして配信と正常終了を確認し、導入した Python でブラウザ試験も実行します。
+wheel 名は実際にビルドしたファイル名に合わせてください。Windows/macOS のサーバー試験では
+`--browser` を外します。`--python` で導入先の Python を選択できます。
+checkout 外へインストールして配信と後片付けを確認し、`--browser` を付けた場合は、
+導入した Python で Linux Chromium のブラウザ試験も実行します。
+`--report <file.json>` は、全指定試験と Python の正常終了後に、選択した件数、依存版、
+OS・Python 版、入力配布物の SHA-256 を保存します。文書属性、参照パス、メッシュ、
+プレビュー、詳細診断は含めません。
 sdist は生成済みアセットとソース・lockfile を含み、Python wheel の再ビルドには Node を必要としません。
-既存の配布条件は[リリース手順](releasing.ja.md)を参照してください。
+配布条件は[リリース手順](releasing.ja.md)を参照してください。

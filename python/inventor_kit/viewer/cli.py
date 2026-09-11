@@ -1,11 +1,31 @@
 """Entry point for the local saved-part viewer."""
 import argparse
+from contextlib import contextmanager
 from importlib.util import find_spec
 from pathlib import Path
+import signal
 import tempfile
+from threading import Event
 import webbrowser
 
 from .scene import Options
+
+
+@contextmanager
+def shutdown_signals():
+    """Finish cleanup before restoring terminal interrupt handlers."""
+    stopping = Event()
+    signals = [signal.SIGINT]
+    if hasattr(signal, "SIGBREAK"):
+        signals.append(signal.SIGBREAK)
+    previous = {}
+    try:
+        for signum in signals:
+            previous[signum] = signal.signal(signum, lambda *_: stopping.set())
+        yield stopping
+    finally:
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
 
 
 def main(argv=None):
@@ -41,7 +61,7 @@ def main(argv=None):
         parser.error("Install viewer dependencies: python -m pip install 'inventor-kit[viewer]'")
     from .server import create_server
     from .worker import Job
-    with tempfile.TemporaryDirectory(prefix="inventor-viewer-") as temporary:
+    with shutdown_signals() as stopping, tempfile.TemporaryDirectory(prefix="inventor-viewer-") as temporary:
         try:
             server, url = create_server(temporary, args.port)
         except (OSError, FileNotFoundError) as error:
@@ -55,7 +75,7 @@ def main(argv=None):
                     webbrowser.open(url)
                 except webbrowser.Error:
                     pass  # The printed URL remains usable.
-            while True:
+            while not stopping.is_set():
                 job.poll()
                 server.handle_request()
         except KeyboardInterrupt:

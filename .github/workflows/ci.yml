@@ -94,11 +94,13 @@ jobs:
           .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz
       - name: Linux installed viewer and browser checks
         run: |
-          .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl --viewer --browser
-          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --browser
+          .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl --viewer --browser --report dist/viewer-wheel-smoke.json
+          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --browser --report dist/viewer-sdist-smoke.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: validation-report
-          path: dist/validation-summary.json
+          path: |
+            dist/validation-summary.json
+            dist/viewer-*-smoke.json
           if-no-files-found: warn
