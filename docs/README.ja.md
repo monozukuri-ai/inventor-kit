@@ -3,6 +3,7 @@
 [English](README.md) | 日本語
 
 - [API ガイド](api.ja.md): 読み込み、属性、保存候補、アセンブリ、上限。
+- [ローカル viewer](viewer.ja.md): IPT の保存形状、プレビュー、属性、読み込み診断。
 - [対応範囲](support.ja.md): 確認済みプロファイルと未対応・未検証の境界。
 - [検証](validation.ja.md): 比較方法、保留検証と結果の読み方。
 - [開発](development.ja.md): 公開ソースだけを使うビルドと再現手順。

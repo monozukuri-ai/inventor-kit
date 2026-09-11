@@ -1,0 +1,18 @@
+{
+  "name": "inventor-kit-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build && node scripts/manifest.mjs",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "three-cad-viewer": "5.0.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "typescript": "5.9.3",
+    "vite": "6.4.3"
+  }
+}

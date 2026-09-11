@@ -12,3 +12,6 @@ __pycache__/
 /fuzz/corpus/
 /fuzz/artifacts/
 /fuzz/coverage/
+/viewer/node_modules/
+/viewer/test-results/
+/viewer/playwright-report/

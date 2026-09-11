@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Inventor Kit · Viewer</title>
+    <link rel="icon" href="data:," />
+    <script type="module" crossorigin src="./assets/index-CWpb_71j.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CSx6K2th.css">
+  </head>
+  <body>
+    <header><a class="brand" href="./">IK<span>Inventor Kit</span></a><span class="local">LOCAL VIEWER</span><span id="file-name">Opening document…</span></header>
+    <div class="notice">Saved geometry · Current Model State is unverified</div>
+    <main>
+      <aside class="bodies"><h1>Bodies <span id="body-count">0</span></h1><p class="hint">Select a body to inspect it.</p><div id="body-list"></div><p id="selected" aria-live="polite">No body selected</p><div class="source-note">Display colors are assigned by the viewer.</div></aside>
+      <section class="viewport" aria-label="3D model">
+        <nav aria-label="View controls">
+          <button data-view="fit" disabled>Fit</button><span class="divider"></span>
+          <button data-view="iso" disabled>Isometric</button><button data-view="front" disabled>Front</button><button data-view="top" disabled>Top</button>
+          <label class="edge-toggle"><input id="edges" type="checkbox" checked disabled /> Edges</label>
+        </nav>
+        <div id="cad"></div><div id="empty" role="status"><div class="empty-mark">◇</div><h2>Opening document</h2><p>Reading saved document information…</p></div>
+        <footer><span id="render-status">Waiting for document</span><span>mm · Orbit / pan / zoom</span></footer>
+      </section>
+      <aside class="details">
+        <section><h2>Document</h2><dl id="document-info"></dl></section>
+        <section><h2>Saved previews</h2><p class="hint">Images stored in the file; they may show a different state.</p><div id="previews"></div></section>
+        <section><h2>Properties <span id="property-count">0</span></h2><div id="properties"></div></section>
+        <section><h2>Geometry candidates</h2><div id="candidates"></div></section>
+        <section><h2>Read results</h2><div id="stages"></div><div id="diagnostics" aria-live="polite"></div></section>
+      </aside>
+    </main>
+  </body>
+</html>

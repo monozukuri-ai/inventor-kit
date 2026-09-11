@@ -32,5 +32,14 @@
   Exact sections and limitations are linked from `docs/format-reference.md`.
   olefile and Pillow are validation dependencies only; their source is not copied.
 
+- The optional viewer uses ocp-tessellate 3.5.1 (Apache-2.0), distributed as a
+  separate Python dependency: https://github.com/bernhard-42/ocp-tessellate.
+  Its tessellator and B-rep edge discretization are called through an adapter.
+- The bundled viewer includes three-cad-viewer 5.0.6, Three.js, n8ao and
+  postprocessing (MIT). Exact bundled versions and complete license texts are
+  in `python/inventor_kit/viewer/static/THIRD_PARTY_LICENSES.txt`, also installed
+  under `inventor_kit/viewer/static/`. Build inputs and asset hashes are in the
+  adjacent `manifest.json`. https://github.com/bernhard-42/three-cad-viewer
+
 Source provenance and sample hashes are recorded in `fixtures/manifest.json` and
 `fixtures/assembly-manifest.json`. GPL InventorLoader code is not incorporated.

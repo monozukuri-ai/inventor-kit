@@ -11,6 +11,58 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def installed_viewer(corpus):
+    import queue
+    import signal
+    import threading
+    import time
+    from urllib.request import urlopen
+    import inventor_kit.viewer
+    assert Path(inventor_kit.viewer.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+    with tempfile.TemporaryFile(mode='w+') as log:
+        process = subprocess.Popen([sys.executable, '-I', '-m', 'inventor_kit.viewer',
+            str(corpus/'SamplePart.ipt'), '--no-browser'], stdout=subprocess.PIPE, stderr=log, text=True)
+        lines = queue.Queue()
+        thread = threading.Thread(target=lambda: lines.put(process.stdout.readline()), daemon=True)
+        thread.start()
+        try:
+            url = lines.get(timeout=15).strip()
+            if not url.startswith('http://127.0.0.1:'):
+                raise AssertionError('Installed viewer did not start')
+            with urlopen(url, timeout=5) as response:
+                assert b'Inventor Kit' in response.read()
+            deadline = time.monotonic()+60
+            while True:
+                with urlopen(url+'state.json', timeout=5) as response:
+                    scene = json.load(response)
+                if scene['job_status'] in ('finished','failed'):
+                    break
+                if time.monotonic() >= deadline:
+                    raise AssertionError('Installed viewer conversion timed out')
+                time.sleep(.1)
+            assert scene['stages']['tessellation'] == 'available' and len(scene['nodes']) == 1
+            assert scene['complete'] is False and scene['thumbnails']
+            for mesh in scene['meshes']:
+                for buffer in mesh['buffers'].values():
+                    with urlopen(url+buffer['resource'], timeout=5) as response:
+                        assert len(response.read()) == buffer['bytes']
+        finally:
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
+                try:
+                    process.wait(5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            process.stdout.close()
+            thread.join(1)
+            log.seek(0)
+            stderr = log.read()
+        if process.returncode != 0:
+            raise AssertionError(f'Installed viewer shutdown failed: {process.returncode}: {stderr}')
+    print(json.dumps({'installed_viewer': 'passed', 'scope': 'Linux startup, assets, part mesh, shutdown; not browser rendering'}))
+
+
 def installed(corpus):
     import importlib.metadata
     import math
@@ -82,10 +134,18 @@ def main():
     parser.add_argument('--bridge-crate', type=Path, help='Explicit unpublished .crate for provisional sdist validation')
     parser.add_argument('--python', default=sys.executable)
     parser.add_argument('--installed', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--viewer', action='store_true', help='Install the viewer extra and check its local server (Linux)')
+    parser.add_argument('--browser', action='store_true', help='Also run the viewer Playwright suite against the installed package (requires --viewer)')
     parser.add_argument('--corpus', type=Path, default=ROOT / 'fixtures/public')
     args = parser.parse_args()
+    if args.browser and not args.viewer:
+        parser.error('--browser requires --viewer')
+    if args.viewer and os.name == 'nt':
+        parser.error('Viewer distribution smoke currently targets Linux; Windows qualification is separate')
     if args.installed:
         installed(args.corpus)
+        if args.viewer:
+            installed_viewer(args.corpus)
         return
     if args.wheel is None and args.sdist is None:
         parser.error('--wheel or --sdist is required')
@@ -130,10 +190,13 @@ def main():
             wheel = wheels[0]
         subprocess.run([args.python, '-m', 'venv', str(root/'venv')], env=environment, check=True)
         python = root/'venv'/('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
-        packages = [str(wheel)] + ([str(args.cq_wheel.resolve())] if args.cq_wheel else [])
+        packages = [str(wheel) + ('[viewer]' if args.viewer else '')] + ([str(args.cq_wheel.resolve())] if args.cq_wheel else [])
         subprocess.run([str(python), '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--only-binary=:all:', *packages], env=environment, check=True)
         subprocess.run([str(python), '-m', 'pip', 'check'], env=environment, check=True)
-        subprocess.run([str(python), '-I', '-X', 'faulthandler', '-u', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve())], cwd=root, env=environment, check=True)
+        subprocess.run([str(python), '-I', '-X', 'faulthandler', '-u', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve()), *(['--viewer'] if args.viewer else [])], cwd=root, env=environment, check=True)
+        if args.browser:
+            browser_environment = dict(environment, VIEWER_PYTHON=str(python), VIEWER_CWD=str(root), VIEWER_CORPUS=str(args.corpus.resolve()))
+            subprocess.run(['npm', 'run', 'test', '--prefix', str(ROOT/'viewer')], cwd=root, env=browser_environment, check=True)
         print(json.dumps({'dependency_mode': 'local cq-acis release candidate' if args.cq_wheel else 'PyPI',
                           'interpreter_shutdown': 'passed',
                           'bridge_mode': 'staged unpublished crate' if args.bridge_crate else 'registry or prebuilt wheel',

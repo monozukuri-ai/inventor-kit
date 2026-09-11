@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "command": "npm ci --prefix viewer && npm run build --prefix viewer",
+  "build_environment": {
+    "node": "v22.18.0",
+    "npm": "10.9.3"
+  },
+  "inputs": {
+    "index.html": "83c71660dbde3bed439e5ff799d41f2514a064185a52c44b3a17a7eb23cfaac7",
+    "package-lock.json": "0147304c8644b4a3624ad24ba443d967897cb41450b692e65bf6dfca86424a4f",
+    "package.json": "300bbbd558a2ce2a01843085b17f16d348eb19fbc1fb7701a997d24642fa7ec4",
+    "scripts/manifest.mjs": "9791f6394504e62ac02b5a72adcb6d72500ae908f21a1a968cc255d6840303d0",
+    "src/main.ts": "d31bbd09815cbf7be4180ce56fa571f39a8be9b2ca7d27c91f1ae17ad41bdfc4",
+    "src/style.css": "c2cc471eb498a95921075273d7aa2584d9c6d40e492394c2a83dd2e922b2eb6f",
+    "tsconfig.json": "aed5cd64e684f15334aa2bae06ae24e5ea5a8e2c15a6981ded99e9003950b712",
+    "vite.config.ts": "632e8b4536dc9b476a8e64db12ac7aa7fbd271f8c90b998615986751ff7dabff"
+  },
+  "outputs": {
+    "THIRD_PARTY_LICENSES.txt": "c76f9cf7e6e3cebf8d331a4aec0e25756460820e7596377ac5afcc5d14d0962c",
+    "assets/index-CSx6K2th.css": "b13b0778e668df4376a867968cc300e59babfc2adacfca22838429678dfc03d2",
+    "assets/index-CWpb_71j.js": "a38d6f44ef539a399f7de5a4202928e9bc8e1b242b3c3251841a78220d41641d",
+    "index.html": "9561a8e9f5c55f4ee91ea52b6e908ef0bcd509dac85f0960aadeb9e770569946"
+  }
+}

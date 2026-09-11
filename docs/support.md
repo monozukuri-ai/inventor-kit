@@ -35,4 +35,8 @@ Retaining history as original bytes does not establish semantic interpretation
 or agreement with the current state. Returning multiple stored databases or
 candidates is distinct from selecting the current state. Feature editing,
 history reconstruction, constraint solving, PMI/GD&T, sheet metal unfolding,
-and display meshes are outside the supported scope.
+and reading native display meshes are outside the supported scope.
+
+The optional [local viewer](viewer.md) generates display meshes from successfully
+converted IPT B-rep shapes. It also shows document information and saved previews.
+It does not extend native geometry, assembly-state, or drawing support.

@@ -23,7 +23,8 @@ class ReleaseGates(unittest.TestCase):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
                             ('License-Expression', 'MIT'), ('Requires-Python', '>=3.11'),
-                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.2')]:
+                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.2'), ('Provides-Extra', 'viewer'),
+                            ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value
         check_metadata(meta, '0.1.0')
         for name, value in [('Requires-Python', '>=3.10'),

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inventor Kit internal viewer scene v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "job_status", "source", "units", "current_state", "complete", "stages", "selection", "candidates", "nodes", "meshes", "properties", "thumbnails", "diagnostics", "tessellation"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "job_status": {"enum": ["queued", "running", "finished", "failed"]},
+    "source": {
+      "type": "object", "required": ["name", "sha256", "kind"], "additionalProperties": false,
+      "properties": {"name": {"type": "string"}, "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}, "kind": {"type": "string"}}
+    },
+    "units": {"const": "mm"}, "current_state": {"const": "unverified"}, "complete": {"const": false},
+    "stages": {
+      "type": "object", "required": ["metadata", "geometry", "conversion", "tessellation"],
+      "additionalProperties": false,
+      "properties": {"metadata": {"type": "string"}, "geometry": {"type": "string"}, "conversion": {"type": "string"}, "tessellation": {"type": "string"}}
+    },
+    "selection": {"type": ["object", "null"]},
+    "candidates": {"type": "array", "items": {"type": "object", "required": ["id", "table_status", "profile_status", "state_binding", "source"]}},
+    "nodes": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "parent", "name", "body_index", "source_sha256", "candidate_id", "mesh_id"],
+      "properties": {"id": {"type": "string"}, "parent": {"type": ["string", "null"]}, "name": {"type": "string"},
+        "body_index": {"type": "integer"}, "source_sha256": {"type": "string"}, "candidate_id": {"type": "string"}, "mesh_id": {"type": "string"}}
+    }},
+    "meshes": {"type": "array", "items": {
+      "type": "object", "required": ["id", "buffers", "bounds", "face_count", "triangle_count"], "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string"}, "bounds": {"$ref": "#/$defs/bounds"},
+        "face_count": {"type": "integer", "minimum": 1}, "triangle_count": {"type": "integer", "minimum": 1},
+        "buffers": {"type": "object", "required": ["vertices", "triangles", "normals", "edges", "triangles_per_face", "segments_per_edge", "face_types", "edge_types", "obj_vertices"],
+          "additionalProperties": {"$ref": "#/$defs/buffer"}}
+      }
+    }},
+    "properties": {"type": "array", "items": {"type": "object", "required": ["name", "value", "value_kind", "source", "storage_scope", "state_binding", "fmtid", "pid", "status"]}},
+    "thumbnails": {"type": "array", "items": {"type": "object", "required": ["resource", "width", "height", "source", "state_binding", "validation"],
+      "properties": {"resource": {"$ref": "#/$defs/resource"}, "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}}}},
+    "diagnostics": {"type": "array", "items": {"type": "object", "required": ["code", "severity", "message", "source"],
+      "properties": {"code": {"type": "string"}, "severity": {"type": "string"}, "message": {"type": "string"}}}},
+    "tessellation": {"type": ["object", "null"], "required": ["quality", "linear_deflection_mm", "angular_deflection_radians", "mode", "triangle_count", "buffer_bytes", "packages"]}
+  },
+  "$defs": {
+    "resource": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+\\.(bin|png)$"},
+    "buffer": {"type": "object", "required": ["resource", "dtype", "count", "bytes"], "additionalProperties": false,
+      "properties": {"resource": {"$ref": "#/$defs/resource"}, "dtype": {"enum": ["float32", "uint32"]},
+        "count": {"type": "integer", "minimum": 0}, "bytes": {"type": "integer", "minimum": 0}}},
+    "bounds": {"type": "object", "required": ["xmin", "xmax", "ymin", "ymax", "zmin", "zmax"],
+      "additionalProperties": false, "properties": {"xmin": {"type": "number"}, "xmax": {"type": "number"}, "ymin": {"type": "number"}, "ymax": {"type": "number"}, "zmin": {"type": "number"}, "zmax": {"type": "number"}}}
+  }
+}

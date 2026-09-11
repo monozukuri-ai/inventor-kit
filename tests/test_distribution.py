@@ -30,6 +30,10 @@ class WheelRecords(unittest.TestCase):
             ).encode(),
             info + '/WHEEL': b'Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: cp310-abi3-win_amd64\n',
         }
+        self.contents[info+'/METADATA'] = self.contents[info+'/METADATA'].rstrip() + b'\nProvides-Extra: viewer\nRequires-Dist: ocp-tessellate==3.5.1; extra == "viewer"\n\n'
+        for path in (ROOT/'python/inventor_kit/viewer').rglob('*'):
+            if path.is_file() and (path.suffix == '.py' or 'static' in path.parts):
+                self.contents['inventor_kit/viewer/'+path.relative_to(ROOT/'python/inventor_kit/viewer').as_posix()] = path.read_bytes()
         for name in ('assembly.py', 'assembly_step.py', 'limits.py', 'capabilities.json'):
             self.contents['inventor_kit/' + name] = b'{}'
         for path in [ROOT / 'LICENSE', ROOT / 'THIRD_PARTY_NOTICES.md', *sorted((ROOT / 'licenses').glob('*.txt'))]:
@@ -94,6 +98,15 @@ class WheelRecords(unittest.TestCase):
         rows[0][0] = 'inventor_kit\\..\\' + rows[0][0]
         with self.assertRaisesRegex(ValueError, 'Missing RECORD member'):
             self.validate(rows)
+
+    def test_viewer_assets_are_checked_beyond_record_integrity(self):
+        import json
+        prefix = 'inventor_kit/viewer/static/'
+        manifest = json.loads(self.contents[prefix+'manifest.json'])
+        js = next(name for name in manifest['outputs'] if name.endswith('.js'))
+        self.contents[prefix+js] = b'wrong build'
+        with self.assertRaisesRegex(ValueError, 'stale viewer asset'):
+            self.validate(self.rows('/'))
 
 
 if __name__ == '__main__':
