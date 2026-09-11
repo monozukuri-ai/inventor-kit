@@ -137,7 +137,7 @@ wheel 名は実際にビルドしたファイル名に合わせてください�
 checkout 外へインストールして配信と後片付けを確認し、`--browser` を付けた場合は、
 導入した Python で Linux Chromium のブラウザ試験も実行します。
 `--report <file.json>` は、全指定試験と Python の正常終了後に、選択した件数、依存版、
-OS・Python 版、入力配布物の SHA-256 を保存します。文書属性、参照パス、メッシュ、
+OS 種別・Python 版、入力配布物の SHA-256 を保存します。文書属性、参照パス、メッシュ、
 プレビュー、詳細診断は含めません。
 sdist は生成済みアセットとソース・lockfile を含み、Python wheel の再ビルドには Node を必要としません。
 配布条件は[リリース手順](releasing.ja.md)を参照してください。

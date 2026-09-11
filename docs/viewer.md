@@ -151,7 +151,7 @@ the Windows/macOS server checks; optionally select the interpreter with
 `--python`. These checks install outside the checkout and verify local serving
 and cleanup. `--browser` additionally runs the Linux Chromium tests using that
 installed interpreter. `--report <file.json>` writes selected counts, dependency
-versions, platform/Python versions and the input distribution's SHA-256 only after
+versions, platform and Python versions and the input distribution's SHA-256 only after
 all requested checks and interpreter shutdown pass. It excludes document
 properties, reference paths, mesh data, previews and detailed diagnostics. The sdist includes built assets and their
 source/lockfile; rebuilding the Python wheel does not require Node. See

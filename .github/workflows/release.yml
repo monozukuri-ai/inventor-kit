@@ -86,6 +86,7 @@ jobs:
         run: cargo +1.93.0 test -p inventor-core --all-features --locked
       - name: Inspect archive and obtain pinned smoke fixtures
         run: |
+          python scripts/check_viewer_assets.py
           python scripts/check_distribution.py dist/*.whl
           python scripts/fetch_public_samples.py
           python scripts/fetch_assembly_samples.py

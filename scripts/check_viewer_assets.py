@@ -33,7 +33,7 @@ def main():
     static = ROOT/'python/inventor_kit/viewer/static'
     source = ROOT/'viewer'
     manifest = json.loads((static/'manifest.json').read_text())
-    names = {str(p.relative_to(ROOT)) for p in static.rglob('*') if p.is_file()}
+    names = {p.relative_to(ROOT).as_posix() for p in static.rglob('*') if p.is_file()}
     names.update('viewer/'+n for n in manifest['inputs'] if (source/n).is_file())
     count = check_bundle(lambda n: (ROOT/n).read_bytes(), names, 'python/inventor_kit/viewer/static/', 'viewer/')
     print(f'Viewer assets passed: {count} files; source and bundle hashes match')

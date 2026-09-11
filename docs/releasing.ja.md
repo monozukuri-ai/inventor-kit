@@ -38,7 +38,7 @@ Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 
 wheel の名前・版・ABI/platform tag、CRC、RECORD の hash/size、必要なモジュールと
 ライセンスを照合します。隔離環境で属性読込、形状変換、アセンブリ STEP 往復を行い、
-子プロセスの正常終了を確認します。各 OS・Python 版で `wheel[viewer]` を導入して
+子プロセスの正常終了を確認します。各 OS 種別・Python 版で `wheel[viewer]` を導入して
 `pip check` を行い、`--no-browser` で起動します。部品・アセンブリ・明示許可した部分
 アセンブリのシーンとメッシュバッファを取得し、正常終了と一時データ削除を要求します。
 sdist は Node なしで再ビルドし、生成した wheel を検査したうえで Linux / Python 3.11 に
@@ -72,7 +72,7 @@ python scripts/check_release.py --dist dist --viewer-reports qualification
 
 `dist/` には 5 配布物だけ、`qualification/` には 9 件の OS 別レポートだけを置きます。
 Linux CI の `validation-report` artifact は、別途選択したコーパスと viewer のブラウザ検証の
-集計を含みます。公開集計は件数、OS・Python・依存版、配布物の hash に限定し、
+集計を含みます。公開集計は件数、OS 種別・Python・依存版、配布物の hash に限定し、
 文書属性、参照パス、メッシュ、プレビュー、詳細診断、生ログを含めません。
 シーンの現在状態は引き続き未検証です。
 
