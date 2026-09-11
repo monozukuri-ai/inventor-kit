@@ -136,7 +136,7 @@ async function render(s: Scene) {
 
 document.querySelectorAll<HTMLButtonElement>('button[data-view]').forEach(button => button.addEventListener('click', () => {
   const direction = button.dataset.view;
-  if (direction === 'fit') viewer?.resize();
+  if (direction === 'fit') { viewer?.centerVisibleObjects(); viewer?.resize(); }
   else viewer?.presetCamera(direction as 'iso' | 'front' | 'top');
 }));
 el('edges').addEventListener('change', setVisibility);

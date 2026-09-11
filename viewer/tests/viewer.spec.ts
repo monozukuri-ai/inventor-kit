@@ -69,8 +69,19 @@ for (const file of ['SamplePart.ipt', 'Cylinder.ipt', 'INV_nist_ftc_09_asme1_202
     expect(state.meshes[0].face_count).toBeGreaterThan(0);
     await expect(page.locator('#previews img').first()).toBeVisible();
     await expect(page.locator('#candidates')).toContainText('Selected');
+    // Fit must also recover a panned model, even when its zoom has not changed.
+    await page.getByRole('button', { name: 'Fit', exact: true }).click();
     const iso = await page.locator('#cad canvas').screenshot();
     const box = (await page.locator('#cad canvas').boundingBox())!;
+    await page.keyboard.down('Shift');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 + 60, { steps: 10 });
+    await page.mouse.up();
+    await page.keyboard.up('Shift');
+    await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
+    await page.getByRole('button', { name: 'Fit', exact: true }).click();
+    await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(true);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width / 2 + 100, box.y + box.height / 2 + 50, { steps: 10 });
