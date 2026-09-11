@@ -80,6 +80,57 @@ fn get(set: &PropertySet, pid: u32) -> &V {
 }
 
 #[test]
+fn cfb_stream_paths_preserve_root_and_member_properties_on_every_host() {
+    use std::{io::Cursor, io::Write, path::Path};
+
+    let mut file =
+        cfb::CompoundFile::open(Cursor::new(crate::tests::container(false, false, false))).unwrap();
+    let properties = [
+        ("/\u{5}Tracking", "ROOT-001"),
+        ("/MemberDocs/部品/\u{5}Tracking/CONTENTS", "MEMBER-002"),
+    ];
+    for (path, value) in properties {
+        let mut data = stream(&[section(&[cp(1200), (5, typed(31, &wide(value)))])], 0);
+        // Design Tracking FMTID, PID 5: part_number.
+        data[28..44].copy_from_slice(&[
+            0x0f, 0x3f, 0x85, 0x32, 0x44, 0x34, 0xd1, 0x11, 0x9e, 0x93, 0x00, 0x60, 0xb0, 0x3c,
+            0x1c, 0xa6,
+        ]);
+        file.create_storage_all(Path::new(path).parent().unwrap())
+            .unwrap();
+        file.create_stream(path).unwrap().write_all(&data).unwrap();
+    }
+    let bytes = file.into_inner().into_inner();
+    let doc = crate::inspect(&bytes, "portable-paths", &Limits::default()).unwrap();
+    let info = &doc.summary.document;
+    assert_eq!(info.stages.properties, "decoded");
+    assert_eq!(info.stages.registry, "decoded");
+    assert_eq!(info.databases[0].stream, "/RSeStorage/V24/RSeDb");
+    assert_eq!(info.property_sets.len(), properties.len());
+    for (path, value) in properties {
+        let set = info
+            .property_sets
+            .iter()
+            .find(|set| set.source.stream == path)
+            .unwrap();
+        let prop = set.properties.iter().find(|p| p.pid == 5).unwrap();
+        assert_eq!(prop.semantic_name, Some("part_number"));
+        assert_eq!(prop.source.stream, path);
+        assert_eq!(
+            get(set, 5),
+            &V::Text {
+                value: value.into()
+            }
+        );
+    }
+    assert!(doc
+        .summary
+        .streams
+        .iter()
+        .all(|s| s.path.starts_with('/') && !s.path.contains('\\')));
+}
+
+#[test]
 fn unicode_dictionary_codepages_and_original_spans() {
     let mut dict = vec![];
     u32b(&mut dict, 1);

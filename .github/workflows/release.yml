@@ -81,6 +81,9 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
           args: --release --locked --out dist --interpreter ${{ matrix.interpreter }} --compatibility pypi
+      - name: Test native document reader on Windows
+        if: runner.os == 'Windows'
+        run: cargo +1.93.0 test -p inventor-core --all-features --locked
       - name: Inspect archive and obtain pinned smoke fixtures
         run: |
           python scripts/check_distribution.py dist/*.whl

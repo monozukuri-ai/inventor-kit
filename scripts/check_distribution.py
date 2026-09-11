@@ -49,9 +49,15 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         if len(records) != 1:
             raise ValueError('Expected one wheel RECORD')
         listed = set()
-        for name, digest, size in csv.reader(io.StringIO(contents[records[0]].decode())):
-            if name in listed or name not in contents:
-                raise ValueError('Duplicate or missing RECORD member')
+        for record_name, digest, size in csv.reader(io.StringIO(contents[records[0]].decode())):
+            # Windows builders may use backslashes in RECORD, while ZIP member
+            # names use forward slashes. Normalize before matching/deduplicating,
+            # including when Windows wheels are checked on Linux before upload.
+            name = record_name.replace('\\', '/')
+            if name in listed:
+                raise ValueError(f'Duplicate RECORD member: {record_name!r}')
+            if name not in contents:
+                raise ValueError(f'Missing RECORD member: {record_name!r}')
             listed.add(name)
             if name == records[0] and not digest and not size:
                 continue
