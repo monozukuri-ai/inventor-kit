@@ -30,9 +30,10 @@ class ViewerShutdown(unittest.TestCase):
             previous = signal.getsignal(signum)
             with self.subTest(signal=signum):
                 with shutdown_signals() as stopping:
-                    self.assertFalse(stopping.is_set())
+                    self.assertFalse(stopping.requested)
                     signal.raise_signal(signum)
-                    self.assertTrue(stopping.is_set())
+                    signal.raise_signal(signum)
+                    self.assertTrue(stopping.requested)
                 self.assertEqual(signal.getsignal(signum), previous)
 
     def test_interrupt_during_conversion_closes_resources_and_removes_session(self):

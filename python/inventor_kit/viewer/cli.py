@@ -5,7 +5,7 @@ from importlib.util import find_spec
 from pathlib import Path
 import signal
 import tempfile
-from threading import Event
+from types import SimpleNamespace
 import webbrowser
 
 from .scene import Options
@@ -14,14 +14,20 @@ from .scene import Options
 @contextmanager
 def shutdown_signals():
     """Finish cleanup before restoring terminal interrupt handlers."""
-    stopping = Event()
+    stopping = SimpleNamespace(requested=False)
+
+    def request_stop(*_):
+        # Signal handlers must not acquire synchronization locks: another
+        # interrupt can arrive while the handler is still running.
+        stopping.requested = True
+
     signals = [signal.SIGINT]
     if hasattr(signal, "SIGBREAK"):
         signals.append(signal.SIGBREAK)
     previous = {}
     try:
         for signum in signals:
-            previous[signum] = signal.signal(signum, lambda *_: stopping.set())
+            previous[signum] = signal.signal(signum, request_stop)
         yield stopping
     finally:
         for signum, handler in previous.items():
@@ -75,7 +81,7 @@ def main(argv=None):
                     webbrowser.open(url)
                 except webbrowser.Error:
                     pass  # The printed URL remains usable.
-            while not stopping.is_set():
+            while not stopping.requested:
                 job.poll()
                 server.handle_request()
         except KeyboardInterrupt:
