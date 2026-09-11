@@ -13,6 +13,7 @@ license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*.txt"]
 readme = "README.md"
 
 [project.optional-dependencies]
+viewer = ["ocp-tessellate==3.5.1"]
 validation = ["jsonschema>=4.23,<5", "olefile==0.46", "Pillow>=10,<13", "zstandard>=0.23,<1"]
 oracle = ["jsonschema>=4.23,<5", "pywin32; sys_platform == 'win32'"]
 
@@ -23,6 +24,14 @@ python-source = "python"
 features = ["pyo3/extension-module"]
 exclude = ["internal/**", "fixtures/public/**", "reports/**", "target/**", "fuzz/**"]
 include = [
+    {path = "python/inventor_kit/viewer/static/**", format = ["wheel", "sdist"]},
+    {path = "viewer/src/*", format = "sdist"},
+    {path = "viewer/scripts/*", format = "sdist"},
+    {path = "viewer/tests/*", format = "sdist"},
+    {path = "viewer/*.json", format = "sdist"},
+    {path = "viewer/*.ts", format = "sdist"},
+    {path = "viewer/index.html", format = "sdist"},
+    {path = "schemas/viewer-scene-v1.schema.json", format = "sdist"},
     {path = "README.ja.md", format = "sdist"},
     {path = "docs/*.md", format = "sdist"},
     {path = "schemas/vendor-oracle-v1.schema.json", format = "sdist"},

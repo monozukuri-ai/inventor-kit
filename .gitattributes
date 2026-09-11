@@ -1,3 +1,5 @@
 /internal export-ignore
 /dist export-ignore
 /fixtures/public export-ignore
+# Preserve generated vendor shaders and templates exactly as bundled.
+/python/inventor_kit/viewer/static/assets/* linguist-generated=true -whitespace

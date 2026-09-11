@@ -45,6 +45,21 @@ jobs:
         run: |
           .venv/bin/python scripts/fetch_public_samples.py
           .venv/bin/python scripts/fetch_assembly_samples.py
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.18.0"
+      - name: Rebuild offline viewer assets
+        run: |
+          npm ci --prefix viewer
+          npm run build --prefix viewer
+          git diff --exit-code -- python/inventor_kit/viewer/static
+          python scripts/check_viewer_assets.py
+      - name: Viewer integration and browser dependencies
+        run: |
+          .venv/bin/python -m pip install 'ocp-tessellate==3.5.1'
+          .venv/bin/python scripts/run_viewer_tests.py
+          cd viewer
+          npx playwright install --with-deps chromium
       - name: Python and corpus checks
         run: |
           .venv/bin/python scripts/run_tests.py
@@ -77,6 +92,10 @@ jobs:
         run: |
           .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl
           .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz
+      - name: Linux installed viewer and browser checks
+        run: |
+          .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl --viewer --browser
+          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --browser
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

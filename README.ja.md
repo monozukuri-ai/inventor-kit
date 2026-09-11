@@ -55,6 +55,13 @@ python -m inventor_kit drawing.idw --metadata-only
 python -m inventor_kit part.ipt --list-candidates
 ```
 
+形状をローカルで確認するには、追加機能の[部品 viewer](docs/viewer.ja.md)を導入します。
+
+```sh
+python -m pip install 'inventor-kit[viewer]'
+python -m inventor_kit.viewer part.ipt
+```
+
 ## アセンブリの読み込み
 
 ```python

@@ -1,0 +1,53 @@
+* { box-sizing: border-box; }
+:root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; color: #243244; background: #f5f7f9; font-size: 13px; }
+body { margin: 0; }
+header { height: 62px; padding: 0 24px; display: flex; align-items: center; gap: 22px; border-bottom: 1px solid #e1e6ec; background: white; }
+.brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 750; color: #146c68; text-decoration: none; }
+.brand span { color: #203045; font-size: 16px; letter-spacing: -.3px; }
+.local { font-size: 10px; letter-spacing: 1.4px; padding: 5px 8px; border: 1px solid #d5e6e4; border-radius: 4px; color: #39716e; }
+#file-name { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #556376; }
+.notice { padding: 9px 24px; background: #fff7e7; color: #795725; font-size: 12px; border-bottom: 1px solid #ebdfc8; }
+main { display: grid; grid-template-columns: 205px minmax(280px, 1fr) 320px; height: calc(100dvh - 97px); min-height: 420px; }
+aside { overflow: auto; background: #fff; }
+.bodies { padding: 22px 15px; border-right: 1px solid #e1e6ec; display: flex; flex-direction: column; }
+h1, h2 { font-size: 12px; font-weight: 650; margin: 0 0 12px; }
+h1 span, h2 span { float: right; color: #738094; font-weight: 400; }
+.hint { font-size: 11px; color: #7a8594; line-height: 1.6; margin: 0 0 14px; }
+.body-row { display: flex; gap: 7px; align-items: center; padding: 6px; border-radius: 5px; }
+.body-row.active { background: #e7f3f0; }
+.body-row button { flex: 1; text-align: left; border: 0; background: transparent; }
+input { accent-color: #247e73; }
+#selected { font-size: 11px; color: #576678; }
+.source-note { margin-top: auto; padding-top: 25px; font-size: 11px; line-height: 1.6; color: #7a8594; }
+.viewport { min-width: 0; position: relative; display: flex; flex-direction: column; background: #f6f8fa; overflow: hidden; }
+nav { min-height: 52px; display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-bottom: 1px solid #e1e6ec; background: #fcfdfd; z-index: 1; }
+button { font: inherit; cursor: pointer; color: #3c4c60; border: 1px solid transparent; background: white; border-radius: 5px; padding: 7px 10px; }
+button:hover:enabled { background: #edf2f5; border-color: #d6dfe7; }
+button:focus-visible, a:focus-visible { outline: 2px solid #247e73; outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: default; }
+.divider { height: 18px; width: 1px; background: #dfe5eb; margin: 0 7px; }
+.edge-toggle { margin-left: auto; display: flex; gap: 5px; align-items: center; font-size: 12px; }
+#cad { flex: 1; min-height: 0; overflow: hidden; }
+#cad .tcv_cad_tree, #cad .tcv_cad_tools { display: none; }
+footer { min-height: 31px; border-top: 1px solid #e1e6ec; display: flex; justify-content: space-between; gap: 12px; padding: 8px 14px; font-size: 10px; color: #708094; background: #fcfdfd; }
+#empty { position: absolute; inset: 53px 0 31px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; padding: 35px; }
+#empty[hidden] { display: none; }
+.empty-mark { font-size: 50px; color: #afbbc8; margin-bottom: 15px; }
+#empty h2 { font-size: 17px; font-weight: 500; }
+#empty p { color: #7a8594; max-width: 340px; line-height: 1.7; }
+.details { border-left: 1px solid #e1e6ec; }
+.details section { padding: 20px; border-bottom: 1px solid #edf0f3; }
+dl { margin: 0; display: grid; grid-template-columns: 73px minmax(0,1fr); gap: 9px; font-size: 11px; }
+dt { color: #7a8594; } dd { margin: 0; overflow-wrap: anywhere; }
+.preview { margin: 0 0 12px; } .preview img { display: block; width: 100%; max-height: 180px; object-fit: contain; background: #f5f7f9; border-radius: 5px; border: 1px solid #e8edf1; }
+figcaption { font-size: 10px; color: #87929f; margin-top: 5px; overflow-wrap: anywhere; }
+.property { padding: 10px 0; border-bottom: 1px solid #edf0f3; } .property > span { display: block; color: #788595; font-size: 10px; margin-bottom: 5px; }
+.property > p { margin: 0 0 4px; font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+details { font-size: 10px; color: #7a8594; overflow-wrap: anywhere; } summary { cursor: pointer; padding: 4px 0; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; }
+.diagnostic { font-size: 11px; line-height: 1.6; border-left: 2px solid #d39a5d; padding: 0 0 0 9px; margin: 14px 0; overflow-wrap: anywhere; }
+.candidate { padding: 9px 0; overflow-wrap: anywhere; font-size: 11px; }
+.candidate code { font-size: 10px; display: block; color: #758295; margin-top: 6px; }
+.stage { display: flex; justify-content: space-between; font-size: 10px; padding: 4px 0; color: #66778b; }
+@media(max-width: 1000px) { main { grid-template-columns: 155px minmax(280px, 1fr) 260px; } .details section { padding: 15px; } nav { gap: 0; padding: 6px; } button { padding: 7px; } }
+@media(max-width: 740px) { main { grid-template-columns: 130px minmax(230px,1fr); height: auto; } .viewport, .bodies { height: 65vh; } .details { grid-column: 1 / -1; } header { padding: 0 14px; gap: 12px; } .local { display: none; } }

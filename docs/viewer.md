@@ -1,0 +1,100 @@
+# Local part viewer
+
+English | [日本語](viewer.ja.md)
+
+The optional viewer displays supported saved IPT geometry, document properties,
+saved previews, geometry candidates, and read diagnostics. It runs locally using
+the same bounded parser and CadQuery conversion as the Python API.
+
+```sh
+python -m pip install 'inventor-kit[viewer]'
+python -m inventor_kit.viewer part.ipt
+```
+
+The command prints a loopback URL and opens a browser. Keep the process running
+while viewing; press Ctrl-C in the terminal to stop it. Closing the browser tab
+does not stop the process. Node.js, Inventor, and runtime network access are not
+required. This initial viewer is qualified on Linux; other OS installation and
+browser checks are separate from the package's existing parser release checks.
+
+```sh
+python -m inventor_kit.viewer part.ipt --no-browser --port 0
+python -m inventor_kit.viewer part.ipt --quality fine
+python -m inventor_kit.viewer part.ipt --candidate-id CANDIDATE_ID
+python -m inventor_kit.viewer part.ipt --require-current-state
+python -m inventor_kit.viewer drawing.idw --metadata-only
+```
+
+`--port 0` selects an available port. `--no-browser` prints the URL without opening
+it. `--metadata-only` also works without the viewer extra and does not import the
+Python geometry modules. It cannot be combined with the candidate/current-state
+options. The candidate ID must belong to the exact input; see the [API guide](api.md).
+Candidate selection is made at startup. To view another input or candidate,
+restart the command with that path or ID.
+
+Use the mouse to orbit, pan, and zoom. The toolbar provides Fit, Isometric, Front,
+Top, and Edges. Select a body in the left panel, or double-click it in the 3D view,
+to show its selection box. The checkboxes control body visibility. Display colors
+are assigned by the viewer; Inventor appearance is not decoded.
+
+The notice **Current Model State is unverified** applies even when a mesh renders
+successfully. Saved previews can show other stored states and are labelled
+separately. Geometry conversion failures retain available properties, previews,
+candidates, and the original diagnostic. IAM, IDW, and IPN currently show document
+information only; assembly placement and drawing rendering are not part of this
+initial viewer. See [supported scope](support.md).
+
+`--quality` accepts `draft`, `normal` (default), or `fine`. Their absolute OCCT
+linear deflection settings are 0.3 / 0.1 / 0.03 mm and angular deflections are
+0.3 / 0.1 / 0.05 radians. These are display settings, not certified measurement
+errors. Every B-rep face must have triangles; an omitted face rejects the part's
+display mesh. B-rep edges are discretized separately. The viewer does not add
+support for curves or surfaces that the CadQuery converter rejects.
+
+Conversion runs in a spawned process with a default 120-second deadline, changed
+with `--timeout`. The parser's [document limits](api.md#per-document-limits) still
+apply. Display output is limited to two million triangles, 128 MiB of mesh buffers,
+16 MiB of scene JSON, and 64 saved previews / 32 MiB of PNG bytes. These ceilings
+do not bound OCCT's intermediate memory allocations or promise a process RSS limit.
+Worker timeout or abnormal exit discards pending geometry and retains already
+published document information. A normal viewer startup is not a complete-model
+claim. Read failures are shown in the UI; invalid arguments and startup failures
+produce a nonzero CLI exit.
+
+The server binds only to `127.0.0.1` and serves packaged assets and the active
+session's generated resources. It provides no upload or arbitrary file API.
+Temporary session data is removed on normal shutdown. Installation and initial
+fixture downloads need network access; viewing an installed package does not.
+
+For development, the frontend lives in `viewer/` and its generated assets are
+checked in under `python/inventor_kit/viewer/static/`. Install the Python viewer
+and validation extras in the development environment before running integration
+tests. Node 22.18.0 / npm 10.9.3 are the asset build baseline.
+
+```sh
+npm ci --prefix viewer
+npm run build --prefix viewer
+python scripts/check_viewer_assets.py
+python scripts/run_viewer_tests.py
+cd viewer
+npx playwright install chromium
+npm test
+```
+
+The viewer's Python integration tests live in `viewer_tests/`, separate from the
+base suite; missing required dependencies/fixtures and skips fail that runner.
+Browser tests block external requests and check real parts, unsupported geometry,
+current-state refusal, document-only viewing, and corrupt input. Screenshots are
+local test artifacts, not Inventor comparison evidence. The mesh tests also use
+an analytic tube to check its hole, signed volume and triangle orientation.
+
+```sh
+python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
+python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.1.0.tar.gz --viewer --browser
+```
+
+Use the actual built wheel filename for your environment. These Linux checks
+install outside the checkout, verify local serving and shutdown, and run browser
+tests using that installed interpreter. The sdist includes built assets and their
+source/lockfile; rebuilding the Python wheel does not require Node. See
+[releasing](releasing.md) for the existing distribution gates.

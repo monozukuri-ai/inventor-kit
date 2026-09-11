@@ -11,6 +11,7 @@ import posixpath
 import tarfile
 import tomllib
 import zipfile
+from check_viewer_assets import check_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,6 +24,9 @@ def check_metadata(meta, version):
     requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
     if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.2', '<0.4'}:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
+    viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
+    if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
+        raise ValueError('Distribution is missing the optional viewer dependency contract')
 
 
 def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False):
@@ -36,6 +40,8 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
             contents = {n: archive.read(n) for n in archive.namelist() if not n.endswith('/')}
         if '-cp310-abi3-' not in path.name or not any(n.startswith('inventor_kit/_inventor.') and n.endswith(('.so', '.pyd')) for n in contents):
             raise ValueError('Missing ABI3 native extension')
+        package_prefix = 'inventor_kit/'
+        viewer_sources = None
         for name in ('assembly.py', 'assembly_step.py', 'limits.py', 'capabilities.json'):
             if 'inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python API: {name}')
@@ -72,6 +78,8 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         with tarfile.open(path) as archive:
             contents = {m.name: archive.extractfile(m).read() for m in archive if m.isfile()}
         prefix = f'inventor_kit-{version}/'
+        package_prefix = prefix+'python/inventor_kit/'
+        viewer_sources = prefix+'viewer/'
         for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json'):
             if prefix + name not in contents:
                 raise ValueError(f'Missing sdist build input: {name}')
@@ -111,7 +119,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         raise ValueError(f'Unexpected artifact: {path}')
     for name in contents:
         parts = PurePosixPath(name).parts
-        if any(p in {'internal', 'fixtures', 'reports', 'corpus', '.cargo', '.venv', '.git', 'target', 'fuzz'} for p in parts):
+        if any(p in {'internal', 'fixtures', 'reports', 'corpus', '.cargo', '.venv', '.git', 'target', 'fuzz', 'node_modules', 'test-results', 'playwright-report'} for p in parts):
             raise ValueError(f'Development data/configuration leaked into artifact: {name}')
         if '..' in parts or name.startswith('/'):
             raise ValueError(f'Unsafe archive member: {name}')
@@ -119,6 +127,10 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         raise ValueError('Expected one distribution metadata file')
     meta = BytesParser().parsebytes(metadata[0])
     check_metadata(meta, version)
+    for name in ('__init__.py', '__main__.py', 'cli.py', 'scene.py', 'server.py', 'worker.py', 'tessellation.py'):
+        if package_prefix+'viewer/'+name not in contents:
+            raise ValueError(f'Missing viewer Python module: {name}')
+    check_bundle(contents.__getitem__, set(contents), package_prefix+'viewer/static/', viewer_sources)
     for suffix in ('LICENSE', 'THIRD_PARTY_NOTICES.md', 'licenses/cadmpeg-Apache-2.0.txt', 'licenses/ezdxf-MIT.txt', 'licenses/cq-acis-MIT.txt', 'licenses/encoding_rs-MIT.txt', 'licenses/encoding_rs-WHATWG.txt', 'licenses/encoding_rs-COPYRIGHT.txt', 'licenses/crc32fast-MIT.txt', 'licenses/sha2-dependencies-MIT.txt'):
         if not any(n == suffix or n.endswith('/'+suffix) for n in contents):
             raise ValueError(f'Missing license/notice: {suffix}')
