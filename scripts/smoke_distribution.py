@@ -22,15 +22,19 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
     import inventor_kit.viewer
     assert Path(inventor_kit.viewer.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
     with tempfile.TemporaryDirectory(prefix='inventor-viewer-smoke-') as sessions, tempfile.TemporaryFile(mode='w+') as log:
-        process = subprocess.Popen([sys.executable, '-I', '-m', 'inventor_kit.viewer',
+        process = subprocess.Popen([sys.executable, '-I', '-X', 'faulthandler', '-m', 'inventor_kit.viewer',
             str(corpus/file), '--no-browser', *options], stdout=subprocess.PIPE, stderr=log, text=True,
             env=dict(os.environ, TMPDIR=sessions, TEMP=sessions, TMP=sessions),
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0)
         lines = queue.Queue()
         thread = threading.Thread(target=lambda: lines.put(process.stdout.readline()), daemon=True)
         thread.start()
+        failure = None
         try:
-            url = lines.get(timeout=15).strip()
+            try:
+                url = lines.get(timeout=15).strip()
+            except queue.Empty as error:
+                raise AssertionError('Installed viewer startup timed out before printing its URL') from error
             if not url.startswith('http://127.0.0.1:'):
                 raise AssertionError('Installed viewer did not start')
             with urlopen(url, timeout=5) as response:
@@ -57,6 +61,8 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                     with urlopen(url+buffer['resource'], timeout=5) as response:
                         assert len(response.read()) == buffer['bytes']
                     resources += 1
+        except Exception as error:
+            failure = error
         finally:
             if process.poll() is None:
                 try:
@@ -64,6 +70,8 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                     # terminate()/SIGTERM would bypass the viewer's cleanup.
                     process.send_signal(signal.CTRL_BREAK_EVENT if os.name == 'nt' else signal.SIGINT)
                     process.wait(10)
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    failure = failure or error
                 finally:
                     if process.poll() is None:
                         process.kill()
@@ -72,6 +80,8 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
             thread.join(1)
             log.seek(0)
             stderr = log.read()
+        if failure is not None:
+            raise AssertionError(f'{failure}; viewer exit={process.returncode}; stderr:\n{stderr}') from failure
         if process.returncode != 0:
             raise AssertionError(f'Installed viewer shutdown failed: {process.returncode}: {stderr}')
         if list(Path(sessions).iterdir()):

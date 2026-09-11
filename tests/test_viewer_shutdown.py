@@ -10,6 +10,18 @@ from inventor_kit.viewer.cli import main, shutdown_signals
 
 
 class ViewerShutdown(unittest.TestCase):
+    def test_loopback_startup_does_not_require_dns(self):
+        from tempfile import TemporaryDirectory
+        from inventor_kit.viewer.server import create_server
+        with TemporaryDirectory() as directory, patch('socket.getfqdn', side_effect=AssertionError('DNS must not be used')):
+            server, url = create_server(directory)
+            try:
+                self.assertEqual(server.server_name, '127.0.0.1')
+                self.assertGreater(server.server_port, 0)
+                self.assertTrue(url.startswith(f'http://127.0.0.1:{server.server_port}/'))
+            finally:
+                server.server_close()
+
     def test_terminal_handlers_request_shutdown_and_restore_previous_handlers(self):
         signals = [signal.SIGINT]
         if hasattr(signal, 'SIGBREAK'):

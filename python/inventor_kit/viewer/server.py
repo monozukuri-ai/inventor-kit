@@ -5,7 +5,16 @@ import json
 import mimetypes
 from pathlib import Path
 import secrets
+from socketserver import TCPServer
 from urllib.parse import urlsplit
+
+
+class LoopbackServer(ThreadingHTTPServer):
+    def server_bind(self):
+        # HTTPServer.server_bind performs getfqdn(), which can block on system
+        # DNS even for 127.0.0.1. All viewer URLs use the numeric address.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address
 
 
 def create_server(directory, port=0):
@@ -65,7 +74,7 @@ def create_server(directory, port=0):
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = LoopbackServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
     server.timeout = 0.1
     return server, f"http://127.0.0.1:{server.server_port}/{token}/"
