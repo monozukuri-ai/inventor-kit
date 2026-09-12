@@ -14,8 +14,21 @@ python -m inventor_kit.viewer part.ipt
 The command prints a loopback URL and opens a browser. Keep the process running
 while viewing; press Ctrl-C in the terminal to stop it. Closing the browser tab
 does not stop the process. Node.js, Inventor, and runtime network access are not
-required. This initial viewer is qualified on Linux; other OS installation and
-browser checks are separate from the package's existing parser release checks.
+required. Windows also accepts Ctrl-Break for normal shutdown.
+
+The distribution workflow checks the viewer extra on Python 3.11 and 3.12 for
+Linux x86_64, Windows x86_64, and macOS arm64 / x86_64. Each fresh installation
+must serve IPT, saved IAM, and explicitly permitted partial IAM scenes, deliver
+mesh buffers, exit normally, and remove temporary session data. Full browser
+checks run on Linux Chromium using software rendering. Windows/macOS browser
+rendering and physical GPU performance are not covered by the server checks.
+See the [release guide](releasing.md) for required results and artifacts.
+
+For an unreleased revision, download its platform wheel from a successful
+`Python distributions` workflow run and install it using
+`python -m pip install './inventor_kit-<version>-<abi>-<platform>.whl[viewer]'`
+with the actual filename. The PyPI command above installs the published release,
+which may not yet include that revision's viewer changes.
 
 ```sh
 python -m inventor_kit.viewer part.ipt --no-browser --port 0
@@ -133,8 +146,13 @@ python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.1.0-cp310-abi3-
 python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.1.0.tar.gz --viewer --browser
 ```
 
-Use the actual built wheel filename for your environment. These Linux checks
-install outside the checkout, verify local serving and shutdown, and run browser
-tests using that installed interpreter. The sdist includes built assets and their
+Use the actual built wheel filename for your environment. Omit `--browser` for
+the Windows/macOS server checks; optionally select the interpreter with
+`--python`. These checks install outside the checkout and verify local serving
+and cleanup. `--browser` additionally runs the Linux Chromium tests using that
+installed interpreter. `--report <file.json>` writes selected counts, dependency
+versions, platform and Python versions and the input distribution's SHA-256 only after
+all requested checks and interpreter shutdown pass. It excludes document
+properties, reference paths, mesh data, previews and detailed diagnostics. The sdist includes built assets and their
 source/lockfile; rebuilding the Python wheel does not require Node. See
-[releasing](releasing.md) for the existing distribution gates.
+[releasing](releasing.md) for distribution gates.

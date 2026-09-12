@@ -36,7 +36,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   wheels:
-    needs: verify
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -86,16 +86,22 @@ jobs:
         run: cargo +1.93.0 test -p inventor-core --all-features --locked
       - name: Inspect archive and obtain pinned smoke fixtures
         run: |
+          python scripts/check_viewer_assets.py
           python scripts/check_distribution.py dist/*.whl
           python scripts/fetch_public_samples.py
           python scripts/fetch_assembly_samples.py
           python scripts/check_corpus.py
-      - name: Cold install, parse, geometry and STEP checks on Python 3.11 and 3.12
+      - name: Cold install, geometry, STEP and viewer checks on Python 3.11 and 3.12
         env:
           MINIMUM_PYTHON: ${{ steps.minimum.outputs.python-path }}
         run: |
-          python scripts/smoke_distribution.py --wheel dist/*.whl --python "$MINIMUM_PYTHON"
-          python scripts/smoke_distribution.py --wheel dist/*.whl --python python
+          python scripts/smoke_distribution.py --wheel dist/*.whl --python "$MINIMUM_PYTHON" --viewer --report qualification/${{ matrix.platform }}-3.11.json
+          python scripts/smoke_distribution.py --wheel dist/*.whl --python python --viewer --report qualification/${{ matrix.platform }}-3.12.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: viewer-platform-${{ matrix.platform }}
+          path: qualification/*.json
+          if-no-files-found: error
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: distribution-${{ matrix.platform }}
@@ -103,7 +109,7 @@ jobs:
           if-no-files-found: error
 
   sdist:
-    needs: verify
+    needs: version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -123,16 +129,44 @@ jobs:
           python scripts/check_distribution.py dist/*.tar.gz
           python scripts/fetch_public_samples.py
           python scripts/fetch_assembly_samples.py
-          python scripts/smoke_distribution.py --sdist dist/*.tar.gz
+          python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qualification/sdist-3.11.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: viewer-platform-sdist
+          path: qualification/*.json
+          if-no-files-found: error
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: distribution-sdist
           path: dist/*.tar.gz
           if-no-files-found: error
 
+  qualify:
+    needs: [verify, wheels, sdist]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: distribution-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: viewer-platform-*
+          path: qualification
+          merge-multiple: true
+      - name: Require all archives and their installed viewer results
+        run: python scripts/check_release.py --dist dist --viewer-reports qualification
+
   publish:
     if: github.event_name == 'release' && github.repository == 'monozukuri-ai/inventor-kit'
-    needs: [wheels, sdist]
+    needs: qualify
     runs-on: ubuntu-24.04
     environment:
       name: pypi

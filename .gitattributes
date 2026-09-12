@@ -1,5 +1,8 @@
 /internal export-ignore
 /dist export-ignore
 /fixtures/public export-ignore
+# Asset manifests hash exact bytes, including frontend source inputs.
+/viewer/** -text
+/python/inventor_kit/viewer/static/** -text
 # Preserve generated vendor shaders and templates exactly as bundled.
 /python/inventor_kit/viewer/static/assets/* linguist-generated=true -whitespace

@@ -1,7 +1,9 @@
 """Rebuild/install distributions outside checkouts; local release candidates are explicit."""
 from pathlib import Path
 import argparse
+import hashlib
 import json
+import platform
 import os
 import subprocess
 import sys
@@ -19,14 +21,20 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
     from urllib.request import urlopen
     import inventor_kit.viewer
     assert Path(inventor_kit.viewer.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
-    with tempfile.TemporaryFile(mode='w+') as log:
-        process = subprocess.Popen([sys.executable, '-I', '-m', 'inventor_kit.viewer',
-            str(corpus/file), '--no-browser', *options], stdout=subprocess.PIPE, stderr=log, text=True)
+    with tempfile.TemporaryDirectory(prefix='inventor-viewer-smoke-') as sessions, tempfile.TemporaryFile(mode='w+') as log:
+        process = subprocess.Popen([sys.executable, '-I', '-X', 'faulthandler', '-m', 'inventor_kit.viewer',
+            str(corpus/file), '--no-browser', *options], stdout=subprocess.PIPE, stderr=log, text=True,
+            env=dict(os.environ, TMPDIR=sessions, TEMP=sessions, TMP=sessions),
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0)
         lines = queue.Queue()
         thread = threading.Thread(target=lambda: lines.put(process.stdout.readline()), daemon=True)
         thread.start()
+        failure = None
         try:
-            url = lines.get(timeout=15).strip()
+            try:
+                url = lines.get(timeout=15).strip()
+            except queue.Empty as error:
+                raise AssertionError('Installed viewer startup timed out before printing its URL') from error
             if not url.startswith('http://127.0.0.1:'):
                 raise AssertionError('Installed viewer did not start')
             with urlopen(url, timeout=5) as response:
@@ -47,26 +55,41 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                 assert scene['assembly']['displayed_instances'] == parts
                 assert scene['assembly']['allow_unverified_state'] is True
             assert scene['complete'] is False and scene['thumbnails']
+            resources = 0
             for mesh in scene['meshes']:
                 for buffer in mesh['buffers'].values():
                     with urlopen(url+buffer['resource'], timeout=5) as response:
                         assert len(response.read()) == buffer['bytes']
+                    resources += 1
+        except Exception as error:
+            failure = error
         finally:
             if process.poll() is None:
-                process.send_signal(signal.SIGINT)
                 try:
-                    process.wait(5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
+                    # Windows console events require a distinct process group;
+                    # terminate()/SIGTERM would bypass the viewer's cleanup.
+                    process.send_signal(signal.CTRL_BREAK_EVENT if os.name == 'nt' else signal.SIGINT)
+                    process.wait(10)
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    failure = failure or error
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.wait()
             process.stdout.close()
             thread.join(1)
             log.seek(0)
             stderr = log.read()
+        if failure is not None:
+            raise AssertionError(f'{failure}; viewer exit={process.returncode}; stderr:\n{stderr}') from failure
         if process.returncode != 0:
             raise AssertionError(f'Installed viewer shutdown failed: {process.returncode}: {stderr}')
-    print(json.dumps({'installed_viewer': 'passed', 'input': file, 'displayed_instances': parts,
-                      'scope': 'Linux startup, assets, geometry and shutdown; not browser rendering'}))
+        if list(Path(sessions).iterdir()):
+            raise AssertionError('Installed viewer left temporary session data after shutdown')
+    result = {'displayed_instances': parts, 'occurrences': occurrences, 'omissions': omissions,
+              'mesh_buffers_fetched': resources, 'shutdown': 'passed'}
+    print(json.dumps({'installed_viewer': 'passed', **result}))
+    return result
 
 
 def installed(corpus):
@@ -140,22 +163,42 @@ def main():
     parser.add_argument('--bridge-crate', type=Path, help='Explicit unpublished .crate for provisional sdist validation')
     parser.add_argument('--python', default=sys.executable)
     parser.add_argument('--installed', action='store_true', help=argparse.SUPPRESS)
-    parser.add_argument('--viewer', action='store_true', help='Install the viewer extra and check its local server (Linux)')
+    parser.add_argument('--viewer', action='store_true', help='Install the viewer extra and check its local server and shutdown')
     parser.add_argument('--browser', action='store_true', help='Also run the viewer Playwright suite against the installed package (requires --viewer)')
+    parser.add_argument('--report', type=Path, help='Write a selected public qualification summary (requires --viewer)')
     parser.add_argument('--corpus', type=Path, default=ROOT / 'fixtures/public')
     args = parser.parse_args()
     if args.browser and not args.viewer:
         parser.error('--browser requires --viewer')
-    if args.viewer and os.name == 'nt':
-        parser.error('Viewer distribution smoke currently targets Linux; Windows qualification is separate')
+    if args.browser and sys.platform != 'linux':
+        parser.error('--browser is qualified on Linux Chromium only')
+    if args.report and not args.viewer:
+        parser.error('--report requires --viewer')
+    if args.report:
+        args.report = args.report.resolve()
+        args.report.unlink(missing_ok=True)  # Never leave a stale pass after a failed retry.
     if args.installed:
         installed(args.corpus)
         if args.viewer:
-            installed_viewer(args.corpus)
-            installed_viewer(args.corpus, 'm5-samplebg/Subassembly.iam', ('--allow-unverified-state',))
-            installed_viewer(args.corpus, 'm5-samplebg/SampleBg.iam',
-                ('--allow-unverified-state', '--allow-partial', '--search-root', str(args.corpus/'m5-samplebg/iPartSample')),
-                parts=5, occurrences=7, omissions=2)
+            cases = {
+                'part': installed_viewer(args.corpus),
+                'assembly': installed_viewer(args.corpus, 'm5-samplebg/Subassembly.iam', ('--allow-unverified-state',)),
+                'partial_assembly': installed_viewer(args.corpus, 'm5-samplebg/SampleBg.iam',
+                    ('--allow-unverified-state', '--allow-partial', '--search-root', str(args.corpus/'m5-samplebg/iPartSample')),
+                    parts=5, occurrences=7, omissions=2),
+            }
+            if args.report:
+                from importlib.metadata import version
+                machine = platform.machine().lower()
+                architecture = {'amd64': 'x86_64', 'aarch64': 'arm64'}.get(machine, machine)
+                operating_system = {'Darwin': 'macos'}.get(platform.system(), platform.system().lower())
+                args.report.write_text(json.dumps({
+                    'platform': operating_system + '-' + architecture,
+                    'python': platform.python_version(),
+                    'dependencies': {name: version(name) for name in
+                        ('inventor-kit', 'cq-acis', 'cadquery', 'cadquery-ocp', 'ocp-tessellate')},
+                    'cases': cases,
+                }), encoding='utf-8')
         return
     if args.wheel is None and args.sdist is None:
         parser.error('--wheel or --sdist is required')
@@ -164,6 +207,8 @@ def main():
     environment = dict(os.environ)
     for name in ('PYTHONPATH', 'PYTHONHOME', 'VIRTUAL_ENV', 'CARGO_TARGET_DIR'):
         environment.pop(name, None)
+    artifact = (args.wheel or args.sdist).resolve()
+    artifact_hash = hashlib.sha256(artifact.read_bytes()).hexdigest()
     with tempfile.TemporaryDirectory(prefix='inventor-independent-') as temporary:
         root = Path(temporary)
         wheel = args.wheel.resolve() if args.wheel else None
@@ -198,12 +243,16 @@ def main():
             if len(wheels) != 1:
                 raise ValueError('Expected one rebuilt wheel')
             wheel = wheels[0]
+            from check_distribution import check
+            check(wheel)  # Inspect the rebuilt archive as well as the source archive.
         subprocess.run([args.python, '-m', 'venv', str(root/'venv')], env=environment, check=True)
         python = root/'venv'/('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
         packages = [str(wheel) + ('[viewer]' if args.viewer else '')] + ([str(args.cq_wheel.resolve())] if args.cq_wheel else [])
         subprocess.run([str(python), '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--only-binary=:all:', *packages], env=environment, check=True)
         subprocess.run([str(python), '-m', 'pip', 'check'], env=environment, check=True)
-        subprocess.run([str(python), '-I', '-X', 'faulthandler', '-u', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve()), *(['--viewer'] if args.viewer else [])], cwd=root, env=environment, check=True)
+        subprocess.run([str(python), '-I', '-X', 'faulthandler', '-u', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve()), *(['--viewer', '--report', str(root/'installed.json')] if args.viewer else [])], cwd=root, env=environment, check=True)
+        if args.viewer:
+            details = json.loads((root/'installed.json').read_text(encoding='utf-8'))
         if args.browser:
             browser_environment = dict(environment, VIEWER_PYTHON=str(python), VIEWER_CWD=str(root), VIEWER_CORPUS=str(args.corpus.resolve()))
             subprocess.run(['npm', 'run', 'test', '--prefix', str(ROOT/'viewer')], cwd=root, env=browser_environment, check=True)
@@ -211,6 +260,19 @@ def main():
                           'interpreter_shutdown': 'passed',
                           'bridge_mode': 'staged unpublished crate' if args.bridge_crate else 'registry or prebuilt wheel',
                           'core_mode': 'staged unpublished crate' if args.core_crate else 'registry or prebuilt wheel'}))
+
+    # The interpreter and temporary environment must both have shut down first.
+    if args.report:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps({
+            'schema_version': 1, 'status': 'passed',
+            'artifact': {'file': artifact.name, 'sha256': artifact_hash},
+            **details,
+            'dependency_mode': 'local' if (args.cq_wheel or args.core_crate or args.bridge_crate) else 'published',
+            'pip_check': 'passed', 'interpreter_shutdown': 'passed',
+            'browser': 'linux-chromium-passed' if args.browser else 'not_run',
+            'current_state_verified': False,
+        }, indent=2) + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':

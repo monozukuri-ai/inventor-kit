@@ -13,7 +13,7 @@ import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from check_corpus import verify
-from check_release import artifact_set, check_tag, pypi_conflicts
+from check_release import artifact_set, check_tag, pypi_conflicts, viewer_reports
 from check_distribution import check_metadata
 import inventor_kit as ik
 
@@ -65,6 +65,46 @@ class ReleaseGates(unittest.TestCase):
             for bad in (paths[:-1], paths + paths[:1], paths + [Path('unknown.txt')]):
                 with self.assertRaises(ValueError):
                     artifact_set(bad)
+
+    def test_viewer_requires_nine_successful_installs_bound_to_archive_hashes(self):
+        names = ['inventor_kit-0.1.0-cp310-abi3-' + tag + '.whl' for tag in
+                 ('manylinux_2_17_x86_64.manylinux2014_x86_64', 'win_amd64', 'macosx_11_0_arm64', 'macosx_10_12_x86_64')]
+        names.append('inventor_kit-0.1.0.tar.gz')
+        artifacts = [dict(file=name, sha256=str(i)*64) for i, name in enumerate(names)]
+        platforms = ['linux-x86_64', 'windows-x86_64', 'macos-arm64', 'macos-x86_64', 'linux-x86_64']
+        reports = []
+        for index, (artifact, platform) in enumerate(zip(artifacts, platforms)):
+            for python in (('3.11.13',) if index == 4 else ('3.11.13', '3.12.9')):
+                reports.append(dict(schema_version=1, artifact=artifact, platform=platform, python=python,
+                    status='passed', dependency_mode='published', pip_check='passed',
+                    interpreter_shutdown='passed', current_state_verified=False,
+                    dependencies={'ocp-tessellate': '3.5.1'}, cases={
+                        name: dict(displayed_instances=parts, occurrences=occurrences, omissions=omissions,
+                                   mesh_buffers_fetched=4, shutdown='passed')
+                        for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2)]}))
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = [Path(temporary) / f'{i}.json' for i in range(len(reports))]
+            for path, report in zip(paths, reports):
+                path.write_text(json.dumps(report))
+            self.assertEqual(viewer_reports(paths, artifacts), 9)
+            for bad in (paths[:-1], paths + paths[:1]):
+                with self.assertRaises(ValueError):
+                    viewer_reports(bad, artifacts)
+            mutations = [
+                {'artifact': {**reports[0]['artifact'], 'sha256': 'bad'}},
+                {'platform': 'windows-x86_64'}, {'python': '3.13.0'},
+                {'status': 'failed'}, {'dependency_mode': 'local'}, {'pip_check': 'failed'},
+                {'interpreter_shutdown': 'failed'}, {'current_state_verified': True},
+                {'dependencies': {'ocp-tessellate': '0.0.0'}}, {'cases': {}},
+                {'cases': {**reports[0]['cases'], 'partial_assembly': {
+                    **reports[0]['cases']['partial_assembly'], 'displayed_instances': 0}}},
+                {'cases': {**reports[0]['cases'], 'part': {
+                    **reports[0]['cases']['part'], 'shutdown': 'failed'}}},
+            ]
+            for mutation in mutations:
+                paths[0].write_text(json.dumps({**reports[0], **mutation}))
+                with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                    viewer_reports(paths, artifacts)
 
     def test_pypi_retry_requires_identical_hashes_and_network_errors_fail(self):
         reports = [dict(file='package.whl', sha256='a'*64)]
