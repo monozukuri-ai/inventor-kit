@@ -142,8 +142,8 @@ and the converter's actual placement chain. The frontend converts local rotation
 to renderer quaternions. Bounds frame the camera and are not exact CAD dimensions.
 
 ```sh
-python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
-python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.1.0.tar.gz --viewer --browser
+python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.2.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
+python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.2.0.tar.gz --viewer --browser
 ```
 
 Use the actual built wheel filename for your environment. Omit `--browser` for

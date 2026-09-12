@@ -7,8 +7,8 @@
   },
   "inputs": {
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
-    "package-lock.json": "0147304c8644b4a3624ad24ba443d967897cb41450b692e65bf6dfca86424a4f",
-    "package.json": "300bbbd558a2ce2a01843085b17f16d348eb19fbc1fb7701a997d24642fa7ec4",
+    "package-lock.json": "0aa6eea49e25ffa5c7d859706d30a17d2b84dd3bf86d66fdb8aaf9c7a73005e8",
+    "package.json": "2749dd215d10e6fc6d4d86ef9885eef1998474701a1cdd0f13c7496baf018eb7",
     "scripts/manifest.mjs": "9791f6394504e62ac02b5a72adcb6d72500ae908f21a1a968cc255d6840303d0",
     "src/main.ts": "c3c54eb70e71477af6f84bbac0a1d856a5f1b2d323e3833152a4c90d94287b93",
     "src/scene-graph.ts": "60206b9f129fff66f276bdc0eed00946f985d0f08b7bbf580781ff027994f66c",

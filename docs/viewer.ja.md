@@ -128,8 +128,8 @@ holdout の IAM は未対応の native プロファイルとして拒否され�
 renderer の quaternion に変換します。境界箱はカメラの表示範囲に使い、正確な CAD 寸法とは扱いません。
 
 ```sh
-python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
-python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.1.0.tar.gz --viewer --browser
+python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.2.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
+python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.2.0.tar.gz --viewer --browser
 ```
 
 wheel 名は実際にビルドしたファイル名に合わせてください。Windows/macOS のサーバー試験では
