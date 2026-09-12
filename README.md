@@ -65,6 +65,10 @@ python -m pip install 'inventor-kit[viewer]'
 python -m inventor_kit.viewer part.ipt
 ```
 
+![Inventor Kit viewer displaying the NIST CTC 03 model](https://raw.githubusercontent.com/monozukuri-ai/inventor-kit/main/assets/viewer.png)
+
+Model: [NIST CTC 03](https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0) (saved geometry).
+
 ## Reading assemblies
 
 ```python
