@@ -87,9 +87,12 @@ class PublicAPI(unittest.TestCase):
         doc = inventor_kit.read(data)
         curves = [e for e in doc.model.entities if isinstance(e, BSplineCurveEntity)]
         surfaces = [e for e in doc.model.entities if isinstance(e, BSplineSurfaceEntity)]
-        self.assertEqual((len(curves), len(surfaces)), (64, 16))
-        finite = [e for e in doc.model.entities if isinstance(e, RawEntity) and e.index in (1108, 1626)]
-        self.assertEqual(len(finite), 2)  # Unqualified finite saved surface ranges.
+        self.assertEqual((len(curves), len(surfaces)), (64, 18))
+        finite = [e for e in surfaces if e.index in (1108, 1626)]
+        self.assertEqual(len(finite), 2)
+        for surface in finite:
+            self.assertIsNotNone(surface.u_range.lower)
+            self.assertIsNotNone(surface.v_range.upper)
         carrier = doc.summary['carrier']
         for entity in [*curves, *surfaces]:
             entity.validate()

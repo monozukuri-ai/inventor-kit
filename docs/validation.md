@@ -19,8 +19,9 @@ retrieve the CAD files; the files are excluded from Git and distributions.
 The [validation summary](../reports/validation-summary.json) contains only the
 execution environment category, test counts, corpus counts by stage, and fuzz
 results. It excludes local paths, detailed diagnostics, raw property or model
-data, and execution logs. In the fixed corpus of 33 parts, saved tables were
-parsed in 28 files and 10 files were converted to valid solids (regression: 9/30;
+data, and execution logs. The fixed part corpus has 33 inputs, including 28 IPT
+files and five other document types. Saved tables were parsed in 28 files and
+10 files were converted to valid solids (regression: 9/30;
 holdout: 1/3). Diagnostics for unsupported cases are also regression checks.
 The holdout IAM remains an unsupported profile and is not used to tune acceptance
 criteria.

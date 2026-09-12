@@ -78,7 +78,7 @@ def validate():
         assert owner.values[definition.value_start] == b'\x0f'
         assert owner.values[definition.value_end-1] == b'\x10'
         assert owner.values[definition.value_start+1] == definition.kind
-        assert definition.parent is not None  # All 32 are nested in saved pcurves.
+        assert definition.parent is not None  # All 38 are nested in saved pcurves.
         geometry.validate()
         occt = converter._bspline_geometry(geometry,placement)
         max_deviation = 0.
@@ -94,7 +94,7 @@ def validate():
                         'same_poles_evaluator_max_deviation_mm':max_deviation})
     counts = dict(Counter(e['view'] for e in views))
     assert counts == {'TolerantVertex':136,'TolerantEdge':103,'TolerantCoedge':196}
-    assert len(aliases) == 32 and len(unsupported) == 16
+    assert len(aliases) == 38 and len(unsupported) == 10
     return {'file':NAME, 'sha256':item['sha256'], 'split':'regression',
             'scope':'partial topology fields and subtype provenance; no vendor or current-state oracle',
             'save_version':22700, 'table':asdict(table), 'view_counts':counts,

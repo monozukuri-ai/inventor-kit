@@ -70,7 +70,7 @@ def main():
             entry.update(status='unsupported', error_code=error.code, error=str(error))
         trims.append(entry)
     counts = dict(Counter(e['status'] for e in trims))
-    assert (len(curves),len(surfaces),counts.get('converted_source_endpoints_checked')) == (64,16,88)
+    assert (len(curves),len(surfaces),counts.get('converted_source_endpoints_checked')) == (64,18,88)
     assert not any(e['status'] == 'unsupported' for e in trims)
     report = {'file': NAME, 'sha256': item['sha256'], 'split':'regression',
               'source_profile': {'save_version': model.metadata.save_version, 'embedded_version':22601},

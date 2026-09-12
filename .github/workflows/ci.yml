@@ -69,6 +69,7 @@ jobs:
           .venv/bin/python scripts/validate_geometry.py
           .venv/bin/python scripts/validate_components.py
           .venv/bin/python scripts/validate_topology.py
+          .venv/bin/python scripts/validate_tolerant_trims.py
           .venv/bin/python scripts/validate_assembly.py
           .venv/bin/python scripts/benchmark_parser.py
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
