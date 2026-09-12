@@ -6,7 +6,7 @@
 
 ライブラリと開発スクリプトは Python 3.11 以降を使用します。
 Rust は CI と同じ 1.93、maturin は 1.11.5 を検証用の基準にします。
-共通依存 `acis-core` / `acis-py-bridge` 0.3.2 と `cq-acis>=0.3.2,<0.4` が
+共通依存 `acis-core` / `acis-py-bridge` 0.3.3 と `cq-acis>=0.3.3,<0.4` が
 公開レジストリから取得できることが、通常の開発・CI の前提です。
 以前の開発用 `.cargo/config.toml` で bridge を差し替えている場合は、設定を
 `internal/` へ退避してからビルドしてください。`scripts/check_dependencies.py` は

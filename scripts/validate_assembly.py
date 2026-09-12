@@ -55,7 +55,7 @@ def validate(fixtures):
     if holdout.status != 'unavailable' or holdout.occurrences:
         raise AssertionError('Frozen unsupported-profile holdout changed; review support before changing this gate')
     return dict(schema_version=1, fixture_manifest_sha256=hashlib.sha256((ROOT / 'fixtures/assembly-manifest.json').read_bytes()).hexdigest(),
-                dependency_versions=dict(acis_core='0.3.2', acis_py_bridge='0.3.2', model_api=2, assembly_api=1),
+                dependency_versions=dict(acis_core='0.3.3', acis_py_bridge='0.3.3', model_api=2, assembly_api=1),
                 fixtures=len(manifest), native_cases=cases,
                 holdout=dict(file='wing_assembly.iam', source_sha256=holdout.summary['source_sha256'],
                              schema=holdout.summary['ufrx']['schema'], sections=holdout.summary['ufrx']['sections'],

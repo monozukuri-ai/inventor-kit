@@ -1,6 +1,6 @@
 """Source checks for tolerant boundaries and bounded ASM spline charts.
 
-Requires the matching development acis-core/cq-acis implementation. These
+Requires acis-core and cq-acis 0.3.3 or the matching later implementation. These
 component checks never claim vendor equivalence or a complete converted part.
 """
 import argparse

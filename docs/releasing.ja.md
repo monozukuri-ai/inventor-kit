@@ -4,8 +4,8 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.3.2` と `acis-py-bridge=0.3.2`、Python は
-`cq-acis>=0.3.2,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.3.3` と `acis-py-bridge=0.3.3`、Python は
+`cq-acis>=0.3.3,<0.4` と共通モデル API 2 を必要とします。
 Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。
@@ -38,7 +38,9 @@ Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 
 wheel の名前・版・ABI/platform tag、CRC、RECORD の hash/size、必要なモジュールと
 ライセンスを照合します。隔離環境で属性読込、形状変換、アセンブリ STEP 往復を行い、
-子プロセスの正常終了を確認します。各 OS 種別・Python 版で `wheel[viewer]` を導入して
+子プロセスの正常終了を確認します。固定した FTC07 で有限曲面の参照、保存 UV 曲線、
+トレラント coedge を検査し、未検証の部品全体の変換は拒否されることも確認します。
+各 OS 種別・Python 版で `wheel[viewer]` を導入して
 `pip check` を行い、`--no-browser` で起動します。部品・アセンブリ・明示許可した部分
 アセンブリのシーンとメッシュバッファを取得し、正常終了と一時データ削除を要求します。
 sdist は Node なしで再ビルドし、生成した wheel を検査したうえで Linux / Python 3.11 に

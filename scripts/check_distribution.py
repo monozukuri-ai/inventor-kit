@@ -22,7 +22,7 @@ def check_metadata(meta, version):
     if meta['Requires-Python'] != '>=3.11':
         raise ValueError('Distribution must require Python >=3.11')
     requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
-    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.2', '<0.4'}:
+    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.3', '<0.4'}:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
     viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
     if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
@@ -108,7 +108,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
-            if len(entries) != 1 or entries[0]['version'] != '0.3.2':
+            if len(entries) != 1 or entries[0]['version'] != '0.3.3':
                 raise ValueError(f'Expected one pinned {package}')
             entry = entries[0]
             registry = entry.get('source') == 'registry+https://github.com/rust-lang/crates.io-index' and len(entry.get('checksum', '')) == 64

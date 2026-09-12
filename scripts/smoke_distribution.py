@@ -135,6 +135,31 @@ def installed(corpus):
         shape = doc.to_cadquery().val()
         assert shape.isValid() and len(shape.Solids()) == 1
         assert math.isclose(shape.Volume(), volume, rel_tol=1e-9)
+    # Exercise the 0.3.3 parser, bridge and converter together after installation.
+    name = 'INV_nist_ftc_07_asme1_2021.ipt'
+    item = next(e for e in json.loads((ROOT/'fixtures/manifest.json').read_text()) if e['file'] == name)
+    data = (corpus/name).read_bytes()
+    assert len(data) == item['bytes'] and hashlib.sha256(data).hexdigest() == item['sha256']
+    doc = inventor_kit.read(data, source_id=name)
+    converter = cq_acis.CadQueryConverter(doc.model)
+    placement = converter._body_placement(doc.model.bodies()[0])
+    for index in (1108, 1626, 1412):  # Two direct finite surfaces and a subtype reference.
+        surface = converter._resolve_geometry(cq_acis.EntityRef(index))
+        assert isinstance(surface, cq_acis.BSplineSurfaceEntity)
+        surface.validate()
+        assert surface.u_range.lower is not None and surface.v_range.upper is not None
+    pcurve = doc.model.to_native().linear_surface_pcurve(cq_acis.EntityRef(486), cq_acis.EntityRef(226))
+    assert pcurve is not None and pcurve.support.entity_index == 226
+    assert pcurve.raw == doc.model.resolve(cq_acis.EntityRef(486))
+    coedge = converter._require(264, cq_acis.CoedgeEntity, context='installed tolerant boundary')
+    edge = converter._edge(coedge, placement)
+    assert edge.isValid() and math.isclose(edge.Length(), 0.7447668984110175, abs_tol=1e-9)
+    try:
+        doc.to_cadquery()
+    except cq_acis.CadQueryConversionError as error:
+        assert error.code == 'geometry.pcurve_mismatch'
+    else:
+        raise AssertionError('Unqualified complete FTC07 part unexpectedly accepted')
     with tempfile.TemporaryDirectory(prefix='inventor-installed-step-') as temporary:
         report = assembly.to_cadquery(allow_unverified_state=True).export_step(Path(temporary) / 'assembly.step')
         assert report['roundtrip']['status'] == 'passed'
@@ -150,6 +175,7 @@ def installed(corpus):
                       'document_api': inventor_kit._inventor.DOCUMENT_API_VERSION,
                       'geometry_inventory_api': inventor_kit._inventor.GEOMETRY_INVENTORY_API_VERSION,
                       'metadata_without_geometry_import': 'passed',
+                      'tolerant_trim_components': 'passed',
                       'assembly_step_roundtrip': 'passed'}))
 
 
@@ -230,7 +256,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.3.2'):
+                if (package['name'], package['version']) != (name, '0.3.3'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:

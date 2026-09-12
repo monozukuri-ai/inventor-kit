@@ -1,18 +1,19 @@
-# トレラント境界・有限 UV の開発記録
+# トレラント境界・有限 UV
 
 [English](tolerant-trims.md) | 日本語
 
-このブランチは、対応する `cq-acis` の開発実装に追従します。
-公開済みの `acis-core`／`acis-py-bridge`／`cq-acis` 0.3.2 には今回の追加を含みません。
-パッケージの版と本番の依存固定は更新・公開していません。
-共有依存の公開と明示的な依存更新後に、通常の registry-only CI を検証する必要があります。
+今回の追加には `acis-core` / `acis-py-bridge` 0.3.3 と
+`cq-acis>=0.3.3,<0.4` が必要です。通常ビルドと fuzz の依存グラフでは、
+Rust crate を crates.io の版に固定しています。変換器と保存 pcurve ビューには
+対応する Python 実装も必要なため、Python 側の最低バージョンも更新しています。
+共通モデル API 2 は変わりません。
 
 共通 Rust パーサで、観測済み ASM 22700 の forward 明示 spline と subtype 参照の有限定義域を保持します。
 変換器は確認済みのトレラント辺・coedge と、有限領域内のトリムを扱います。
 同じ spline 定義を参照する保存済み次数1 UV 曲線は、追加の native ビューで取得します。
 局所的なトレラント数値で、モデル本来の許容差を広げません。
 
-対応する開発依存をインストールして、次のコマンドで再現できます。
+対応する依存をインストールして、次のコマンドで再現できます。
 
 ```sh
 python scripts/validate_components.py

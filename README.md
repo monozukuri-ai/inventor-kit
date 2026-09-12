@@ -18,14 +18,14 @@ unsupported geometry.
 
 ## Installation
 
-Requires Python 3.11 or later, `cq-acis>=0.3.2,<0.4`, and shared model API 2.
+Requires Python 3.11 or later, `cq-acis>=0.3.3,<0.4`, and shared model API 2.
 Where compatible published wheels are available, install with:
 
 ```sh
 python -m pip install inventor-kit
 ```
 
-Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.2
+Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.3
 from crates.io. See the [development guide](docs/development.md) and
 [release requirements](docs/releasing.md).
 

@@ -26,7 +26,7 @@ class WheelRecords(unittest.TestCase):
             info + '/METADATA': (
                 f'Metadata-Version: 2.4\nName: inventor-kit\nVersion: {self.version}\n'
                 'License-Expression: MIT\nRequires-Python: >=3.11\n'
-                'Requires-Dist: cq-acis>=0.3.2,<0.4\n\n'
+                'Requires-Dist: cq-acis>=0.3.3,<0.4\n\n'
             ).encode(),
             info + '/WHEEL': b'Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: cp310-abi3-win_amd64\n',
         }
