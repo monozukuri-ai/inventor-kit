@@ -135,7 +135,7 @@ def installed(corpus):
         shape = doc.to_cadquery().val()
         assert shape.isValid() and len(shape.Solids()) == 1
         assert math.isclose(shape.Volume(), volume, rel_tol=1e-9)
-    # Exercise the 0.3.3 parser, bridge and converter together after installation.
+    # Exercise the 0.3.4 parser, bridge and converter together after installation.
     name = 'INV_nist_ftc_07_asme1_2021.ipt'
     item = next(e for e in json.loads((ROOT/'fixtures/manifest.json').read_text()) if e['file'] == name)
     data = (corpus/name).read_bytes()
@@ -154,6 +154,23 @@ def installed(corpus):
     coedge = converter._require(264, cq_acis.CoedgeEntity, context='installed tolerant boundary')
     edge = converter._edge(coedge, placement)
     assert edge.isValid() and math.isclose(edge.Length(), 0.7447668984110175, abs_tol=1e-9)
+    if hasattr(doc.model.to_native(), 'supported_curve'):
+        # An explicitly supplied development wheel must exercise the new API
+        # after cold installation, including failures that remain intentional.
+        for index in (1615, 3616):
+            use = converter._require(index, cq_acis.CoedgeEntity, context='installed inline boundary')
+            assert converter._edge(use, placement).isValid()
+        assert converter._face(doc.model.resolve(2782), placement).isValid()
+        assert {e['coedge'] for e in converter.inline_reparameterizations} == {1615,3616}
+        view = doc.model.to_native().supported_curve(4022)
+        assert view.curve.raw == doc.model.resolve(4022)
+        for index in (332,4351):
+            try:
+                converter._face(doc.model.resolve(index), placement)
+            except cq_acis.CadQueryConversionError as error:
+                assert error.code == 'geometry.spline_endpoint_mismatch'
+            else:
+                raise AssertionError('Source spline endpoint mismatch was silently accepted')
     try:
         doc.to_cadquery()
     except cq_acis.CadQueryConversionError as error:
@@ -256,7 +273,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.3.3'):
+                if (package['name'], package['version']) != (name, '0.3.4'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:

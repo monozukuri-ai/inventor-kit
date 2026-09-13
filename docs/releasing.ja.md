@@ -4,8 +4,8 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.3.3` と `acis-py-bridge=0.3.3`、Python は
-`cq-acis>=0.3.3,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.3.4` と `acis-py-bridge=0.3.4`、Python は
+`cq-acis>=0.3.4,<0.4` と共通モデル API 2 を必要とします。
 Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。

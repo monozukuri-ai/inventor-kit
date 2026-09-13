@@ -25,6 +25,7 @@ def validate():
     model = doc.model
     native = acis.NativeModel.from_model(model)
     table = native.subtype_table
+    inline_support = hasattr(native, 'supported_curve')
     assert (len(table.definitions), len(table.references), len(table.diagnostics)) == (430,225,0)
     views, unsupported, aliases = [], [], []
     converter = acis.CadQueryConverter(model)
@@ -59,6 +60,13 @@ def validate():
                 else:
                     assert isinstance(view,acis.TolerantCoedge) and view.coedge.raw == raw
                     entry.update(parameter_interval=view.parameter_interval,attachment=view.attachment.index)
+                    inline = getattr(view, 'inline_curve', None)
+                    if inline is not None:
+                        assert inline.curve.raw == raw
+                        assert inline.value_start == 14 and inline.value_end == len(raw.values)-1
+                        entry['inline_curve'] = dict(kind=inline.kind, value_start=inline.value_start,
+                            value_end=inline.value_end, support_type=type(inline.support).__name__,
+                            fit_tolerance=inline.curve.fit_tolerance, uv_degree=inline.pcurve.degree)
                 assert isinstance(model.resolve(raw.index),acis.RawEntity)
                 views.append(entry)
         if raw.type_name not in ('intcurve-curve','spline-surface'):
@@ -93,8 +101,9 @@ def validate():
                         'definition_record':provenance(owner),
                         'same_poles_evaluator_max_deviation_mm':max_deviation})
     counts = dict(Counter(e['view'] for e in views))
-    assert counts == {'TolerantVertex':136,'TolerantEdge':103,'TolerantCoedge':196}
-    assert len(aliases) == 38 and len(unsupported) == 10
+    assert counts == {'TolerantVertex':136,'TolerantEdge':103,'TolerantCoedge':206 if inline_support else 196}
+    assert len(aliases) == 38 and len(unsupported) == (0 if inline_support else 10)
+    assert sum('inline_curve' in v for v in views) == (10 if inline_support else 0)
     return {'file':NAME, 'sha256':item['sha256'], 'split':'regression',
             'scope':'partial topology fields and subtype provenance; no vendor or current-state oracle',
             'save_version':22700, 'table':asdict(table), 'view_counts':counts,

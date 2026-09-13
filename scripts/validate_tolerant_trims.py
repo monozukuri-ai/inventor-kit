@@ -1,6 +1,6 @@
 """Source checks for tolerant boundaries and bounded ASM spline charts.
 
-Requires acis-core and cq-acis 0.3.3 or the matching later implementation. These
+Requires acis-core and cq-acis 0.3.4 or the matching later implementation. These
 component checks never claim vendor equivalence or a complete converted part.
 """
 import argparse
@@ -40,10 +40,21 @@ def validate():
 
     surfaces, boundaries, faces, pcurves, spline_pcurves = [], [], [], [], []
     spline_view = getattr(native, 'spline_surface_pcurve', None)
+    associated_view = getattr(native, 'supported_curve', None)
+    inline_views, associated_views = [], []
     seen_pcurves = set()
     for entity in model.entities:
         if isinstance(entity, acis.RawEntity) and entity.type_name == 'tcoedge-coedge':
             entry = provenance(entity)
+            if associated_view is not None:
+                inline = native.tolerant_topology(entity.index).inline_curve
+                if inline is not None:
+                    assert inline.curve.raw == entity
+                    assert (inline.value_start, inline.value_end) == (14, len(entity.values)-1)
+                    inline_views.append(dict(provenance(entity), kind=inline.kind,
+                        value_start=inline.value_start, value_end=inline.value_end,
+                        support_type=type(inline.support).__name__, uv_degree=inline.pcurve.degree,
+                        fit_tolerance=inline.curve.fit_tolerance))
             try:
                 coedge = converter._require(entity.index, acis.CoedgeEntity, context='tolerant trim regression')
                 edge = converter._edge(coedge, placement)
@@ -52,6 +63,19 @@ def validate():
             except acis.CadQueryConversionError as error:
                 entry.update(status='rejected', code=error.code, reason=str(error))
             boundaries.append(entry)
+        if associated_view is not None and isinstance(entity, acis.RawEntity) and entity.type_name == 'intcurve-curve':
+            view = associated_view(entity.index)
+            if view is not None:
+                assert view.curve.raw == entity
+                assert view.support.raw == entity
+                owner = model.resolve(view.support_definition.entity_index)
+                associated_views.append(dict(provenance(entity), kind=view.kind,
+                    support_definition=asdict(view.support_definition), support_owner=provenance(owner),
+                    value_start=view.value_start, value_end=view.value_end,
+                    fit_tolerance=view.curve.fit_tolerance,
+                    knots=view.curve.knots, multiplicities=view.curve.multiplicities,
+                    poles=[asdict(p) for p in view.curve.poles], uv_poles=view.pcurve.poles,
+                    support_range=asdict(view.support_range), saved_lists=view.saved_lists))
         surface = converter._resolve_geometry(acis.EntityRef(entity.index)) if (
             isinstance(entity, acis.RawEntity) and entity.type_name == 'spline-surface') else entity
         if isinstance(surface, acis.BSplineSurfaceEntity) and any(
@@ -114,8 +138,9 @@ def validate():
                             saved_fit_tolerance=view.fit_tolerance))
 
     boundary_counts = dict(Counter(e.get('code', e['status']) for e in boundaries))
-    assert boundary_counts == {'converted': 195, 'geometry.tolerant_topology_unsupported': 10,
-                              'geometry.tolerant_endpoint_mismatch': 1}, boundary_counts
+    expected_boundaries = {'converted':206} if associated_view is not None else {
+        'converted':195, 'geometry.tolerant_topology_unsupported':10, 'geometry.tolerant_endpoint_mismatch':1}
+    assert boundary_counts == expected_boundaries, boundary_counts
     assert {e['entity'] for e in surfaces} == {1108, 1412, 1626, 1811, 2312, 2713, 2819, 4605}
     assert all(e['max_endpoint_deviation_mm'] <= e['tolerance_mm'] for e in converter.tolerant_boundaries)
     source_bounds = getattr(converter, 'source_edge_tolerances', [])
@@ -127,19 +152,37 @@ def validate():
         assert math.isclose(checked['saved_deviation_mm'], expected, rel_tol=1e-14)
         assert checked['model_resolution_mm'] == converter.tolerance
         assert checked['limit_mm'] == expected + converter.tolerance
-        assert converter.tolerance < checked['max_deviation_mm'] <= checked['limit_mm']
+        assert 0 <= checked['max_deviation_mm'] <= checked['limit_mm']
+        assert checked['max_deviation_mm'] > converter.tolerance or 'inline_coedge' in checked
         provenance(model.resolve(acis.EntityRef(checked['edge'])))
     if spline_view is not None:
         assert len(pcurves) == 153
         assert Counter(e['degree'] for e in spline_pcurves) == {1: 219, 3: 5}
         face_counts = Counter(e.get('code', e['status']) for e in faces)
-        assert face_counts == {'converted': 245, 'geometry.tolerant_topology_unsupported': 10,
-                               'geometry.pcurve_mismatch': 2, 'geometry.curve_unsupported': 1}, face_counts
+        expected_faces = {'converted':254, 'geometry.pcurve_mismatch':2, 'geometry.spline_endpoint_mismatch':2} if associated_view is not None else {
+            'converted':245, 'geometry.tolerant_topology_unsupported':10, 'geometry.pcurve_mismatch':2, 'geometry.curve_unsupported':1}
+        assert face_counts == expected_faces, face_counts
         assert {e['face'] for e in converter.bounded_surface_faces} == {731, 995, 1343, 1831, 2206}
         assert any(e['degree'] == 3 for e in spline_pcurves)
         assert any(e['reversed'] for e in spline_pcurves)
         assert any(e['support_reversed'] for e in spline_pcurves)
         assert source_bounds
+    if associated_view is not None:
+        assert {e['entity'] for e in inline_views} == {1069,1075,1615,1868,1871,2499,3184,3463,3616,3770}
+        assert [e['entity'] for e in associated_views] == [4022]
+        checks = converter.supported_curve_checks
+        assert {e['entity'] for e in checks if e['kind']=='par_int_cur'} == {e['entity'] for e in inline_views}
+        for check in checks:
+            assert check['max_deviation_mm'] <= check['tolerance_mm']
+            if check['kind']=='par_int_cur':
+                assert check['shared_edge_max_deviation_mm'] <= check['shared_edge_tolerance_mm']
+            else:
+                assert check['secondary_support_bound_mm'] <= check['tolerance_mm']
+        assert {e['coedge'] for e in converter.inline_reparameterizations} == {1615,3616}
+        for check in converter.inline_reparameterizations:
+            assert max(check['locus_bound_mm'], check['endpoint_deviation_mm']) <= converter.tolerance
+        assert {e['vertex'] for e in converter.spline_endpoint_failures} == {3618}
+        assert {e['face'] for e in converter.plane_wire_orientations} == {2782}
     try:
         doc.to_cadquery()
     except acis.CadQueryConversionError as error:
@@ -154,6 +197,15 @@ def validate():
         finite_surfaces=surfaces, saved_pcurve_views=pcurves, saved_spline_pcurve_views=spline_pcurves, faces=faces,
         face_counts=dict(Counter(e.get('code', e['status']) for e in faces)),
         checked_boundaries=converter.tolerant_boundaries, checked_saved_pcurves=converter.saved_pcurves,
+        inline_curve_views=inline_views, associated_curve_views=associated_views,
+        supported_curve_checks=getattr(converter, 'supported_curve_checks', []),
+        inline_pcurves=getattr(converter, 'inline_pcurves', []),
+        inline_reparameterizations=getattr(converter, 'inline_reparameterizations', []),
+        associated_pcurves=getattr(converter, 'associated_pcurves', []),
+        tolerant_line_trims=getattr(converter, 'tolerant_line_trims', []),
+        tolerant_pcurve_joins=getattr(converter, 'tolerant_pcurve_joins', []),
+        plane_wire_orientations=getattr(converter, 'plane_wire_orientations', []),
+        spline_endpoint_failures=getattr(converter, 'spline_endpoint_failures', []),
         source_edge_tolerances=source_bounds, pcurve_checks=getattr(converter, 'pcurve_checks', None),
         bounded_faces=converter.bounded_surface_faces, whole_part=whole_part)
 
