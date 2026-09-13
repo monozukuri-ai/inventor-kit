@@ -65,7 +65,16 @@ def main():
             entry['tolerant_endpoints'] = converter.tolerant_endpoints
             entry['resolved_subtypes'] = converter.resolved_subtypes
             entry['subtype_failures'] = converter.subtype_failures
-            assert converter.pcurve_max_deviation <= converter.tolerance
+            checks = getattr(converter, 'pcurve_checks', None)
+            if checks is None:  # Published cq-acis 0.3.3 checks only model resabs.
+                assert converter.pcurve_max_deviation <= converter.tolerance
+            else:
+                assert len(checks) == converter.pcurve_count
+                assert all(math.isfinite(e['max_deviation_mm']) and math.isfinite(e['tolerance_mm']) and
+                           0 <= e['max_deviation_mm'] <= e['tolerance_mm'] for e in checks)
+                assert converter.pcurve_max_deviation == max((e['max_deviation_mm'] for e in checks), default=0.)
+                entry['pcurve_validation']['checks'] = checks
+                entry['source_edge_tolerances'] = converter.source_edge_tolerances
         results.append(entry)
         print(item['file'], entry['status'], entry.get('error_code', ''))
     if args.baseline:

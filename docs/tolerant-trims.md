@@ -11,8 +11,8 @@ API 2 is unchanged.
 The shared Rust parser now retains finite domains of the observed forward
 explicit ASM 22700 splines, including subtype references. The converter can use
 qualified tolerant edges/coedges and bounded face trims. Saved degree-1 UV
-curves on the same spline definition have an additive native view. Local
-tolerant fields never enlarge the original model tolerance.
+curves on the same spline definition have an additive native view. The original model
+resolution and finite UV bounds remain unchanged.
 
 Reproduce the source checks with the matching dependencies installed:
 
@@ -29,13 +29,39 @@ file and keeps source spans for its finite surfaces, boundaries and pcurves.
 The full geometry check separately retains the holdout split and the frozen
 solid metrics. Missing inputs and failed assertions are errors.
 
-In the local development run, FTC07 has 195 converted tolerant coedges, eight
-decoded finite surfaces, and 153 saved linear pcurve views. Individually valid
-faces increase from 112 to 192 out of 258. Complete FTC07 conversion still
-fails at curve-on-surface consistency, and its eight finite faces are not yet
-fully convertible. The full corpus remains at ten valid-solid conversions.
+## Unreleased additions
 
-Remaining work includes the semantics of local edge/coedge tolerances, inline
-curves, additional saved pcurve charts and profiles, and vendor comparison.
-These results do not qualify current Model State, native appearance, remote
-CI or a published distribution.
+Matching cq-acis development sources add degree-1/3 saved UV splines with
+independent curve and support-normal senses. The additive
+`NativeModel.spline_surface_pcurve()` view retains saved-direction knots and
+poles, intervals, raw records and support provenance. The 0.3.3 linear view
+and shared model API 2 remain unchanged.
+
+For qualified null-inline tolerant coedges/edges with same-support saved UV,
+the converter may use the saved edge scalar in millimetres plus one original
+model resolution as the 2D/3D deviation bound. This is an observed interpretation
+of ASM 22700 / embedded 22601, without vendor confirmation of the field layout.
+`source_edge_tolerances` records each source edge, scalar, placement scale,
+applicable bound and measured deviation. Source vertex coordinates, 3D/UV
+poles, model resolution and finite UV bounds remain unchanged. Saved fit
+tolerances and unknown vertex fields supply no additional allowance.
+
+Local validation on 2026-09-13 increases valid individual FTC07 faces from
+**192 / 258 to 245 / 258**, and valid finite-UV faces from **0 / 8 to 5 / 8**.
+The 195 converted tolerant coedges and eight decoded finite surfaces remain
+unchanged. There are 153 legacy linear views and 224 new spline views
+(including linear curves). All 33 files retain ten valid-solid conversions
+(nine regression and one holdout), with the frozen regression solid metrics
+preserved.
+
+The remaining 13 faces are ten unsupported inline coedge cases, two pcurve
+mismatches exceeding even the source edge bound, and one unsupported curve.
+Complete FTC07 conversion still rejects with `geometry.pcurve_mismatch`.
+These results do not qualify current Model State, Inventor equivalence,
+Windows/macOS, remote CI or a published distribution.
+
+Install matching cq-acis sources to exercise the additions. The scripts above
+also retain the original checks with public 0.3.3; when the new view is present,
+they additionally check counts, source provenance and local bounds. Reports
+record package versions and loaded module paths to distinguish development
+builds from published distributions even before the next version bump.

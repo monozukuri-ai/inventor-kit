@@ -7,7 +7,9 @@ import argparse
 from collections import Counter
 from dataclasses import asdict
 import hashlib
+import importlib.metadata
 import json
+import math
 from pathlib import Path
 
 import cq_acis as acis
@@ -36,7 +38,8 @@ def validate():
         assert raw.raw_data == doc.kernel_bytes[span.start_offset-offset:span.end_offset-offset]
         return dict(entity=raw.index, source=asdict(span), raw_sha256=hashlib.sha256(raw.raw_data).hexdigest())
 
-    surfaces, boundaries, faces, pcurves = [], [], [], []
+    surfaces, boundaries, faces, pcurves, spline_pcurves = [], [], [], [], []
+    spline_view = getattr(native, 'spline_surface_pcurve', None)
     seen_pcurves = set()
     for entity in model.entities:
         if isinstance(entity, acis.RawEntity) and entity.type_name == 'tcoedge-coedge':
@@ -97,12 +100,46 @@ def validate():
                     pcurves.append(dict(provenance(view.raw), surface=entity.surface.index,
                         support=asdict(view.support), interval=view.parameter_interval,
                         uv_endpoints=view.uv_endpoints, saved_fit_tolerance=view.fit_tolerance))
+                if spline_view is not None:
+                    try:
+                        view = spline_view(coedge.pcurve, entity.surface)
+                    except acis.AcisModelError:
+                        continue
+                    if view is not None:
+                        assert view.raw == model.resolve(coedge.pcurve)
+                        spline_pcurves.append(dict(provenance(view.raw), surface=entity.surface.index,
+                            support=asdict(view.support), interval=view.parameter_interval,
+                            degree=view.degree, knots=view.knots, multiplicities=view.multiplicities,
+                            poles=view.poles, reversed=view.reversed, support_reversed=view.support_reversed,
+                            saved_fit_tolerance=view.fit_tolerance))
 
     boundary_counts = dict(Counter(e.get('code', e['status']) for e in boundaries))
     assert boundary_counts == {'converted': 195, 'geometry.tolerant_topology_unsupported': 10,
                               'geometry.tolerant_endpoint_mismatch': 1}, boundary_counts
     assert {e['entity'] for e in surfaces} == {1108, 1412, 1626, 1811, 2312, 2713, 2819, 4605}
     assert all(e['max_endpoint_deviation_mm'] <= e['tolerance_mm'] for e in converter.tolerant_boundaries)
+    source_bounds = getattr(converter, 'source_edge_tolerances', [])
+    for checked in source_bounds:
+        edge = native.tolerant_topology(checked['edge'])
+        assert isinstance(edge, acis.TolerantEdge)
+        assert checked['saved_scalar_source_units'] == edge.saved_scalar
+        expected = edge.saved_scalar * placement.vector(acis.Vec3(1., 0., 0.)).magnitude
+        assert math.isclose(checked['saved_deviation_mm'], expected, rel_tol=1e-14)
+        assert checked['model_resolution_mm'] == converter.tolerance
+        assert checked['limit_mm'] == expected + converter.tolerance
+        assert converter.tolerance < checked['max_deviation_mm'] <= checked['limit_mm']
+        provenance(model.resolve(acis.EntityRef(checked['edge'])))
+    if spline_view is not None:
+        assert len(pcurves) == 153
+        assert Counter(e['degree'] for e in spline_pcurves) == {1: 219, 3: 5}
+        face_counts = Counter(e.get('code', e['status']) for e in faces)
+        assert face_counts == {'converted': 245, 'geometry.tolerant_topology_unsupported': 10,
+                               'geometry.pcurve_mismatch': 2, 'geometry.curve_unsupported': 1}, face_counts
+        assert {e['face'] for e in converter.bounded_surface_faces} == {731, 995, 1343, 1831, 2206}
+        assert any(e['degree'] == 3 for e in spline_pcurves)
+        assert any(e['reversed'] for e in spline_pcurves)
+        assert any(e['support_reversed'] for e in spline_pcurves)
+        assert source_bounds
     try:
         doc.to_cadquery()
     except acis.CadQueryConversionError as error:
@@ -110,11 +147,14 @@ def validate():
     else:
         raise AssertionError('Unqualified complete part unexpectedly accepted')
     return dict(file=NAME, sha256=item['sha256'], split='regression',
+        packages={name: importlib.metadata.version(name) for name in ('inventor-kit', 'cq-acis', 'cadquery', 'cadquery-ocp')},
+        module_files=dict(cq_acis=acis.__file__, inventor_kit=inventor_kit.__file__),
         scope='component geometry and source consistency; vendor and current Model State unverified',
         source_tolerance_mm=converter.tolerance, boundaries=boundaries, boundary_counts=boundary_counts,
-        finite_surfaces=surfaces, saved_pcurve_views=pcurves, faces=faces,
+        finite_surfaces=surfaces, saved_pcurve_views=pcurves, saved_spline_pcurve_views=spline_pcurves, faces=faces,
         face_counts=dict(Counter(e.get('code', e['status']) for e in faces)),
         checked_boundaries=converter.tolerant_boundaries, checked_saved_pcurves=converter.saved_pcurves,
+        source_edge_tolerances=source_bounds, pcurve_checks=getattr(converter, 'pcurve_checks', None),
         bounded_faces=converter.bounded_surface_faces, whole_part=whole_part)
 
 
@@ -126,7 +166,8 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(dict(boundaries=report['boundary_counts'], finite_surfaces=len(report['finite_surfaces']),
-        saved_pcurve_views=len(report['saved_pcurve_views']), faces=report['face_counts'], whole_part=report['whole_part']['code'])))
+        saved_pcurve_views=len(report['saved_pcurve_views']), saved_spline_pcurve_views=len(report['saved_spline_pcurve_views']),
+        faces=report['face_counts'], whole_part=report['whole_part']['code'])))
 
 
 if __name__ == '__main__':
