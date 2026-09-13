@@ -115,13 +115,10 @@ class PublicAPI(unittest.TestCase):
         self.assertEqual(passed, 88)
         self.assertEqual(len(converter.tolerant_endpoints), 112)
         self.assertTrue(all(e['deviation_mm'] <= e['tolerance_mm'] for e in converter.tolerant_endpoints))
-        if hasattr(converter, 'tolerant_vertex_envelopes'):
-            shape = doc.to_cadquery().val()
-            self.assertTrue(shape.isValid())
-            self.assertEqual((len(shape.Solids()), len(shape.Faces())), (1, 258))
-        else:
-            with self.assertRaises(CadQueryConversionError):
-                doc.to_cadquery()
+        self.assertTrue(hasattr(converter, 'tolerant_vertex_envelopes'))
+        shape = doc.to_cadquery().val()
+        self.assertTrue(shape.isValid())
+        self.assertEqual((len(shape.Solids()), len(shape.Faces())), (1, 258))
 
     def test_sphere_holes_export_a_valid_solid(self):
         _, data = fixture(self, 'Demo-Status-0.4.ipt')

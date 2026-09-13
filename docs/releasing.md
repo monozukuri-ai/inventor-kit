@@ -5,7 +5,7 @@ English | [日本語](releasing.ja.md)
 ## Dependency contract
 
 Rust requires `acis-core=0.3.5` and `acis-py-bridge=0.3.5`. Python requires
-`cq-acis>=0.3.4,<0.4` and shared model API 2. The minimum Python version is 3.11,
+`cq-acis>=0.3.6,<0.4` and shared model API 2. The minimum Python version is 3.11,
 matching cq-acis. Dependencies must be published, and Cargo.lock must retain
 registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.

@@ -1,7 +1,7 @@
 """Source checks for tolerant boundaries and bounded ASM spline charts.
 
-Requires acis-core and cq-acis 0.3.4 or the matching later implementation. These
-component checks never claim vendor equivalence or a complete converted part.
+Requires public acis-core 0.3.5 and cq-acis 0.3.6 or later in the supported series.
+Checks components and the complete saved solid without claiming vendor equivalence.
 """
 import argparse
 from collections import Counter
@@ -42,6 +42,8 @@ def validate():
     spline_view = getattr(native, 'spline_surface_pcurve', None)
     associated_view = getattr(native, 'supported_curve', None)
     reconciled = hasattr(converter, 'tolerant_vertex_envelopes')
+    assert spline_view is not None and associated_view is not None and reconciled, (
+        'cq-acis >=0.3.6 with complete trim reconciliation is required')
     inline_views, associated_views = [], []
     seen_pcurves = set()
     for entity in model.entities:

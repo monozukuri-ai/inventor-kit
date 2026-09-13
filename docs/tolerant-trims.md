@@ -3,11 +3,10 @@
 English | [日本語](tolerant-trims.ja.md)
 
 The normal and fuzz Rust graphs use public crates.io `acis-core=0.3.5` and
-`acis-py-bridge=0.3.5`. Python retains the compatible `cq-acis>=0.3.4,<0.4`
-requirement and public 0.3.4 lock: the PyPI 0.3.5 version endpoint still returned
-404 during this validation. The results below use 0.3.5 sources with additional,
-unreleased cq-acis conversion changes. They do not establish PyPI adoption of
-those changes. Shared model API 2 is unchanged.
+`acis-py-bridge=0.3.5`. Python requires `cq-acis>=0.3.6,<0.4`, with public PyPI
+0.3.6 in `uv.lock`. The trim reconciliation changes are included in this Python
+release and validated below using its published wheel. Shared model API 2 is
+unchanged; the Rust and Python package versions are independent.
 
 ## Reproducing the checks
 
@@ -21,11 +20,10 @@ python scripts/validate_geometry.py
 Scripts check fixture hashes, preserve independent holdouts and write reports
 under `internal/reports/latest/`. The trim report includes loaded module paths,
 source spans and hashes, support ownership, source bounds and measured errors.
-It distinguishes public 0.3.4, 0.3.5 source capabilities, and the unreleased
-reconciliation capability. A complete-part result requires the actual
+It requires the complete reconciliation capability from cq-acis 0.3.6. A complete-part result requires the actual
 `Document.to_cadquery()` entrypoint and a valid solid retaining all 258 faces.
 
-## Remaining four faces resolved in development
+## Four faces resolved in cq-acis 0.3.6
 
 | Faces | Change | Measured / allowed (mm) |
 | --- | --- | --- |
@@ -51,9 +49,9 @@ uses its own fit bound. The unchanged 3D fit must separately remain within its
 own bound on both original supports. Vertex envelopes never expand curve/UV
 fit or TEDGE allowances. The global model resolution stays at 0.00001 mm.
 
-## Local results (2026-09-13)
+## Public-dependency results (2026-09-14)
 
-| Check | 0.3.5 sources before this change | Development changes |
+| Check | 0.3.5 sources before this change | Public cq-acis 0.3.6 |
 | --- | ---: | ---: |
 | Decoded inline coedges | 10 / 10 | 10 / 10 |
 | Valid tolerant coedge boundaries | 206 / 206 | 206 / 206 |
@@ -68,5 +66,5 @@ one holdout. Existing frozen regression metrics are preserved. FTC07 volume is
 
 These results establish local saved-geometry consistency and OCCT validity.
 Inventor/current Model State, Windows/macOS and remote CI remain unverified.
-A subsequent cq-acis release and validation against that public wheel are
-needed to make these new conversion paths available from PyPI.
+Local wheel and sdist installation checks use the public cq-acis wheel and
+registry Rust dependencies, with interpreter shutdown and STEP roundtrip checks.

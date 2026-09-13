@@ -135,7 +135,7 @@ def installed(corpus):
         shape = doc.to_cadquery().val()
         assert shape.isValid() and len(shape.Solids()) == 1
         assert math.isclose(shape.Volume(), volume, rel_tol=1e-9)
-    # Exercise the 0.3.5 parser, bridge and converter together after installation.
+    # Exercise public cq-acis 0.3.6 with the registry core/bridge after installation.
     name = 'INV_nist_ftc_07_asme1_2021.ipt'
     item = next(e for e in json.loads((ROOT/'fixtures/manifest.json').read_text()) if e['file'] == name)
     data = (corpus/name).read_bytes()
@@ -154,35 +154,21 @@ def installed(corpus):
     coedge = converter._require(264, cq_acis.CoedgeEntity, context='installed tolerant boundary')
     edge = converter._edge(coedge, placement)
     assert edge.isValid() and math.isclose(edge.Length(), 0.7447668984110175, abs_tol=1e-9)
-    if hasattr(doc.model.to_native(), 'supported_curve'):
-        # An explicitly supplied development wheel must exercise the new API
-        # after cold installation, including failures that remain intentional.
-        for index in (1615, 3616):
-            use = converter._require(index, cq_acis.CoedgeEntity, context='installed inline boundary')
-            assert converter._edge(use, placement).isValid()
-        assert converter._face(doc.model.resolve(2782), placement).isValid()
-        assert {e['coedge'] for e in converter.inline_reparameterizations} == {1615,3616}
-        view = doc.model.to_native().supported_curve(4022)
-        assert view.curve.raw == doc.model.resolve(4022)
-        for index in (() if hasattr(converter, 'tolerant_vertex_envelopes') else (332,4351)):
-            try:
-                converter._face(doc.model.resolve(index), placement)
-            except cq_acis.CadQueryConversionError as error:
-                assert error.code == 'geometry.spline_endpoint_mismatch'
-            else:
-                raise AssertionError('Source spline endpoint mismatch was silently accepted')
-    try:
-        complete = doc.to_cadquery().val()
-    except cq_acis.CadQueryConversionError as error:
-        assert error.code == 'geometry.pcurve_mismatch'
-    else:
-        assert hasattr(converter, 'tolerant_vertex_envelopes')
-        assert complete.isValid() and len(complete.Solids()) == 1 and len(complete.Faces()) == 258
-        assert math.isclose(complete.Volume(), 1678794.5921294673, rel_tol=1e-10)
-        for index in (332, 1164, 2336, 4351):
-            assert converter._face(doc.model.resolve(index), placement).isValid()
-        assert {e['vertex'] for e in converter.tolerant_vertex_envelopes} == {3618}
-        assert {e['coedge'] for e in converter.saved_pcurve_reparameterizations} == {2146, 2130, 3613}
+    assert hasattr(converter, 'tolerant_vertex_envelopes')
+    for index in (1615, 3616):
+        use = converter._require(index, cq_acis.CoedgeEntity, context='installed inline boundary')
+        assert converter._edge(use, placement).isValid()
+    assert converter._face(doc.model.resolve(2782), placement).isValid()
+    assert {e['coedge'] for e in converter.inline_reparameterizations} == {1615,3616}
+    view = doc.model.to_native().supported_curve(4022)
+    assert view.curve.raw == doc.model.resolve(4022)
+    complete = doc.to_cadquery().val()
+    assert complete.isValid() and len(complete.Solids()) == 1 and len(complete.Faces()) == 258
+    assert math.isclose(complete.Volume(), 1678794.5921294673, rel_tol=1e-10)
+    for index in (332, 1164, 2336, 4351):
+        assert converter._face(doc.model.resolve(index), placement).isValid()
+    assert {e['vertex'] for e in converter.tolerant_vertex_envelopes} == {3618}
+    assert {e['coedge'] for e in converter.saved_pcurve_reparameterizations} == {2146, 2130, 3613}
 
     with tempfile.TemporaryDirectory(prefix='inventor-installed-step-') as temporary:
         report = assembly.to_cadquery(allow_unverified_state=True).export_step(Path(temporary) / 'assembly.step')

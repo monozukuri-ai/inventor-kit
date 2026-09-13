@@ -22,7 +22,7 @@ def check_metadata(meta, version):
     if meta['Requires-Python'] != '>=3.11':
         raise ValueError('Distribution must require Python >=3.11')
     requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
-    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.4', '<0.4'}:
+    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.6', '<0.4'}:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
     viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
     if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
