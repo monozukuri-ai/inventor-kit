@@ -2,11 +2,11 @@
 
 [English](tolerant-trims.md) | 日本語
 
-通常・fuzz の Rust 依存は公開 crates.io の `acis-core=0.3.5` と
-`acis-py-bridge=0.3.5` です。Python の要件を `cq-acis>=0.3.6,<0.4` に更新し、
+通常・fuzz の Rust 依存は公開 crates.io の `acis-core=0.3.6` と
+`acis-py-bridge=0.3.6` です。Python の要件を `cq-acis>=0.3.6,<0.4` に更新し、
 `uv.lock` も公開 PyPI の 0.3.6 に更新しました。トリム修正はこの Python リリースに
 含まれ、以下は公開 wheel による検証結果です。共有モデル API 2 は変わらず、
-Rust と Python のパッケージバージョンは独立しています。
+Rust/Python の3パッケージを公開 v0.3.6 に揃えています。
 
 ## 再現方法
 

@@ -266,7 +266,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.3.5'):
+                if (package['name'], package['version']) != (name, '0.3.6'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:

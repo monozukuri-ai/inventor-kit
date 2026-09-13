@@ -2,11 +2,11 @@
 
 English | [日本語](tolerant-trims.ja.md)
 
-The normal and fuzz Rust graphs use public crates.io `acis-core=0.3.5` and
-`acis-py-bridge=0.3.5`. Python requires `cq-acis>=0.3.6,<0.4`, with public PyPI
+The normal and fuzz Rust graphs use public crates.io `acis-core=0.3.6` and
+`acis-py-bridge=0.3.6`. Python requires `cq-acis>=0.3.6,<0.4`, with public PyPI
 0.3.6 in `uv.lock`. The trim reconciliation changes are included in this Python
 release and validated below using its published wheel. Shared model API 2 is
-unchanged; the Rust and Python package versions are independent.
+unchanged. All three ACIS dependencies now use public 0.3.6 releases.
 
 ## Reproducing the checks
 

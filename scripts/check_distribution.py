@@ -108,7 +108,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
-            if len(entries) != 1 or entries[0]['version'] != '0.3.5':
+            if len(entries) != 1 or entries[0]['version'] != '0.3.6':
                 raise ValueError(f'Expected one pinned {package}')
             entry = entries[0]
             registry = entry.get('source') == 'registry+https://github.com/rust-lang/crates.io-index' and len(entry.get('checksum', '')) == 64
