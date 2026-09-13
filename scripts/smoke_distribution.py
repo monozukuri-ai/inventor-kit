@@ -135,7 +135,7 @@ def installed(corpus):
         shape = doc.to_cadquery().val()
         assert shape.isValid() and len(shape.Solids()) == 1
         assert math.isclose(shape.Volume(), volume, rel_tol=1e-9)
-    # Exercise the 0.3.4 parser, bridge and converter together after installation.
+    # Exercise the 0.3.5 parser, bridge and converter together after installation.
     name = 'INV_nist_ftc_07_asme1_2021.ipt'
     item = next(e for e in json.loads((ROOT/'fixtures/manifest.json').read_text()) if e['file'] == name)
     data = (corpus/name).read_bytes()
@@ -164,7 +164,7 @@ def installed(corpus):
         assert {e['coedge'] for e in converter.inline_reparameterizations} == {1615,3616}
         view = doc.model.to_native().supported_curve(4022)
         assert view.curve.raw == doc.model.resolve(4022)
-        for index in (332,4351):
+        for index in (() if hasattr(converter, 'tolerant_vertex_envelopes') else (332,4351)):
             try:
                 converter._face(doc.model.resolve(index), placement)
             except cq_acis.CadQueryConversionError as error:
@@ -172,11 +172,18 @@ def installed(corpus):
             else:
                 raise AssertionError('Source spline endpoint mismatch was silently accepted')
     try:
-        doc.to_cadquery()
+        complete = doc.to_cadquery().val()
     except cq_acis.CadQueryConversionError as error:
         assert error.code == 'geometry.pcurve_mismatch'
     else:
-        raise AssertionError('Unqualified complete FTC07 part unexpectedly accepted')
+        assert hasattr(converter, 'tolerant_vertex_envelopes')
+        assert complete.isValid() and len(complete.Solids()) == 1 and len(complete.Faces()) == 258
+        assert math.isclose(complete.Volume(), 1678794.5921294673, rel_tol=1e-10)
+        for index in (332, 1164, 2336, 4351):
+            assert converter._face(doc.model.resolve(index), placement).isValid()
+        assert {e['vertex'] for e in converter.tolerant_vertex_envelopes} == {3618}
+        assert {e['coedge'] for e in converter.saved_pcurve_reparameterizations} == {2146, 2130, 3613}
+
     with tempfile.TemporaryDirectory(prefix='inventor-installed-step-') as temporary:
         report = assembly.to_cadquery(allow_unverified_state=True).export_step(Path(temporary) / 'assembly.step')
         assert report['roundtrip']['status'] == 'passed'
@@ -273,7 +280,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.3.4'):
+                if (package['name'], package['version']) != (name, '0.3.5'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:

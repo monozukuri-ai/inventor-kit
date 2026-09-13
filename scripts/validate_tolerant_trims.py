@@ -41,6 +41,7 @@ def validate():
     surfaces, boundaries, faces, pcurves, spline_pcurves = [], [], [], [], []
     spline_view = getattr(native, 'spline_surface_pcurve', None)
     associated_view = getattr(native, 'supported_curve', None)
+    reconciled = hasattr(converter, 'tolerant_vertex_envelopes')
     inline_views, associated_views = [], []
     seen_pcurves = set()
     for entity in model.entities:
@@ -159,10 +160,10 @@ def validate():
         assert len(pcurves) == 153
         assert Counter(e['degree'] for e in spline_pcurves) == {1: 219, 3: 5}
         face_counts = Counter(e.get('code', e['status']) for e in faces)
-        expected_faces = {'converted':254, 'geometry.pcurve_mismatch':2, 'geometry.spline_endpoint_mismatch':2} if associated_view is not None else {
+        expected_faces = {'converted':258} if reconciled else {'converted':254, 'geometry.pcurve_mismatch':2, 'geometry.spline_endpoint_mismatch':2} if associated_view is not None else {
             'converted':245, 'geometry.tolerant_topology_unsupported':10, 'geometry.pcurve_mismatch':2, 'geometry.curve_unsupported':1}
         assert face_counts == expected_faces, face_counts
-        assert {e['face'] for e in converter.bounded_surface_faces} == {731, 995, 1343, 1831, 2206}
+        assert {e['face'] for e in converter.bounded_surface_faces} == ({731, 995, 1164, 1343, 1831, 2206, 2336, 4351} if reconciled else {731, 995, 1343, 1831, 2206})
         assert any(e['degree'] == 3 for e in spline_pcurves)
         assert any(e['reversed'] for e in spline_pcurves)
         assert any(e['support_reversed'] for e in spline_pcurves)
@@ -181,14 +182,37 @@ def validate():
         assert {e['coedge'] for e in converter.inline_reparameterizations} == {1615,3616}
         for check in converter.inline_reparameterizations:
             assert max(check['locus_bound_mm'], check['endpoint_deviation_mm']) <= converter.tolerance
-        assert {e['vertex'] for e in converter.spline_endpoint_failures} == {3618}
-        assert {e['face'] for e in converter.plane_wire_orientations} == {2782}
+        assert {e['vertex'] for e in converter.spline_endpoint_failures} == (set() if reconciled else {3618})
+        assert {e['face'] for e in converter.plane_wire_orientations} == ({332, 2782} if reconciled else {2782})
     try:
-        doc.to_cadquery()
+        workplane = doc.to_cadquery()
     except acis.CadQueryConversionError as error:
         whole_part = dict(status='rejected', code=error.code, reason=str(error))
     else:
-        raise AssertionError('Unqualified complete part unexpectedly accepted')
+        assert reconciled, 'Complete part accepted without reconciliation checks'
+        from oracle_contract import shape_metrics
+        shapes = workplane.vals()
+        assert all(s.isValid() and s.Solids() and s.Volume() > 0 for s in shapes)
+        assert sum(len(s.Faces()) for s in shapes) == 258
+        whole_part = dict(status='converted_valid', metrics=shape_metrics(shapes))
+    if reconciled:
+        assert whole_part['status'] == 'converted_valid', whole_part
+        assert {e['coedge'] for e in converter.saved_pcurve_reparameterizations} == {2146, 2130, 3613}
+        for check in converter.saved_pcurve_reparameterizations:
+            assert check['max_deviation_mm'] <= check['tolerance_mm']
+            assert all(a < b for a, b in zip(check['edge_knots'], check['edge_knots'][1:]))
+        envelope, = converter.tolerant_vertex_envelopes
+        assert envelope['vertex'] == 3618
+        assert {e['edge'] for e in envelope['incident_edges']} == {3133, 3614, 4024}
+        saved_point = native.tolerant_topology(3618).vertex.point
+        point = model.resolve(saved_point).location
+        expected_point = placement.point_vector(point)
+        assert tuple(envelope['source_point_mm']) == placement.point(point)
+        assert envelope['max_endpoint_deviation_mm'] <= envelope['tolerance_mm']
+        vertices = [v for shape in shapes for v in shape.Vertices()]
+        assert min((acis.Vec3(*v.Center().toTuple()) - expected_point).magnitude for v in vertices) <= converter.tolerance
+        assert math.isclose(converter.tolerance, 1e-5, rel_tol=1e-15)
+
     return dict(file=NAME, sha256=item['sha256'], split='regression',
         packages={name: importlib.metadata.version(name) for name in ('inventor-kit', 'cq-acis', 'cadquery', 'cadquery-ocp')},
         module_files=dict(cq_acis=acis.__file__, inventor_kit=inventor_kit.__file__),
@@ -201,6 +225,8 @@ def validate():
         supported_curve_checks=getattr(converter, 'supported_curve_checks', []),
         inline_pcurves=getattr(converter, 'inline_pcurves', []),
         inline_reparameterizations=getattr(converter, 'inline_reparameterizations', []),
+        saved_pcurve_reparameterizations=getattr(converter, 'saved_pcurve_reparameterizations', []),
+        tolerant_vertex_envelopes=getattr(converter, 'tolerant_vertex_envelopes', []),
         associated_pcurves=getattr(converter, 'associated_pcurves', []),
         tolerant_line_trims=getattr(converter, 'tolerant_line_trims', []),
         tolerant_pcurve_joins=getattr(converter, 'tolerant_pcurve_joins', []),
@@ -219,7 +245,7 @@ def main():
     args.output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(dict(boundaries=report['boundary_counts'], finite_surfaces=len(report['finite_surfaces']),
         saved_pcurve_views=len(report['saved_pcurve_views']), saved_spline_pcurve_views=len(report['saved_spline_pcurve_views']),
-        faces=report['face_counts'], whole_part=report['whole_part']['code'])))
+        faces=report['face_counts'], whole_part=report['whole_part'].get('code', report['whole_part']['status']))))
 
 
 if __name__ == '__main__':

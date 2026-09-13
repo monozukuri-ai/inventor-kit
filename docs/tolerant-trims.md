@@ -2,12 +2,12 @@
 
 English | [日本語](tolerant-trims.ja.md)
 
-The normal and fuzz Rust graphs now use the public crates.io releases
-`acis-core=0.3.4` and `acis-py-bridge=0.3.4`; Python requires
-`cq-acis>=0.3.4,<0.4`. Shared model API 2 is unchanged. Public 0.3.4 provides
-finite spline domains, saved degree-1/3 UV views, independent curve/support
-senses and bounded TEDGE deviations. Publication and the development additions
-below are separate: the latter require matching cq-acis sources.
+The normal and fuzz Rust graphs use public crates.io `acis-core=0.3.5` and
+`acis-py-bridge=0.3.5`. Python retains the compatible `cq-acis>=0.3.4,<0.4`
+requirement and public 0.3.4 lock: the PyPI 0.3.5 version endpoint still returned
+404 during this validation. The results below use 0.3.5 sources with additional,
+unreleased cq-acis conversion changes. They do not establish PyPI adoption of
+those changes. Shared model API 2 is unchanged.
 
 ## Reproducing the checks
 
@@ -18,65 +18,55 @@ python scripts/validate_tolerant_trims.py
 python scripts/validate_geometry.py
 ```
 
-Scripts verify fixture hashes and write reports under `internal/reports/latest/`.
-Topology and trim checks use the FTC07 2021 regression fixture; the whole
-geometry check keeps the independent holdout split and frozen solid metrics.
-The trim report records package versions, loaded modules, raw hashes, source
-spans, subtype ownership, applied bounds and measured deviations. Its assertions
-select the public 0.3.4 or development profile by additive native capability.
+Scripts check fixture hashes, preserve independent holdouts and write reports
+under `internal/reports/latest/`. The trim report includes loaded module paths,
+source spans and hashes, support ownership, source bounds and measured errors.
+It distinguishes public 0.3.4, 0.3.5 source capabilities, and the unreleased
+reconciliation capability. A complete-part result requires the actual
+`Document.to_cadquery()` entrypoint and a valid solid retaining all 258 faces.
 
-## Unreleased inline and associated curves
+## Remaining four faces resolved in development
 
-The new core/bridge view decodes the observed full `par_int_cur` in all ten
-inline coedges, retaining the cubic 3D fit, support, saved degree-3 or rational
-quadratic UV and source extent. Plane UV scale and sphere/torus angle order are
-explicit. The converter independently checks the inline fit against its own
-support and the unchanged shared edge against its TEDGE bound. For two rational
-planar arcs, a whole-curve conic identity and monotonic minor-arc certificate
-allow the analytic edge parameterization; saved poles remain in the raw model.
+| Faces | Change | Measured / allowed (mm) |
+| --- | --- | --- |
+| 1164 | Exact saved UV knot subdivision and monotone parameter mapping | 0.006120595657 / 0.006130569677 |
+| 2336 | Same method, with the original TEDGE bound | 0.006099236931 / 0.006109190844 |
+| 332, 4351 | Source vertex 3618 retained; all three incident source edges checked | 0.006526083452 / 0.006536083452 |
+| 4351 | Associated saved UV fit reparameterized, independently of the 3D fit | 0.000748651878 / 0.001049799677 |
 
-Qualified inline uses also bound source tolerant endpoints and exact-ID UV
-joins. Ordinary lines may narrow their interval to source points on the same
-line inside the original bounds. Planar hole orientation retains every edge.
-No global resolution, finite UV domain, shared 3D curve or unknown TVERTEX
-scalar is changed to make a failing comparison pass.
+Knot insertion preserves the full original UV locus and traversal. Each
+resulting span and the complete curve pass independent 3D checks; finite UV
+bounds are unchanged. No projected curve outside the chart is adopted.
+`saved_pcurve_reparameterizations` records both parameter clocks and errors.
 
-`NativeModel.supported_curve()` decodes the full `int_int_cur` at curve 4022,
-including its file-local spline support, secondary plane, saved UV and trailer.
-The unchanged 3D fit is checked over its full domain against both supports;
-the saved UV's original same-parameter discrepancy is reported separately.
-This establishes per-support bounds, not an exact intersection. Its endpoint
-still fails the original source-vertex precision on two incident faces.
+The vertex rule is an observed ASM 22700 / 22601 profile: flag 1, legacy scalar
+-1, a checked full intersection-curve owner, and two stored bounds tightly
+matching the complete incident-edge endpoint star. Bounds that are too small,
+loose, ambiguous, or consume an incident edge reject conversion. The saved
+point and 3D curves remain fixed. `tolerant_vertex_envelopes` records the source
+values and all incident distances. This does not qualify all TVERTEX layouts.
+
+A saved UV fit attached to the same independently checked intersection support
+uses its own fit bound. The unchanged 3D fit must separately remain within its
+own bound on both original supports. Vertex envelopes never expand curve/UV
+fit or TEDGE allowances. The global model resolution stays at 0.00001 mm.
 
 ## Local results (2026-09-13)
 
-| Check | Public 0.3.4 | Development sources |
+| Check | 0.3.5 sources before this change | Development changes |
 | --- | ---: | ---: |
-| Decoded inline coedges | 0 / 10 | 10 / 10 |
-| Valid tolerant coedge boundaries | 195 / 206 | 206 / 206 |
-| Valid individual FTC07 faces | 245 / 258 | 254 / 258 |
-| Valid finite-UV faces | 5 / 8 | 5 / 8 |
-| Readable finite spline supports | 8 | 8 |
+| Decoded inline coedges | 10 / 10 | 10 / 10 |
+| Valid tolerant coedge boundaries | 206 / 206 | 206 / 206 |
+| Valid individual FTC07 faces | 254 / 258 | 258 / 258 |
+| Valid finite-UV faces | 5 / 8 | 8 / 8 |
+| Complete FTC07 solid | rejected | valid, 1 solid / 258 faces |
 | Saved spline pcurve views | 224 | 224 |
 
-All previously valid 245 face areas are unchanged. The nine newly valid face
-IDs are 1524, 1535, 1994, 1997, 2782, 2822, 2977, 2998 and 4162. The 33-file
-corpus retains ten valid solid conversions (nine regression and one holdout),
-with all frozen regression solid metrics preserved.
+The 33-file corpus now has eleven valid solid conversions: ten regressions and
+one holdout. Existing frozen regression metrics are preserved. FTC07 volume is
+1678794.5921294673 mm³. The original 254 valid face areas are unchanged.
 
-Four faces remain rejected:
-
-| Faces | Source failure | Measured / allowed (mm) |
-| --- | --- | --- |
-| 1164 | saved pcurve / TEDGE mismatch | 0.006255113958 / 0.006130569677 |
-| 2336 | saved pcurve / TEDGE mismatch | 0.006246879672 / 0.006109190844 |
-| 332, 4351 | curve 4022 / vertex 3618 endpoint mismatch | 0.006526083452 / 0.000010 |
-
-Reparameterization trials do not qualify the two saved pcurve mismatches under
-the original edge bounds. Projected alternatives leave the finite UV domain,
-so they are not adopted. The spline endpoint discrepancy exposes an additional
-failure previously hidden by unsupported inline/curve handling. Unknown vertex
-fields do not supply an allowance. Complete FTC07 conversion still rejects with
-`geometry.pcurve_mismatch`; successful components are not a valid complete part.
-These are local source-consistency checks, without Inventor/current Model State,
-Windows/macOS or remote CI qualification.
+These results establish local saved-geometry consistency and OCCT validity.
+Inventor/current Model State, Windows/macOS and remote CI remain unverified.
+A subsequent cq-acis release and validation against that public wheel are
+needed to make these new conversion paths available from PyPI.
