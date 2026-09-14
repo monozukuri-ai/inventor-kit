@@ -2,11 +2,12 @@
 
 English | [日本語](tolerant-trims.ja.md)
 
-The normal and fuzz Rust graphs use public crates.io `acis-core=0.3.6` and
-`acis-py-bridge=0.3.6`. Python requires `cq-acis>=0.3.6,<0.4`, with public PyPI
-0.3.6 in `uv.lock`. The trim reconciliation changes are included in this Python
-release and validated below using its published wheel. Shared model API 2 is
-unchanged. All three ACIS dependencies now use public 0.3.6 releases.
+Rust uses public crates.io `acis-core=0.3.7` and `acis-py-bridge=0.3.7`;
+the fuzz graph pins the same core. Python requires `cq-acis>=0.3.7,<0.4`, with
+public PyPI 0.3.7 in `uv.lock`. Shared model API 2 is unchanged. The trim checks
+also pass with the published 0.3.7 wheel. The 0.3.6 results below document the
+original trim fix; see [current validation results](validation.md) for the
+additional FTC06 and CTC04 closure checks.
 
 ## Reproducing the checks
 
@@ -20,7 +21,8 @@ python scripts/validate_geometry.py
 Scripts check fixture hashes, preserve independent holdouts and write reports
 under `internal/reports/latest/`. The trim report includes loaded module paths,
 source spans and hashes, support ownership, source bounds and measured errors.
-It requires the complete reconciliation capability from cq-acis 0.3.6. A complete-part result requires the actual
+It requires the complete reconciliation capability introduced in cq-acis 0.3.6.
+A complete-part result requires the actual
 `Document.to_cadquery()` entrypoint and a valid solid retaining all 258 faces.
 
 ## Four faces resolved in cq-acis 0.3.6
@@ -60,8 +62,8 @@ fit or TEDGE allowances. The global model resolution stays at 0.00001 mm.
 | Complete FTC07 solid | rejected | valid, 1 solid / 258 faces |
 | Saved spline pcurve views | 224 | 224 |
 
-The 33-file corpus now has eleven valid solid conversions: ten regressions and
-one holdout. Existing frozen regression metrics are preserved. FTC07 volume is
+At the 0.3.6 baseline, the 33-file corpus had eleven valid solid conversions:
+ten regressions and one holdout. Existing frozen regression metrics are preserved. FTC07 volume is
 1678794.5921294673 mm³. The original 254 valid face areas are unchanged.
 
 These results establish local saved-geometry consistency and OCCT validity.

@@ -135,7 +135,7 @@ def installed(corpus):
         shape = doc.to_cadquery().val()
         assert shape.isValid() and len(shape.Solids()) == 1
         assert math.isclose(shape.Volume(), volume, rel_tol=1e-9)
-    # Exercise public cq-acis 0.3.6 with the registry core/bridge after installation.
+    # Exercise public cq-acis 0.3.7 with the registry core/bridge after installation.
     name = 'INV_nist_ftc_07_asme1_2021.ipt'
     item = next(e for e in json.loads((ROOT/'fixtures/manifest.json').read_text()) if e['file'] == name)
     data = (corpus/name).read_bytes()
@@ -170,6 +170,29 @@ def installed(corpus):
     assert {e['vertex'] for e in converter.tolerant_vertex_envelopes} == {3618}
     assert {e['coedge'] for e in converter.saved_pcurve_reparameterizations} == {2146, 2130, 3613}
 
+    # Keep the FTC06 auxiliary open bodies visible in the conversion contract.
+    for year, seam_faces in ((2021, {247, 332, 405, 464}), (2024, {233, 471, 634, 676})):
+        doc = inventor_kit.read_file(corpus / f'INV_nist_ftc_06_asme1_{year}.ipt')
+        assert [body.index for body in doc.model.bodies()] == [1, 2, 3]
+        converter = cq_acis.CadQueryConverter(doc.model)
+        solid = converter.convert_body(doc.model.bodies()[0])
+        assert solid.isValid() and len(solid.Solids()) == 1 and len(solid.Faces()) == 146
+        assert all(shell.Closed() for shell in solid.Shells())
+        assert math.isclose(solid.Volume(), 3326997.715700659, rel_tol=1e-8)
+        assert {e['face'] for e in converter.periodic_seam_faces} == seam_faces
+        assert all(e['max_deviation_mm'] <= e['tolerance_mm'] for e in converter.periodic_seam_faces)
+        try:
+            doc.to_cadquery()
+        except cq_acis.CadQueryConversionError as error:
+            assert error.code == 'geometry.sewing_no_shell'
+        else:
+            raise AssertionError('FTC06 complete conversion omitted auxiliary open bodies')
+    doc = inventor_kit.read_file(corpus / 'INV_nist_ctc_04_asme1_2021.ipt')
+    solid = doc.to_cadquery().val()
+    assert solid.isValid() and len(solid.Solids()) == 1 and len(solid.Faces()) == 368
+    assert all(shell.Closed() for shell in solid.Shells())
+    assert math.isclose(solid.Volume(), 17526545.186092895, rel_tol=1e-8)
+
     with tempfile.TemporaryDirectory(prefix='inventor-installed-step-') as temporary:
         report = assembly.to_cadquery(allow_unverified_state=True).export_step(Path(temporary) / 'assembly.step')
         assert report['roundtrip']['status'] == 'passed'
@@ -186,6 +209,7 @@ def installed(corpus):
                       'geometry_inventory_api': inventor_kit._inventor.GEOMETRY_INVENTORY_API_VERSION,
                       'metadata_without_geometry_import': 'passed',
                       'tolerant_trim_components': 'passed',
+                      'analytic_closure': 'passed',
                       'assembly_step_roundtrip': 'passed'}))
 
 
@@ -266,7 +290,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.3.6'):
+                if (package['name'], package['version']) != (name, '0.3.7'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:

@@ -4,8 +4,8 @@ English | [日本語](releasing.ja.md)
 
 ## Dependency contract
 
-Rust requires `acis-core=0.3.6` and `acis-py-bridge=0.3.6`. Python requires
-`cq-acis>=0.3.6,<0.4` and shared model API 2. The minimum Python version is 3.11,
+Rust requires `acis-core=0.3.7` and `acis-py-bridge=0.3.7`. Python requires
+`cq-acis>=0.3.7,<0.4` and shared model API 2. The minimum Python version is 3.11,
 matching cq-acis. Dependencies must be published, and Cargo.lock must retain
 registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.
@@ -43,8 +43,11 @@ Checks cover wheel names, versions, ABI/platform tags, CRCs, RECORD hashes and
 sizes, required modules, and licenses. Isolated environments exercise metadata
 reading, geometry conversion, and assembly STEP roundtrips, and verify normal
 subprocess shutdown. The pinned FTC07 check exercises finite surface references,
-saved UV curves, and a tolerant coedge, while requiring rejection of the
-unqualified complete part. Each platform/interpreter also installs `wheel[viewer]`,
+saved UV curves, tolerant coedges, and complete conversion into a valid solid
+with 258 faces. FTC06 (2021/2024) must produce a valid 146-face primary solid
+while rejecting complete-part conversion because two auxiliary open bodies remain.
+CTC04 (2021) must produce one closed, valid solid with all 368 faces.
+Each platform/interpreter also installs `wheel[viewer]`,
 runs `pip check`, starts the local viewer with `--no-browser`, fetches scenes and
 mesh buffers for a part, an assembly and a permitted partial assembly, and requires
 normal shutdown with no temporary session data left behind. The sdist is rebuilt

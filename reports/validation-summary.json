@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "recorded_on": "2026-09-10",
+  "recorded_on": "2026-09-14",
   "environment": "local",
   "status": "passed",
   "scope": "Fixed public corpus regression; not vendor/current-state or platform release qualification",
   "python_tests": {
-    "tests": 63,
+    "tests": 87,
     "skipped": 0,
     "failures": 0,
     "errors": 0
@@ -18,7 +18,7 @@
     "regression": {
       "total": 30,
       "decoded_subset": 25,
-      "converted": 9
+      "converted": 11
     },
     "holdout": {
       "total": 3,

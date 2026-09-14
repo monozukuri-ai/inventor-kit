@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "acis-core"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3211246dedab1dbaafa8c1082d45b00e00ea309628b95231ca502cbfbf8e3691"
+checksum = "19ddaeae1934ca798cf698d3d99508db26b87915cbd7bc23f4d52ae26530d8b6"
 dependencies = [
  "num-bigint",
 ]

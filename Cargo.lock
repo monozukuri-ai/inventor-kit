@@ -4,18 +4,18 @@ version = 4
 
 [[package]]
 name = "acis-core"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3211246dedab1dbaafa8c1082d45b00e00ea309628b95231ca502cbfbf8e3691"
+checksum = "19ddaeae1934ca798cf698d3d99508db26b87915cbd7bc23f4d52ae26530d8b6"
 dependencies = [
  "num-bigint",
 ]
 
 [[package]]
 name = "acis-py-bridge"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfae2b9425f2ec2e841752e41583b97daeb46ada2f9b1c07cc7d1a801eb8678b"
+checksum = "71509b7f0cb3abd5ef71f987e49d9bb3f1a470d2a4e114a117c0dfa072cee4d3"
 dependencies = [
  "acis-core",
  "num-bigint",

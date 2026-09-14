@@ -57,7 +57,7 @@ test.afterEach(async () => {
   expect(errors).toEqual([]);
 });
 
-for (const file of ['SamplePart.ipt', 'Cylinder.ipt', 'INV_nist_ftc_09_asme1_2024.ipt']) {
+for (const file of ['SamplePart.ipt', 'Cylinder.ipt', 'INV_nist_ftc_09_asme1_2024.ipt', 'INV_nist_ctc_04_asme1_2021.ipt']) {
   test(`renders ${file} offline`, async ({ page }, info) => {
     const url = await open(page, file);
     await expect(page.locator('#cad')).toHaveAttribute('data-rendered', 'true');
