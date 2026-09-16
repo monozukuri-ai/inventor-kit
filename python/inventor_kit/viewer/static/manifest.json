@@ -8,10 +8,10 @@
   "inputs": {
     "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
-    "package-lock.json": "fd20d4641a4648d0eaee6a9e5f3e98f1d3df77d7a0abcda60d271cd0ec4be19c",
-    "package.json": "f1b080cdcdde2529ef2f42d747f690af21911e1b82e0c5f0ada2fc2c273bd25d",
+    "package-lock.json": "c04d64479c3deff3420a10147dc41f694de71fb0154f38d04a210bbae67317a9",
+    "package.json": "807b77d4ab1318852c14ab3b59e5f3033a8e3cfba8d5416b1df5532ac29c8917",
     "scripts/manifest.mjs": "101a4cc3c0c371d17f378ad37b24332920a7637a01e24de2358660f0e8ebfd92",
-    "src/main.ts": "c3c54eb70e71477af6f84bbac0a1d856a5f1b2d323e3833152a4c90d94287b93",
+    "src/main.ts": "d602f3a7ae7efa242d38248649a7173f0038c5771fe5a0459e75884a26356aca",
     "src/scene-graph.ts": "60206b9f129fff66f276bdc0eed00946f985d0f08b7bbf580781ff027994f66c",
     "src/style.css": "4adfc653532e39e4fe8e7b7c7e2380791baf12b893496f277a451a1456b7eef7",
     "tsconfig.json": "aed5cd64e684f15334aa2bae06ae24e5ea5a8e2c15a6981ded99e9003950b712",
@@ -20,8 +20,8 @@
   "outputs": {
     "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "THIRD_PARTY_LICENSES.txt": "c76f9cf7e6e3cebf8d331a4aec0e25756460820e7596377ac5afcc5d14d0962c",
-    "assets/index-CiQOm2A2.js": "26716cef3f280e5b190199f7075762be9937bc3d0e4eb8c20a04094c3c96a2e8",
+    "assets/index-B-WXrvWX.js": "7596248057820cdd66c463c5e6f7053ff8390bf55892ea9e72376c109f8eeb56",
     "assets/index-OCuZY8UW.css": "b3756577705fe502f60097816b652bb0c0801721f1b1b9b9757209db921ad29e",
-    "index.html": "faf6a23663eb9475bc5e7467ddfd1b2c5533582982daa0f092784c97115299eb"
+    "index.html": "7f937825ff5eb899b0e3b786fb68733751d9fd1173042d0d5acc2eb1a34e15d9"
   }
 }

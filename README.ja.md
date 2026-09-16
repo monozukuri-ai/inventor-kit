@@ -14,9 +14,11 @@ IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
 このライブラリは確認済みプロファイルの限定パーサです。現在の Model State、
 フィーチャ履歴の再評価、未対応形状の近似は行いません。
 
+v0.4.0では[body選択](docs/body-conversion.ja.md)と[IPT/IAMバッチ変換](docs/cli.ja.md)を追加しています。
+
 ## インストール
 
-Python 3.11 以降、`cq-acis>=0.3.7,<0.4`、共通モデル API 2 を使用します。
+Python 3.11 以降、`cq-acis>=0.3.8,<0.4`、共通モデル API 2 を使用します。
 公開済みの互換 wheel がある環境では、次のようにインストールできます。
 
 ```sh
@@ -24,7 +26,7 @@ python -m pip install inventor-kit
 ```
 
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.3.7 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
+0.3.8 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
 [リリース条件](docs/releasing.ja.md)を参照してください。
 
 ## 部品の読み込み

@@ -15,7 +15,7 @@ for standard reproduction steps. Detailed results default to
 | `validate_geometry.py`, `validate_components.py`, `validate_topology.py` | Check frozen geometry metrics, curves, surfaces, and topology |
 | `validate_tolerant_trims.py` | Check [tolerant boundaries and finite UV](../docs/tolerant-trims.md) against pinned source components |
 | `validate_analytic_closure.py` | Check [cylinder seams, shell closure, STEP and meshes](../docs/validation.md#reproduction-and-optional-oracles), retaining open auxiliary bodies as failures |
-| `validate_revolution_trims.py` | Qualify FTC10/CTC02 repaired faces, retained source boundaries, STEP and meshes; requires unreleased cq-acis cylinder trim support |
+| `validate_revolution_trims.py` | Qualify FTC10/CTC02 repaired faces, retained source boundaries, STEP and meshes; requires published cq-acis 0.3.8 or later |
 | `validate_assembly.py` | Regression and holdout checks for IAM references, placements, omissions, and STEP |
 | `benchmark_parser.py`, `seed_fuzz_corpus.py`, `run_fuzz.py` | Measure fixed inputs and run bounded ASan fuzzing |
 | `capture_vendor_oracle.py`, `capture_model_states.py` | Optional Windows / Autodesk oracle capture |

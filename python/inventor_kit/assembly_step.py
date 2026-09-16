@@ -286,6 +286,20 @@ def _compare(expected, actual):
 
 def export_step(conversion, path, *, allow_partial=False):
     """Write two new artifacts only after the complete STEP check succeeds."""
+    if not allow_partial and (conversion.reference_issues or conversion.diagnostics or
+                              any(o.reason not in ('suppressed', 'hidden') for o in conversion.omissions)):
+        raise ValueError('Partial STEP export requires allow_partial=True; inspect conversion losses')
+    return write_step(conversion.assembly, path, dict(
+        source_documents=conversion.source_documents, omissions=[asdict(o) for o in conversion.omissions],
+        reference_issues=conversion.reference_issues, diagnostics=conversion.diagnostics,
+        current_state=conversion.current_state, complete=False,
+        name_origin='cadquery_input; native name or derived filename plus occurrence suffix',
+        color_origin='cadquery_input; native Inventor appearance not decoded',
+        vendor_comparison='not_collected'))
+
+
+def write_step(assembly, path, metadata):
+    """Shared checked transport for body and occurrence selections."""
     from OCP.Interface import Interface_Static
     path = Path(path)
     sidecar = path.with_suffix(path.suffix + '.json')
@@ -293,10 +307,7 @@ def export_step(conversion, path, *, allow_partial=False):
         raise ValueError('STEP output must end with .step or .stp')
     if path.exists() or sidecar.exists():
         raise FileExistsError('STEP output or JSON sidecar already exists')
-    if not allow_partial and (conversion.reference_issues or conversion.diagnostics or
-                              any(o.reason not in ('suppressed', 'hidden') for o in conversion.omissions)):
-        raise ValueError('Partial STEP export requires allow_partial=True; inspect conversion losses')
-    expected = _snapshot(conversion.assembly)
+    expected = _snapshot(assembly)
     with tempfile.TemporaryDirectory(prefix='inventor-step-') as temporary:
         staged = Path(temporary) / 'assembly.step'
         with _STEP_LOCK:
@@ -309,7 +320,7 @@ def export_step(conversion, path, *, allow_partial=False):
             ints = {k: Interface_Static.IVal_s(k) for k in ('write.surfacecurve.mode', 'write.precision.mode', 'write.stepcaf.subshapes.name')}
             auto_names = XCAFDoc_ShapeTool.AutoNaming_s()
             try:
-                _write_xde(conversion.assembly, staged)
+                _write_xde(assembly, staged)
                 actual = _read_xde(staged)
             finally:
                 for k, v in strings.items():
@@ -323,12 +334,7 @@ def export_step(conversion, path, *, allow_partial=False):
         data = staged.read_bytes()
         report = dict(schema_version=1, step_file=path.name, step_sha256=hashlib.sha256(data).hexdigest(),
                       bytes=len(data), units='mm', roundtrip=comparison, expected=expected, actual=actual,
-                      source_documents=conversion.source_documents, omissions=[asdict(o) for o in conversion.omissions],
-                      reference_issues=conversion.reference_issues, diagnostics=conversion.diagnostics,
-                      current_state=conversion.current_state, complete=False,
-                      name_origin='cadquery_input; native name or derived filename plus occurrence suffix',
-                      color_origin='cadquery_input; native Inventor appearance not decoded',
-                      vendor_comparison='not_collected')
+                      **metadata)
         report_data = (json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + '\n').encode('utf-8')
         # Exclusive creation prevents clobbering either an earlier report or CAD.
         # Roll back only files this call created if either write fails.

@@ -11,6 +11,7 @@ from .limits import Limits, effective as _effective_limits, encoded as _encoded_
 from .document import (DocumentInfo, Property, PropertySet, Diagnostic, SourceSpan,
                        Thumbnail, FileTime, OleDate, ClipboardData, PropertyArray, _document)
 from .geometry import GeometryInventory, GeometrySelection, KernelCandidate, SegmentInventory, _geometry
+from .conversion import BodyConversion, PartConversion, BodyConversionError, ConversionDiagnostic
 from .assembly import (AssemblyDocument, SavedOccurrence, AssemblyDefinition, AssemblyInstance,
                        InventorAssembly, FileSystemResolver, AssemblyConversion, AssemblyConversionError,
                        AssemblyOmission, inspect_assembly, inspect_assembly_file, read_assembly_file)
@@ -37,6 +38,11 @@ class InventorDocument:
     kernel_bytes: bytes | None
     metadata: DocumentInfo | None = None
     geometry: GeometryInventory | None = None
+
+    def convert_bodies(self) -> PartConversion:
+        """Convert saved bodies independently, retaining every failure and source."""
+        from .conversion import convert_bodies
+        return convert_bodies(self)
 
     def to_cadquery(self):
         if self.model is None:
@@ -88,6 +94,7 @@ def inspect_file(path: str | Path, *, include_candidates: bool = False, limits: 
 
 
 __all__ = ["Limits", "capabilities", "InventorDocument", "DocumentInfo", "Property", "PropertySet", "Diagnostic", "SourceSpan",
+           "BodyConversion", "PartConversion", "BodyConversionError", "ConversionDiagnostic",
            "Thumbnail", "FileTime", "OleDate", "ClipboardData", "PropertyArray", "GeometryInventory", "GeometrySelection",
            "KernelCandidate", "SegmentInventory", "read", "read_file", "inspect", "inspect_file",
            "AssemblyDocument", "SavedOccurrence", "AssemblyDefinition", "AssemblyInstance", "InventorAssembly",

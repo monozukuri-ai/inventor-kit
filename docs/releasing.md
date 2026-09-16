@@ -4,8 +4,8 @@ English | [日本語](releasing.ja.md)
 
 ## Dependency contract
 
-Rust requires `acis-core=0.3.7` and `acis-py-bridge=0.3.7`. Python requires
-`cq-acis>=0.3.7,<0.4` and shared model API 2. The minimum Python version is 3.11,
+Rust requires `acis-core=0.3.8` and `acis-py-bridge=0.3.8`. Python requires
+`cq-acis>=0.3.8,<0.4` and shared model API 2. The minimum Python version is 3.11,
 matching cq-acis. Dependencies must be published, and Cargo.lock must retain
 registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.
@@ -74,12 +74,19 @@ while rejecting complete-part conversion because two auxiliary open bodies remai
 CTC04 (2021) must produce one closed, valid solid with all 368 faces.
 Each platform/interpreter also installs `wheel[viewer]`,
 runs `pip check`, starts the local viewer with `--no-browser`, fetches scenes and
-mesh buffers for a part, an assembly and a permitted partial assembly, and requires
+mesh buffers for a part, an assembly, a permitted partial part and a permitted partial assembly, and requires
 normal shutdown with no temporary session data left behind. The sdist is rebuilt
 without Node and its wheel is inspected and installed with the viewer extra on
 Linux/Python 3.11. Installation checks require wheels for dependencies as well.
 `cp310-abi3` denotes the extension's minimum ABI; the package's supported Python
 versions are restricted by `Requires-Python: >=3.11`.
+
+The FTC07 volume gate uses adaptive integration at three tolerances, checks its
+reported error and convergence, and retains the relative comparison tolerance of
+`1e-10`. Default integration values remain in the diagnostic log: their macOS
+arm64 difference caused the v0.3.0 gate failure. This changes the measurement
+method, not source geometry or the conversion acceptance criteria. Partial FTC06
+body export must also preserve both omitted bodies in its checked STEP sidecar.
 
 ```sh
 maturin build --release --locked --out dist

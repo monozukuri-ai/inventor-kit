@@ -4,8 +4,8 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.3.7` と `acis-py-bridge=0.3.7`、Python は
-`cq-acis>=0.3.7,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.3.8` と `acis-py-bridge=0.3.8`、Python は
+`cq-acis>=0.3.8,<0.4` と共通モデル API 2 を必要とします。
 Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。
@@ -63,12 +63,17 @@ FTC06（2021/2024）は 146 面の主ソリッドが有効で、開いた補助 
 全体変換は拒否することを確認します。CTC04（2021）は 368 面全てを含む、閉じた
 有効ソリッドへの変換を必須とします。
 各 OS 種別・Python 版で `wheel[viewer]` を導入して
-`pip check` を行い、`--no-browser` で起動します。部品・アセンブリ・明示許可した部分
-アセンブリのシーンとメッシュバッファを取得し、正常終了と一時データ削除を要求します。
+`pip check` を行い、`--no-browser` で起動します。部品・アセンブリ・明示許可した部分部品・部分
+アセンブリの4ケースでシーンとメッシュバッファを取得し、正常終了と一時データ削除を要求します。
 sdist は Node なしで再ビルドし、生成した wheel を検査したうえで Linux / Python 3.11 に
 viewer extra とともに導入します。
 インストール検査は依存先も wheel に限定します。`cp310-abi3` は拡張の ABI 下限で、
 パッケージの利用可能な Python バージョンは `Requires-Python: >=3.11` で制限します。
+
+FTC07の体積検査は、3段階の許容誤差による適応積分で推定誤差と収束を確認し、比較の相対許容誤差
+`1e-10` を維持します。v0.3.0でmacOS arm64の失敗原因となった既定積分の値も診断ログに残します。
+変更するのは計測方法であり、元形状や変換の受入条件ではありません。FTC06の部分body出力では、
+検証済みSTEPの付属JSONに除外した2bodyが残ることも必須です。
 
 ```sh
 maturin build --release --locked --out dist

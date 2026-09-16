@@ -5,6 +5,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -60,6 +61,41 @@ class Processes(unittest.TestCase):
         scene = self.run_job()
         self.assertEqual(scene['job_status'], 'finished')
         self.assertTrue(scene['nodes'])
+
+    def test_windows_reader_collision_does_not_lose_final_geometry(self):
+        replace = Path.replace
+        collisions = []
+
+        def temporarily_open(source, target):
+            if source.name == 'pending.json' and len(collisions) < 2:
+                # Emulate the observed Windows reader/rename collision. The
+                # currently served snapshot must remain complete valid JSON.
+                collisions.append(json.loads(target.read_text())['job_status'])
+                error = PermissionError('Reader holds the destination')
+                error.winerror = 5
+                raise error
+            return replace(source, target)
+
+        with patch.object(Path, 'replace', temporarily_open):
+            scene = self.run_job()
+        self.assertEqual(len(collisions), 2)
+        self.assertEqual(scene['job_status'], 'finished')
+        self.assertTrue(scene['meshes'])
+
+    def test_snapshot_retry_is_bounded_and_preserves_the_previous_snapshot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            write_scene(directory, empty_scene('previous'))
+            for winerror in (None, 5):
+                error = PermissionError('Destination cannot be replaced')
+                if winerror is not None:
+                    error.winerror = winerror
+                with self.subTest(winerror=winerror), patch.object(Path, 'replace', side_effect=error) as rename:
+                    with patch('inventor_kit.viewer.scene.time.sleep'), self.assertRaises(PermissionError):
+                        write_scene(directory, empty_scene('new'))
+                    self.assertLessEqual(rename.call_count, 21)
+                    self.assertEqual(rename.call_count == 1, winerror is None)
+                self.assertEqual(json.loads((directory/'state.json').read_text())['source']['name'], 'previous')
 
     def test_crash_rejects_pending_result_and_keeps_metadata(self):
         scene = self.run_job(crash_worker)

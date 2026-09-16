@@ -4,6 +4,8 @@
 
 - [ライセンス](license.ja.md): 非商用許諾、商用プラン、旧 MIT 部分。
 - [API ガイド](api.ja.md): 読み込み、属性、保存候補、アセンブリ、上限。
+- [body選択](body-conversion.ja.md): 個別結果、部分STEP、出典ID。
+- [CLI・バッチ](cli.ja.md): IPT/IAM処理、JSON、終了code、timeout。
 - [ローカル viewer](viewer.ja.md): IPT の保存形状と IAM の保存配置、プレビュー、属性、読み込み診断。
 - [対応範囲](support.ja.md): 確認済みプロファイルと未対応・未検証の境界。
 - [検証](validation.ja.md): 比較方法、保留検証と結果の読み方。

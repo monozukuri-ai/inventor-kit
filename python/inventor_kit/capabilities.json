@@ -1,17 +1,41 @@
 {
   "schema_version": 1,
   "support_level": "verified_subset",
-  "runtime": {"offline": true, "inventor_required": false, "python_minimum": "3.11"},
+  "runtime": {
+    "offline": true,
+    "inventor_required": false,
+    "python_minimum": "3.11"
+  },
   "document_metadata": {
-    "extensions": ["ipt", "iam", "idw", "ipn"],
+    "extensions": [
+      "ipt",
+      "iam",
+      "idw",
+      "ipn"
+    ],
     "scope": "bounded OLE properties and thumbnails; not drawing or feature semantics"
   },
   "part_geometry": {
     "rse_database_schema": 31,
     "rse_meta_version": 8,
-    "segment_majors": [19, 25, 26, 28, 31],
-    "observed_sab_save_versions": [22000, 22600, 22700, 22900, 23200],
-    "codecs": ["zlib", "zstd"],
+    "segment_majors": [
+      19,
+      25,
+      26,
+      28,
+      31
+    ],
+    "observed_sab_save_versions": [
+      22000,
+      22600,
+      22700,
+      22900,
+      23200
+    ],
+    "codecs": [
+      "zlib",
+      "zstd"
+    ],
     "scope": "saved typed B-rep subset; unsupported curves, surfaces and trims raise",
     "current_state_verified": false,
     "history_replay": false,
@@ -20,7 +44,35 @@
   "assembly": {
     "ufrx_schema": 15,
     "save_major": 31,
-    "section_versions": [31,32,18,28,3,12,7,4,1,5,1,2,7,2,3,7,0,5,5,0,1,0,1,0,3,2,2],
+    "section_versions": [
+      31,
+      32,
+      18,
+      28,
+      3,
+      12,
+      7,
+      4,
+      1,
+      5,
+      1,
+      2,
+      7,
+      2,
+      3,
+      7,
+      0,
+      5,
+      5,
+      0,
+      1,
+      0,
+      1,
+      0,
+      3,
+      2,
+      2
+    ],
     "scope": "saved references and placements; exact observed section profile only",
     "current_state_verified": false,
     "native_appearance_decoded": false,
@@ -33,5 +85,19 @@
     "Decoded data is not proof of current Model State or Inventor equivalence",
     "Parser resource limits do not bound OCCT process memory or execution time",
     "STEP round-trip checks do not qualify native Inventor state or appearance"
-  ]
+  ],
+  "body_conversion": {
+    "api_version": 1,
+    "report_schema_version": 1,
+    "scope": "saved solid bodies; explicit selection with complete omissions; no sheet export",
+    "explicit_partial_output": true,
+    "whole_part_default": "strict",
+    "current_state_verified": false
+  },
+  "cli": {
+    "batch": true,
+    "report_schema_version": 1,
+    "per_input_process": true,
+    "default_timeout_seconds": 120
+  }
 }

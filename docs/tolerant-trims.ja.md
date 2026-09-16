@@ -2,10 +2,10 @@
 
 [English](tolerant-trims.md) | 日本語
 
-Rust は公開 crates.io の `acis-core=0.3.7` と `acis-py-bridge=0.3.7` を使用し、
-fuzz の依存も同じ core に固定しています。Python の要件は `cq-acis>=0.3.7,<0.4`、
-`uv.lock` は公開 PyPI の 0.3.7 です。共有モデル API 2 は変わりません。
-公開 0.3.7 wheel でもトリム検証が通っています。以下の 0.3.6 の結果は当初の
+Rust は公開 crates.io の `acis-core=0.3.8` と `acis-py-bridge=0.3.8` を使用し、
+fuzz の依存も同じ core に固定しています。Python の要件は `cq-acis>=0.3.8,<0.4`、
+`uv.lock` は公開 PyPI の 0.3.8 です。共有モデル API 2 は変わりません。
+公開 0.3.8 wheel でもトリム検証が通っています。以下の 0.3.6 の結果は当初の
 トリム修正の記録です。FTC06 と CTC04 の閉鎖検証を含む結果は
 [現在の検証結果](validation.ja.md)を参照してください。
 

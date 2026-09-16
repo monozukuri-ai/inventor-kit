@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "acis-core"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19ddaeae1934ca798cf698d3d99508db26b87915cbd7bc23f4d52ae26530d8b6"
+checksum = "28523f07df5efcea2c1972a8c60a964d8e2a79c00fc0f268b50b959e29a98221"
 dependencies = [
  "num-bigint",
 ]
@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "inventor-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "acis-core",
  "cfb",

@@ -4,6 +4,8 @@ English | [日本語](README.ja.md)
 
 - [Licensing](license.md): Noncommercial permissions, commercial plans and earlier MIT material.
 - [API guide](api.md): Reading files, metadata, saved candidates, assemblies, and limits.
+- [Body selection](body-conversion.md): Individual results, explicit partial STEP and source IDs.
+- [CLI and batches](cli.md): IPT/IAM jobs, JSON reports, exit codes and timeouts.
 - [Local viewer](viewer.md): Saved IPT geometry and IAM placements, previews, properties, and read diagnostics.
 - [Supported scope](support.md): Validated profiles and unsupported or unverified behavior.
 - [Validation](validation.md): Comparison methods, holdouts, and interpreting results.

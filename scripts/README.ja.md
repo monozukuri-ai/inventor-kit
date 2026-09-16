@@ -14,7 +14,7 @@ Python 3.11 以降を使用します。通常の再現手順は [開発ガイド
 | `validate_geometry.py`, `validate_components.py`, `validate_topology.py` | 固定形状量と曲線・曲面・トポロジの検証 |
 | `validate_tolerant_trims.py` | [トレラント・有限 UV 対応](../docs/tolerant-trims.ja.md)と固定した元データの要素を照合 |
 | `validate_analytic_closure.py` | [円筒継ぎ目・シェル閉鎖・STEP・メッシュ](../docs/validation.ja.md#再現と任意のオラクル)を検証し、開いた補助 body の失敗を保持 |
-| `validate_revolution_trims.py` | FTC10/CTC02 の修正面・元の境界保持・STEP・メッシュを検証。未公開の cq-acis 円筒トリム対応が必要 |
+| `validate_revolution_trims.py` | FTC10/CTC02 の修正面・元の境界保持・STEP・メッシュを検証。公開 cq-acis 0.3.8 以降が必要 |
 | `validate_assembly.py` | IAM 参照・配置・欠落・STEP の回帰と保留検証 |
 | `benchmark_parser.py`, `seed_fuzz_corpus.py`, `run_fuzz.py` | 固定入力の計測と bounded ASan fuzz |
 | `capture_vendor_oracle.py`, `capture_model_states.py` | 任意の Windows / Autodesk オラクル取得 |

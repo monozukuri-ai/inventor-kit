@@ -6,6 +6,10 @@ The optional viewer displays supported saved IPT geometry and IAM placements, do
 saved previews, geometry candidates, and read diagnostics. It runs locally using
 the same bounded parser and CadQuery conversion as the Python API.
 
+Partial IPT body display is available with `--allow-partial`; use repeated `--body-id`
+to select specific source bodies. Unsupported and unselected bodies remain in the tree.
+See [body selection](body-conversion.md).
+
 ```sh
 python -m pip install 'inventor-kit[viewer]'
 python -m inventor_kit.viewer part.ipt
@@ -142,8 +146,8 @@ and the converter's actual placement chain. The frontend converts local rotation
 to renderer quaternions. Bounds frame the camera and are not exact CAD dimensions.
 
 ```sh
-python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.2.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
-python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.2.0.tar.gz --viewer --browser
+python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.4.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
+python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.4.0.tar.gz --viewer --browser
 ```
 
 Use the actual built wheel filename for your environment. Omit `--browser` for

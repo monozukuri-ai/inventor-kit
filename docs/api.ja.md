@@ -2,6 +2,11 @@
 
 [English](api.md) | 日本語
 
+## body選択とレポート（v0.4.0）
+
+`doc.convert_bodies()` は全bodyの結果を保持し、ソリッドを明示選択できます。
+[body選択](body-conversion.ja.md)と[CLI・バッチ](cli.ja.md)を参照してください。
+
 ## 文書情報
 
 ```python

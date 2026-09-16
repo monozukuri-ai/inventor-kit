@@ -57,6 +57,21 @@ test.afterEach(async () => {
   expect(errors).toEqual([]);
 });
 
+test('partial IPT body display retains the two omitted bodies and source IDs', async ({ page }) => {
+  const url = await open(page, 'INV_nist_ftc_06_asme1_2021.ipt', ['--allow-partial']);
+  await expect(page.locator('#cad')).toHaveAttribute('data-displayed', '1');
+  await expect(page.locator('.body-row')).toHaveCount(3);
+  await expect(page.locator('.body-row[data-status="unsupported"]')).toHaveCount(2);
+  await expect(page.locator('#diagnostics')).toContainText('1 of 3 bodies');
+  const scene = await (await page.request.get(url + 'state.json')).json();
+  expect(scene.part.geometry_complete).toBe(false);
+  expect(scene.part.current_state_verified).toBe(false);
+  expect(scene.meshes[0].face_count).toBe(146);
+  expect(scene.part.omissions).toHaveLength(2);
+  expect(scene.nodes[0].body_id).toMatch(/^body-[a-f0-9]{64}$/);
+  expect(errors).toEqual([]);
+});
+
 for (const file of ['SamplePart.ipt', 'Cylinder.ipt', 'INV_nist_ftc_09_asme1_2024.ipt', 'INV_nist_ctc_04_asme1_2021.ipt']) {
   test(`renders ${file} offline`, async ({ page }, info) => {
     const url = await open(page, file);

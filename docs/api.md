@@ -2,6 +2,11 @@
 
 English | [日本語](api.ja.md)
 
+## Body selection and reports (v0.4.0)
+
+Use `doc.convert_bodies()` to retain every body result and explicitly select solids.
+See [body selection](body-conversion.md) and [CLI/batches](cli.md).
+
 ## Document metadata
 
 ```python
