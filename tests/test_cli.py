@@ -102,5 +102,11 @@ class CLI(unittest.TestCase):
             result = self.cli(CORPUS / 'SamplePart.ipt', CORPUS / 'SamplePart.ipt', '--output-dir', target)
             self.assertEqual(result.returncode, 1)
             self.assertFalse(target.exists())
+            target.write_text('existing file')
+            result = self.cli(CORPUS / 'SamplePart.ipt', '--output-dir', target)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('Could not create output directory', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+            self.assertEqual(target.read_text(), 'existing file')
         for args in (('--metadata-only', '--step', 'never.step'), ('--timeout', 'nan')):
             self.assertEqual(self.cli(CORPUS / 'SamplePart.ipt', *args).returncode, 1)

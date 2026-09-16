@@ -116,7 +116,10 @@ def main(argv=None):
     if any(p in paths or p.exists() for p in artifacts):
         parser.error("Outputs must be new files and must not replace any input")
     if args.output_dir:
-        args.output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            args.output_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            parser.error(f"Could not create output directory: {error}")
     results = []
     legacy = len(paths) == 1 and not (args.convert or args.list_bodies or args.body_id or args.output_dir
         or args.jsonl or args.report or args.allow_partial or args.allow_unverified_state or args.search_root)

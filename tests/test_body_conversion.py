@@ -102,3 +102,15 @@ class Bodies(unittest.TestCase):
         with patch('cq_acis.CadQueryConverter.convert_body', side_effect=RuntimeError('native failure')):
             with self.assertRaisesRegex(RuntimeError, 'native failure'):
                 self.documents[0].convert_bodies()
+
+    def test_undecoded_body_cannot_disappear_from_inventory(self):
+        document = self.documents[0]
+        entities = tuple(e.raw if e.index == 2 else e for e in document.model.entities)
+        partial = replace(document, model=replace(document.model, entities=entities))
+        result = partial.convert_bodies()
+        self.assertEqual([b.body_index for b in result.bodies], [1, 2, 3])
+        self.assertEqual(result.bodies[1].status, 'unsupported')
+        self.assertEqual(result.bodies[1].diagnostics[0].code, 'geometry.body_unsupported')
+        self.assertEqual(result.bodies[1].id, self.results[0].bodies[1].id)
+        self.assertEqual(len(result.report()['omissions']), 2)
+        self.assertFalse(result.geometry_complete)
