@@ -1,21 +1,36 @@
-MIT License
+inventor-kit License Notice
 
-Copyright (c) 2026 cq-acis contributors
+Licensor and commercial contracting entity: UnRobotics Inc.
+https://www.un-robotics.com/
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Starting with version 0.3.0, the inventor-kit material offered under the new
+terms is available under the PolyForm Noncommercial License 1.0.0, unless
+you have a separate written commercial agreement with UnRobotics Inc.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The unmodified PolyForm terms are in:
+  licenses/PolyForm-Noncommercial-1.0.0.md
+  https://polyformproject.org/licenses/noncommercial/1.0.0
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+For use outside those permissions, including commercial internal use and
+commercial product integration, see COMMERCIAL-LICENSE.md or contact:
+  https://www.un-robotics.com/#contact
+The commercial information document does not itself grant a license.
+
+Earlier MIT material and third-party components
+
+Versions 0.1.0 and 0.2.0, and source previously made available under MIT,
+retain their MIT permissions. This includes the public source at commit
+440f149fe96a4c8e7f207ce621919284f6a1f621. Applying a new version number or
+including that material in a later distribution does not revoke those rights.
+The original notice is preserved verbatim in
+licenses/inventor-kit-legacy-MIT.txt. It does not grant MIT permissions to
+all subsequent additions made available only under the new terms.
+
+Third-party material retains its own licenses and copyright notices.
+See THIRD_PARTY_NOTICES.md and the accompanying license texts. The separate
+cq-acis, acis-core and acis-py-bridge projects are not relicensed by this notice.
+Copyright ownership remains with the respective holders; identifying the
+licensor here does not transfer ownership to UnRobotics Inc.
+
+Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
+Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.

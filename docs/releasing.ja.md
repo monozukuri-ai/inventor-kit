@@ -13,6 +13,25 @@ Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 
 ## 手順
 
+0.3.0 で [ライセンスを移行](license.ja.md)します。旧 MIT 表示と第三者条件を維持してください。
+新しい LICENSE を導入した最初のコミットをソースの切替記録とし、その完全な SHA と公開日、
+直前の公開 MIT コミットをリリースノートへ記録します。既存タグ・配布物を書き換えません。
+
+初回公開前に会社が対象権利を許諾できる根拠を記録し、商用窓口を確認します。
+商用案内ページは締結済み契約ではありません。新規の外部貢献を取り込む前に、
+CLA への明示的な同意を記録してください。
+
+ライセンス文書を変更したら `python scripts/sync_license_notices.py` と通常の Viewer ビルドを
+実行します。Cargo 依存変更時は、先に `cargo fetch --locked` と
+`python scripts/sync_license_notices.py --refresh-rust` を実行し、実際の同梱物に対して
+通知一覧と複合 SPDX 式を確認します。一覧では対応環境に含まれない UEFI 専用依存を明示的に除外します。
+
+ビルド前に `python scripts/check_license.py` を通してください。
+`cargo package -p inventor-core --list` と実際の `.crate` も確認し、単体の LICENSE が
+生成した通知と一致することを確認します。License-File は wheel の `.dist-info/licenses/`
+または sdist ルートにある一致した本文を指す必要があります。別の場所に同名ファイルがあるだけでは
+合格にしません。商用案内、旧 MIT と第三者通知を、各配布物と Viewer 単体へ保持してください。
+
 1. 公開依存だけを使うクリーンな checkout で `scripts/check_dependencies.py`、
    通常 CI、コーパスと保留検証を通す。`.cargo/config.toml` を持ち込まない。
 2. Python と二つの Rust パッケージの版をそろえる。`scripts/check_release.py` が版を検査する。

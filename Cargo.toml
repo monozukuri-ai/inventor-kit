@@ -2,6 +2,10 @@
 members = ["crates/inventor-core", "crates/inventor-py"]
 resolver = "2"
 
+[workspace.package]
+license = "PolyForm-Noncommercial-1.0.0 AND MIT"
+readme = "README.md"
+
 [workspace.dependencies]
 acis-core = "=0.3.7"
 acis-py-bridge = "=0.3.7"

@@ -15,8 +15,9 @@ const licenses = packages.map(p => {
   return `${pkg.name} ${pkg.version}\n${readFileSync(resolve(directory, license), 'utf8').replace(/[ \t]+$/gm, '')}`;
 }).join('\n\n--------\n\n');
 writeFileSync(resolve(target, 'THIRD_PARTY_LICENSES.txt'), licenses);
+writeFileSync(resolve(target, 'LICENSE.txt'), readFileSync(resolve(root, 'LICENSE.txt')));
 const inputs = [...walk(resolve(root, 'src')), ...walk(resolve(root, 'scripts')),
-  ...['package.json', 'package-lock.json', 'index.html', 'tsconfig.json', 'vite.config.ts'].map(p => resolve(root, p))];
+  ...['package.json', 'package-lock.json', 'index.html', 'tsconfig.json', 'vite.config.ts', 'LICENSE.txt'].map(p => resolve(root, p))];
 const outputs = walk(target).filter(p => !p.endsWith('/manifest.json'));
 const entries = (paths, base) => Object.fromEntries(paths.sort().map(p => [relative(base, p).replaceAll('\\', '/'), hash(p)]));
 writeFileSync(resolve(target, 'manifest.json'), JSON.stringify({ schema_version: 1,

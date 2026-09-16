@@ -13,6 +13,31 @@ This guide does not assert that a release has been published or that CI has pass
 
 ## Procedure
 
+Version 0.3.0 introduces the [license transition](license.md). Preserve the
+earlier MIT notice and third-party conditions. The first commit introducing
+the new LICENSE records the source transition; retain its full commit ID and
+publication date in the release notes, together with the preceding public MIT
+revision. Do not rewrite existing tags or distributions.
+
+Before publishing the first transition release, record the company's authority
+to grant the relevant rights and check the named commercial contact. A commercial
+information page is not an executed customer agreement. Obtain explicit CLA
+acceptance before merging new external contributions.
+
+When changing legal files, run `python scripts/sync_license_notices.py` followed
+by the normal viewer build. When Cargo dependencies change, first run
+`cargo fetch --locked` and `python scripts/sync_license_notices.py --refresh-rust`.
+Review the notice catalog and composite SPDX expression for the actual payload.
+The catalog explicitly excludes the UEFI-only dependency from supported targets.
+
+Pass `python scripts/check_license.py` before building. Inspect
+`cargo package -p inventor-core --list` and the resulting `.crate` as well as
+the Python archives; the self-contained crate LICENSE must match the generated
+notice. License-File declarations must point to the actual matching texts in
+the wheel's `.dist-info/licenses/` directory or the sdist root. A notice elsewhere
+in the archive is insufficient. Retain commercial, legacy MIT and third-party
+notices in every distribution and in the standalone viewer assets.
+
 1. In a clean checkout using published dependencies only, pass
    `scripts/check_dependencies.py`, normal CI, corpus checks, and holdout
    validation. Do not carry over `.cargo/config.toml`.

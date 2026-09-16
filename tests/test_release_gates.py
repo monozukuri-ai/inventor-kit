@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from check_corpus import verify
 from check_release import artifact_set, check_tag, pypi_conflicts, viewer_reports
 from check_distribution import check_metadata
+from check_license import DISTRIBUTION_LICENSE
 import inventor_kit as ik
 
 
@@ -22,7 +23,7 @@ class ReleaseGates(unittest.TestCase):
     def test_distribution_rejects_stale_python_and_cq_acis_requirements(self):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
-                            ('License-Expression', 'MIT'), ('Requires-Python', '>=3.11'),
+                            ('License-Expression', DISTRIBUTION_LICENSE), ('Requires-Python', '>=3.11'),
                             ('Requires-Dist', 'cq-acis<0.4,>=0.3.7'), ('Provides-Extra', 'viewer'),
                             ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value

@@ -4,13 +4,19 @@ build-backend = "maturin"
 
 [project]
 name = "inventor-kit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Bounded Rust Inventor part carrier reader with shared ACIS models"
 requires-python = ">=3.11"
 dependencies = ["cq-acis>=0.3.7,<0.4"]
-license = "MIT"
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*.txt"]
+license = "PolyForm-Noncommercial-1.0.0 AND MIT AND Apache-2.0 AND BSD-3-Clause AND CC-BY-4.0 AND Zlib"
+license-files = ["LICENSE", "COMMERCIAL-LICENSE.md", "THIRD_PARTY_NOTICES.md", "licenses/*.txt", "licenses/*.md", "licenses/*.json"]
 readme = "README.md"
+maintainers = [{name = "UnRobotics Inc."}]
+
+[project.urls]
+Repository = "https://github.com/monozukuri-ai/inventor-kit"
+Licensing = "https://github.com/monozukuri-ai/inventor-kit/blob/main/docs/license.md"
+Commercial = "https://www.un-robotics.com/#contact"
 
 [project.optional-dependencies]
 viewer = ["ocp-tessellate==3.5.1"]
@@ -33,6 +39,12 @@ include = [
     {path = "viewer/index.html", format = "sdist"},
     {path = "schemas/viewer-scene-v1.schema.json", format = "sdist"},
     {path = "README.ja.md", format = "sdist"},
+    {path = "CONTRIBUTING.md", format = "sdist"},
+    {path = "CLA.md", format = "sdist"},
+    {path = "viewer/LICENSE.txt", format = "sdist"},
+    {path = "scripts/check_license.py", format = "sdist"},
+    {path = "scripts/sync_license_notices.py", format = "sdist"},
+    {path = "docs/format-reference*.md", format = "wheel"},
     {path = "docs/*.md", format = "sdist"},
     {path = "schemas/vendor-oracle-v1.schema.json", format = "sdist"},
     {path = "python/inventor_kit/capabilities.json", format = "sdist"},

@@ -6,10 +6,11 @@
     "npm": "10.9.3"
   },
   "inputs": {
+    "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
-    "package-lock.json": "0aa6eea49e25ffa5c7d859706d30a17d2b84dd3bf86d66fdb8aaf9c7a73005e8",
-    "package.json": "2749dd215d10e6fc6d4d86ef9885eef1998474701a1cdd0f13c7496baf018eb7",
-    "scripts/manifest.mjs": "9791f6394504e62ac02b5a72adcb6d72500ae908f21a1a968cc255d6840303d0",
+    "package-lock.json": "fd20d4641a4648d0eaee6a9e5f3e98f1d3df77d7a0abcda60d271cd0ec4be19c",
+    "package.json": "f1b080cdcdde2529ef2f42d747f690af21911e1b82e0c5f0ada2fc2c273bd25d",
+    "scripts/manifest.mjs": "101a4cc3c0c371d17f378ad37b24332920a7637a01e24de2358660f0e8ebfd92",
     "src/main.ts": "c3c54eb70e71477af6f84bbac0a1d856a5f1b2d323e3833152a4c90d94287b93",
     "src/scene-graph.ts": "60206b9f129fff66f276bdc0eed00946f985d0f08b7bbf580781ff027994f66c",
     "src/style.css": "4adfc653532e39e4fe8e7b7c7e2380791baf12b893496f277a451a1456b7eef7",
@@ -17,6 +18,7 @@
     "vite.config.ts": "632e8b4536dc9b476a8e64db12ac7aa7fbd271f8c90b998615986751ff7dabff"
   },
   "outputs": {
+    "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "THIRD_PARTY_LICENSES.txt": "c76f9cf7e6e3cebf8d331a4aec0e25756460820e7596377ac5afcc5d14d0962c",
     "assets/index-CiQOm2A2.js": "26716cef3f280e5b190199f7075762be9937bc3d0e4eb8c20a04094c3c96a2e8",
     "assets/index-OCuZY8UW.css": "b3756577705fe502f60097816b652bb0c0801721f1b1b9b9757209db921ad29e",

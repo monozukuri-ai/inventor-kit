@@ -13,6 +13,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_distribution import check
+from check_license import DISTRIBUTION_LICENSE, PINNED_TEXTS, check_pinned_texts, license_paths
 
 
 class WheelRecords(unittest.TestCase):
@@ -25,7 +26,7 @@ class WheelRecords(unittest.TestCase):
             'inventor_kit/_inventor.pyd': b'synthetic native extension',
             info + '/METADATA': (
                 f'Metadata-Version: 2.4\nName: inventor-kit\nVersion: {self.version}\n'
-                'License-Expression: MIT\nRequires-Python: >=3.11\n'
+                f'License-Expression: {DISTRIBUTION_LICENSE}\nRequires-Python: >=3.11\n'
                 'Requires-Dist: cq-acis>=0.3.7,<0.4\n\n'
             ).encode(),
             info + '/WHEEL': b'Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: cp310-abi3-win_amd64\n',
@@ -36,8 +37,12 @@ class WheelRecords(unittest.TestCase):
                 self.contents['inventor_kit/viewer/'+path.relative_to(ROOT/'python/inventor_kit/viewer').as_posix()] = path.read_bytes()
         for name in ('assembly.py', 'assembly_step.py', 'limits.py', 'capabilities.json'):
             self.contents['inventor_kit/' + name] = b'{}'
-        for path in [ROOT / 'LICENSE', ROOT / 'THIRD_PARTY_NOTICES.md', *sorted((ROOT / 'licenses').glob('*.txt'))]:
-            self.contents[info + '/licenses/' + path.relative_to(ROOT).as_posix()] = path.read_bytes()
+        for name in license_paths():
+            self.contents[info + '/licenses/' + name] = (ROOT/name).read_bytes()
+        self.metadata = info + '/METADATA'
+        self.license_prefix = info + '/licenses/'
+        self.contents[self.metadata] = self.contents[self.metadata].rstrip() + b'\n' + (
+            ''.join('License-File: ' + p + '\n' for p in license_paths()) + '\n').encode()
 
     def rows(self, separator):
         rows = []
@@ -106,6 +111,49 @@ class WheelRecords(unittest.TestCase):
         js = next(name for name in manifest['outputs'] if name.endswith('.js'))
         self.contents[prefix+js] = b'wrong build'
         with self.assertRaisesRegex(ValueError, 'stale viewer asset'):
+            self.validate(self.rows('/'))
+
+
+    def test_mit_only_metadata_is_rejected_even_with_valid_record(self):
+        self.contents[self.metadata] = self.contents[self.metadata].replace(
+            DISTRIBUTION_LICENSE.encode(), b'MIT')
+        with self.assertRaisesRegex(ValueError, 'license'):
+            self.validate(self.rows('/'))
+
+    def test_license_must_be_in_the_declared_dist_info_location(self):
+        path = self.license_prefix + 'licenses/PolyForm-Noncommercial-1.0.0.md'
+        self.contents['decoy/licenses/PolyForm-Noncommercial-1.0.0.md'] = self.contents.pop(path)
+        with self.assertRaisesRegex(ValueError, 'Missing license/notice'):
+            self.validate(self.rows('/'))
+
+    def test_stale_notices_are_rejected_even_with_valid_record(self):
+        for name in ('LICENSE', 'COMMERCIAL-LICENSE.md', 'licenses/inventor-kit-legacy-MIT.txt'):
+            key = self.license_prefix + name
+            original = self.contents[key]
+            self.contents[key] = b'old or incomplete legal material'
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Stale license/notice'):
+                self.validate(self.rows('/'))
+            self.contents[key] = original
+
+    def test_missing_and_duplicate_license_declarations_are_rejected(self):
+        original = self.contents[self.metadata]
+        line = b'License-File: LICENSE\n'
+        for value in (original.replace(line, b''), original.replace(line, line+line)):
+            self.contents[self.metadata] = value
+            with self.assertRaisesRegex(ValueError, 'License-File'):
+                self.validate(self.rows('/'))
+
+    def test_upstream_and_legacy_texts_are_independently_pinned(self):
+        for changed in PINNED_TEXTS:
+            def read(name):
+                value = (ROOT/name).read_bytes()
+                return value + b'changed' if name == changed else value
+            with self.subTest(changed=changed), self.assertRaisesRegex(ValueError, 'Changed canonical'):
+                check_pinned_texts(read)
+
+    def test_viewer_notice_cannot_be_removed_from_a_valid_record(self):
+        del self.contents['inventor_kit/viewer/static/LICENSE.txt']
+        with self.assertRaisesRegex(ValueError, 'Missing viewer Required Notice'):
             self.validate(self.rows('/'))
 
 

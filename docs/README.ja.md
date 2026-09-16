@@ -2,6 +2,7 @@
 
 [English](README.md) | 日本語
 
+- [ライセンス](license.ja.md): 非商用許諾、商用プラン、旧 MIT 部分。
 - [API ガイド](api.ja.md): 読み込み、属性、保存候補、アセンブリ、上限。
 - [ローカル viewer](viewer.ja.md): IPT の保存形状と IAM の保存配置、プレビュー、属性、読み込み診断。
 - [対応範囲](support.ja.md): 確認済みプロファイルと未対応・未検証の境界。

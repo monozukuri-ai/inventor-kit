@@ -99,5 +99,12 @@ print(ik.capabilities())
 | [リリース](docs/releasing.ja.md) | wheel / sdist、CI、公開前の条件 |
 | [形式資料](docs/format-reference.ja.md) | 実装に使用した資料とライセンス |
 
-ライセンスは MIT。第三者の権利表示は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)にあります。
+0.3.0 から新条件の自作部分は PolyForm Noncommercial 1.0.0 でソース公開し、
+UnRobotics Inc. が別途 [Internal/OEM 商用ライセンス](COMMERCIAL-LICENSE.md)を提供します。
+旧 MIT 許諾と利用区分は [ライセンス案内](docs/license.ja.md)、第三者表示は
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)を参照してください。
 公開サンプルは hash と出典を固定して検証し、CAD ファイル自体は配布パッケージに含めません。
+
+Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
+
+Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.

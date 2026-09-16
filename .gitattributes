@@ -1,6 +1,12 @@
 /internal export-ignore
 /dist export-ignore
 /fixtures/public export-ignore
+# Legal texts and generated notices are compared byte-for-byte on every OS.
+/LICENSE -text
+/COMMERCIAL-LICENSE.md -text
+/THIRD_PARTY_NOTICES.md -text
+/licenses/** -text
+/crates/*/LICENSE -text
 # Asset manifests hash exact bytes, including frontend source inputs.
 /viewer/** -text
 /python/inventor_kit/viewer/static/** -text

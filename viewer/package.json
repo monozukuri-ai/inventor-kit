@@ -1,6 +1,6 @@
 {
   "name": "inventor-kit-viewer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,5 +14,6 @@
     "@playwright/test": "1.63.0",
     "typescript": "5.9.3",
     "vite": "6.4.3"
-  }
+  },
+  "license": "PolyForm-Noncommercial-1.0.0 AND MIT"
 }

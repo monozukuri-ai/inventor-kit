@@ -63,6 +63,7 @@ def main():
             entry['degenerate_edges'] = converter.degenerate_edges
             entry['analytic_trim_faces'] = converter.analytic_trim_faces
             entry['periodic_seam_faces'] = getattr(converter, 'periodic_seam_faces', [])
+            entry['cylinder_slit_faces'] = getattr(converter, 'cylinder_slit_faces', [])
             entry['shell_closure_checks'] = getattr(converter, 'shell_closure_checks', [])
             entry['tolerant_endpoints'] = converter.tolerant_endpoints
             entry['resolved_subtypes'] = converter.resolved_subtypes

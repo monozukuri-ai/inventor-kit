@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+from check_license import REQUIRED_NOTICES
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -11,8 +12,11 @@ def check_bundle(read, names, prefix, source_prefix=None):
     if manifest['schema_version'] != 1:
         raise ValueError('Unknown viewer asset manifest')
     outputs = manifest['outputs']
-    if not {'index.html', 'THIRD_PARTY_LICENSES.txt'} <= outputs.keys() or not any(n.endswith('.js') for n in outputs) or not any(n.endswith('.css') for n in outputs):
+    if not {'index.html', 'THIRD_PARTY_LICENSES.txt', 'LICENSE.txt'} <= outputs.keys() or not any(n.endswith('.js') for n in outputs) or not any(n.endswith('.css') for n in outputs):
         raise ValueError('Incomplete viewer asset manifest')
+    if (prefix+'LICENSE.txt' not in names
+            or not all(n in read(prefix+'LICENSE.txt').decode().splitlines() for n in REQUIRED_NOTICES)):
+        raise ValueError('Missing viewer Required Notice')
     for table, base in [(outputs, prefix)] + ([(manifest['inputs'], source_prefix)] if source_prefix is not None else []):
         if not table:
             raise ValueError('Empty viewer build manifest')

@@ -104,6 +104,13 @@ diagnostics, and saved candidate selection.
 | [Releasing](docs/releasing.md) | Wheels, sdists, CI, and publication requirements |
 | [Format references](docs/format-reference.md) | Implementation references and licenses |
 
-Licensed under MIT. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
+From 0.3.0, new material is source-available under PolyForm Noncommercial 1.0.0,
+with [commercial Internal/OEM licenses](COMMERCIAL-LICENSE.md) from UnRobotics Inc.
+See [licensing](docs/license.md) for earlier MIT rights and permitted uses.
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
 third-party notices. Public samples are validated against pinned hashes and
 sources; the CAD files themselves are excluded from distribution packages.
+
+Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
+
+Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
