@@ -164,7 +164,25 @@ def installed(corpus):
     assert view.curve.raw == doc.model.resolve(4022)
     complete = doc.to_cadquery().val()
     assert complete.isValid() and len(complete.Solids()) == 1 and len(complete.Faces()) == 258
-    assert math.isclose(complete.Volume(), 1678794.5921294673, rel_tol=1e-10)
+    from OCP.BRepGProp import BRepGProp
+    from OCP.GProp import GProp_GProps
+    adaptive = []
+    for epsilon in (1e-8, 1e-10, 1e-12):
+        properties = GProp_GProps()
+        error = BRepGProp.VolumeProperties_s(complete.wrapped, properties, epsilon)
+        adaptive.append(dict(epsilon=epsilon, volume_mm3=properties.Mass(), estimated_error=error))
+    volume = complete.Volume()
+    expected_volume = 1678794.5921294673
+    box = complete.BoundingBox()
+    comparison = dict(file=name, sha256=item['sha256'], volume_mm3=volume,
+        expected_volume_mm3=expected_volume, absolute_error_mm3=abs(volume-expected_volume),
+        relative_error=abs(volume-expected_volume)/expected_volume, adaptive=adaptive,
+        faces=len(complete.Faces()), solids=len(complete.Solids()), area_mm2=complete.Area(),
+        bbox_mm=[getattr(box, k) for k in ('xmin','ymin','zmin','xmax','ymax','zmax')],
+        platform=platform.system(), machine=platform.machine(),
+        packages={p: importlib.metadata.version(p) for p in ('inventor-kit','cq-acis','cadquery','cadquery-ocp')})
+    print(json.dumps({'ftc07_geometry': comparison}, allow_nan=False), flush=True)
+    assert math.isclose(volume, expected_volume, rel_tol=1e-10), comparison
     for index in (332, 1164, 2336, 4351):
         assert converter._face(doc.model.resolve(index), placement).isValid()
     assert {e['vertex'] for e in converter.tolerant_vertex_envelopes} == {3618}
