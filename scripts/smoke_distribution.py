@@ -247,6 +247,22 @@ def installed(corpus):
         assert len(report['source_documents']) == 2
     import inventor_kit.assembly_step
     assert Path(inventor_kit.assembly_step.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+    # Keep a real reader open during atomic publication. On Windows this
+    # exercises the sharing violation seen between HTTP reads and Job.poll.
+    import threading
+    from inventor_kit.viewer.scene import empty_scene, write_scene
+    with tempfile.TemporaryDirectory(prefix='inventor-snapshot-smoke-') as temporary:
+        directory = Path(temporary)
+        write_scene(directory, empty_scene('previous'))
+        with (directory/'state.json').open('rb') as reader:
+            assert json.load(reader)['source']['name'] == 'previous'
+            release = threading.Timer(0.2, reader.close)
+            release.start()
+            try:
+                write_scene(directory, empty_scene('replacement'))
+            finally:
+                release.join()
+        assert json.loads((directory/'state.json').read_text())['source']['name'] == 'replacement'
     print(json.dumps({'isolated_install': 'passed', 'python': sys.version,
                       'inventor-kit': importlib.metadata.version('inventor-kit'),
                       'cq-acis': importlib.metadata.version('cq-acis'),
@@ -256,7 +272,8 @@ def installed(corpus):
                       'metadata_without_geometry_import': 'passed',
                       'tolerant_trim_components': 'passed',
                       'analytic_closure': 'passed',
-                      'assembly_step_roundtrip': 'passed'}))
+                      'assembly_step_roundtrip': 'passed',
+                      'viewer_snapshot_publication': 'passed'}))
 
 
 def main():

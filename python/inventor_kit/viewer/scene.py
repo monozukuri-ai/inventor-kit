@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import time
 
 from .. import Limits, _file_bytes, inspect, read
 
@@ -81,6 +82,22 @@ def safe_value(value):
     return str(value)
 
 
+def replace_scene(source, target):
+    """Keep atomic snapshots when a Windows HTTP reader briefly holds the file."""
+    for attempt in range(21):
+        try:
+            source.replace(target)
+            return
+        except PermissionError as error:
+            # Windows denies rename while a normal reader has the destination
+            # open. Readers close before sending HTTP bytes; retain the old
+            # complete snapshot and retry for at most one second. Persistent
+            # permission errors, and every other error, still propagate.
+            if getattr(error, "winerror", None) not in (5, 32, 33) or attempt == 20:
+                raise
+            time.sleep(0.05)
+
+
 def write_scene(directory, scene, name="state.json"):
     data = json.dumps(scene, ensure_ascii=False, allow_nan=False).encode("utf-8")
     if len(data) > 16 * 1024 * 1024:
@@ -88,7 +105,7 @@ def write_scene(directory, scene, name="state.json"):
     target = directory / name
     temporary = directory / (name + ".tmp")
     temporary.write_bytes(data)
-    temporary.replace(target)
+    replace_scene(temporary, target)
 
 
 def build_scene(path, directory, options, publish=lambda scene: None):

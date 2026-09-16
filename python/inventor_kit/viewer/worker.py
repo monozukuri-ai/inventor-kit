@@ -4,7 +4,7 @@ import multiprocessing
 from pathlib import Path
 import time
 
-from .scene import build_scene, diagnostic, discard_geometry, empty_scene, write_scene
+from .scene import build_scene, diagnostic, discard_geometry, empty_scene, replace_scene, write_scene
 
 
 def run_worker(path, directory, options):
@@ -36,7 +36,7 @@ class Job:
             self.process.join()
         pending = self.directory / "pending.json"
         if not timeout and self.process.exitcode == 0 and pending.exists():
-            pending.replace(self.directory / "state.json")
+            replace_scene(pending, self.directory / "state.json")
         else:
             scene = json.loads((self.directory / "state.json").read_text(encoding="utf-8"))
             scene["job_status"] = "failed"
