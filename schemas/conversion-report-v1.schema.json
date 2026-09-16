@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inventor Kit conversion report v1",
+  "type": "object",
+  "required": ["schema_version", "kind", "status", "units", "geometry_complete", "selection_complete", "current_state_verified", "complete", "diagnostics"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"type": "string"},
+    "status": {"enum": ["success", "partial", "unsupported", "error"]},
+    "units": {"const": "mm"},
+    "geometry_complete": {"type": "boolean"},
+    "selection_complete": {"type": "boolean"},
+    "current_state_verified": {"const": false},
+    "complete": {"const": false},
+    "source_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "candidate_id": {"type": ["string", "null"]},
+    "requested_body_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/body_id"}},
+    "converted_body_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/body_id"}},
+    "bodies": {"type": "array", "items": {"$ref": "#/$defs/body"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "omissions": {"type": "array", "items": {"type": "object"}},
+    "stages": {"type": "object", "required": ["inspection", "conversion", "export"],
+      "additionalProperties": false, "properties": {
+        "inspection": {"type": "string"}, "conversion": {"type": "string"}, "export": {"type": "string"}}}
+  },
+  "$defs": {
+    "body_id": {"type": "string", "pattern": "^body-[a-f0-9]{64}$"},
+    "source": {"type": ["object", "null"], "required": ["source_id", "start_offset", "end_offset"],
+      "properties": {"source_id": {"type": "string"}, "start_offset": {"type": "integer", "minimum": 0}, "end_offset": {"type": "integer", "minimum": 0}}},
+    "diagnostic": {"type": "object", "required": ["code", "message", "severity", "source"],
+      "properties": {"code": {"type": "string"}, "message": {"type": "string"}, "severity": {"type": "string"}, "source": {"$ref": "#/$defs/source"}}},
+    "body": {"type": "object", "additionalProperties": false,
+      "required": ["id", "body_index", "source", "status", "diagnostics", "metrics"],
+      "properties": {
+        "id": {"$ref": "#/$defs/body_id"}, "body_index": {"type": "integer", "minimum": 0},
+        "source": {"$ref": "#/$defs/source"},
+        "status": {"enum": ["converted_solid", "open_shell", "unsupported", "failed"]},
+        "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "metrics": {"type": ["object", "null"], "required": ["valid", "solids", "faces", "volume_mm3", "area_mm2", "bbox_mm"]}
+      },
+      "allOf": [{"if": {"properties": {"status": {"const": "converted_solid"}}},
+        "then": {"properties": {"metrics": {"type": "object", "properties": {"valid": {"const": true}, "solids": {"type": "integer", "minimum": 1}, "faces": {"type": "integer", "minimum": 1}, "volume_mm3": {"type": "number", "exclusiveMinimum": 0}}}}},
+        "else": {"properties": {"metrics": {"type": "null"}}}}]
+    }
+  }
+}

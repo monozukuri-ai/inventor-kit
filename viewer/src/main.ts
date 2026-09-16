@@ -14,6 +14,7 @@ type Scene = {
   assembly: { structure_status: string; allow_unverified_state: boolean; allow_partial: boolean; displayed_instances: number; displayed_definitions: number; source_documents: unknown[] } | null;
   omissions: { instance: number; path: number[]; reason: string; detail: string }[];
   reference_issues: { status: string; detail?: string }[];
+  part?: { status: string; bodies: unknown[]; converted_body_ids: string[]; omissions: unknown[] } | null;
 };
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const text = (tag: string, value: unknown, className = '') => {
@@ -71,6 +72,9 @@ function information(s: Scene) {
   el('diagnostics').replaceChildren(...s.diagnostics.map(d => {
     const row = text('div', '', 'diagnostic'); row.append(text('div', d.message), detail(d)); return row;
   }));
+  if (s.part && s.part.status !== 'success') {
+    el('diagnostics').prepend(text('p', `${s.part.converted_body_ids.length} of ${s.part.bodies.length} bodies can be used in this selection. The complete saved part is not displayed.`, 'diagnostic'));
+  }
   el('assembly-section').hidden = s.assembly === null;
   if (s.assembly) {
     const a = s.assembly;
@@ -138,7 +142,7 @@ function bodyTree(s: Scene) {
         select(node.id);
       });
       label.append(button);
-      if (s.assembly) label.append(text('small', `${node.occurrence_path?.join(' / ')} · ${statusText(node.status)}`, 'component-status'));
+      label.append(text('small', `${s.assembly ? node.occurrence_path?.join(' / ') + ' · ' : ''}${statusText(node.status)}`, 'component-status'));
       row.append(checkbox, label); row.title = node.reason ?? node.name;
       item.append(row);
       if (children.has(node.id)) item.append(branch(node.id, depth + 1));

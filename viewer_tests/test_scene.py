@@ -57,10 +57,31 @@ class Scenes(unittest.TestCase):
     def test_conversion_failure_preserves_document(self):
         scene = self.scene('EPFL_Elytron_140mm_v1.ipt')
         self.assertEqual(scene['stages']['conversion'], 'failed')
-        self.assertFalse(scene['nodes'])
+        self.assertTrue(scene['nodes'])
+        self.assertTrue(all(n['mesh_id'] is None for n in scene['nodes']))
         self.assertTrue(scene['properties'])
         self.assertTrue(scene['thumbnails'])
         self.assertTrue(any(d['code'] == 'geometry.curve_unsupported' for d in scene['diagnostics']))
+
+    def test_mixed_body_selection_retains_every_source_body(self):
+        for year in (2021, 2024):
+            name = f'INV_nist_ftc_06_asme1_{year}.ipt'
+            strict = self.scene(name)
+            self.assertFalse(strict['meshes'])
+            self.assertEqual(len(strict['nodes']), 3)
+            chosen = strict['part']['bodies'][0]['id']
+            selected = self.scene(name, Options(body_ids=(chosen,), allow_partial=True))
+            self.assertEqual(selected['stages']['tessellation'], 'partial')
+            self.assertEqual(selected['meshes'][0]['face_count'], 146)
+            self.assertEqual(len(selected['meshes']), 1)
+            self.assertEqual([n['status'] for n in selected['nodes']], ['displayable', 'not_selected', 'not_selected'])
+            self.assertEqual(selected['nodes'][0]['body_id'], chosen)
+            self.assertEqual(len(selected['part']['omissions']), 2)
+            self.assertTrue(selected['part']['selection_complete'])
+            self.assertFalse(selected['part']['geometry_complete'])
+            self.assertFalse(selected['complete'])
+        failed = self.scene('SamplePart.ipt', Options(body_ids=(chosen,), allow_partial=True))
+        self.assertFalse(failed['meshes'])
 
     def test_metadata_only_and_nonpart_document(self):
         self.assertEqual(self.scene(options=Options(metadata_only=True))['stages']['geometry'], 'not_attempted')

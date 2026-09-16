@@ -45,7 +45,8 @@ def main(argv=None):
     parser.add_argument("--require-current-state", action="store_true")
     parser.add_argument("--search-root", action="append", default=[], help="IAM reference search directory (repeatable)")
     parser.add_argument("--allow-unverified-state", action="store_true", help="Allow saved IAM placements with unverified current state")
-    parser.add_argument("--allow-partial", action="store_true", help="Allow incomplete IAM geometry and display every omission")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow partial IPT/IAM geometry and retain every omission")
+    parser.add_argument("--body-id", action="append", default=[], help="Select an IPT body ID (repeatable)")
     parser.add_argument("--timeout", type=float, default=120, help="Conversion time limit in seconds (default: 120)")
     args = parser.parse_args(argv)
     if not 0 <= args.port <= 65535:
@@ -54,15 +55,17 @@ def main(argv=None):
         options = Options(quality=args.quality, metadata_only=args.metadata_only,
                           candidate_id=args.candidate_id, require_current_state=args.require_current_state,
                           search_roots=tuple(args.search_root), allow_unverified_state=args.allow_unverified_state,
-                          allow_partial=args.allow_partial,
+                          allow_partial=args.allow_partial, body_ids=tuple(args.body_id),
                           timeout=args.timeout)
     except ValueError as error:
         parser.error(str(error))
     suffix = Path(args.path).suffix.lower()
-    if suffix in (".iam", ".idw", ".ipn") and (args.candidate_id or args.require_current_state):
+    if suffix in (".iam", ".idw", ".ipn") and (args.candidate_id or args.require_current_state or args.body_id):
         parser.error("Candidate and current-state options apply to IPT parts only")
-    if suffix in (".ipt", ".idw", ".ipn") and (args.search_root or args.allow_unverified_state or args.allow_partial):
+    if suffix in (".ipt", ".idw", ".ipn") and (args.search_root or args.allow_unverified_state):
         parser.error("Assembly options apply to IAM assemblies only")
+    if suffix == ".iam" and args.allow_partial and not args.allow_unverified_state:
+        parser.error("IAM --allow-partial requires --allow-unverified-state")
     if not args.metadata_only and (suffix != ".iam" or args.allow_unverified_state) and find_spec("ocp_tessellate") is None:
         parser.error("Install viewer dependencies: python -m pip install 'inventor-kit[viewer]'")
     from .server import create_server

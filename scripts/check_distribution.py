@@ -23,7 +23,7 @@ def check_metadata(meta, version):
     if meta['Requires-Python'] != '>=3.11':
         raise ValueError('Distribution must require Python >=3.11')
     requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
-    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.7', '<0.4'}:
+    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.8', '<0.4'}:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
     viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
     if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
@@ -43,7 +43,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
             raise ValueError('Missing ABI3 native extension')
         package_prefix = 'inventor_kit/'
         viewer_sources = None
-        for name in ('assembly.py', 'assembly_step.py', 'limits.py', 'capabilities.json'):
+        for name in ('assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
             if 'inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python API: {name}')
         metadata = [v for k, v in contents.items() if k.endswith('.dist-info/METADATA')]
@@ -89,7 +89,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         for name in ('mod.rs', 'ufrx.rs', 'records.rs', 'matrix.rs', 'resolve.rs', 'tests.rs'):
             if prefix + 'crates/inventor-core/src/assembly/' + name not in contents:
                 raise ValueError(f'Missing assembly Rust source: {name}')
-        for name in ('assembly.py', 'assembly_step.py', 'limits.py', 'capabilities.json'):
+        for name in ('assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
             if prefix + 'python/inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python source: {name}')
         for name, content in contents.items():
@@ -111,7 +111,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
-            if len(entries) != 1 or entries[0]['version'] != '0.3.7':
+            if len(entries) != 1 or entries[0]['version'] != '0.3.8':
                 raise ValueError(f'Expected one pinned {package}')
             entry = entries[0]
             registry = entry.get('source') == 'registry+https://github.com/rust-lang/crates.io-index' and len(entry.get('checksum', '')) == 64
@@ -134,7 +134,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
     meta = BytesParser().parsebytes(metadata[0])
     check_metadata(meta, version)
     check_archive_licenses(contents, meta, license_prefix)
-    for name in ('__init__.py', '__main__.py', 'cli.py', 'scene.py', 'server.py', 'worker.py', 'tessellation.py', 'assembly.py'):
+    for name in ('__init__.py', '__main__.py', 'cli.py', 'scene.py', 'server.py', 'worker.py', 'tessellation.py', 'assembly.py', 'part.py'):
         if package_prefix+'viewer/'+name not in contents:
             raise ValueError(f'Missing viewer Python module: {name}')
     check_bundle(contents.__getitem__, set(contents), package_prefix+'viewer/static/', viewer_sources)

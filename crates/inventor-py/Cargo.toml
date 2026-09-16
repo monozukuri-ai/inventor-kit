@@ -1,6 +1,6 @@
 [package]
 name = "inventor-py"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "Python bindings for the Inventor part carrier reader"
 license.workspace = true

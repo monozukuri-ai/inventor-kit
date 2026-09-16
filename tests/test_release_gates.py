@@ -24,7 +24,7 @@ class ReleaseGates(unittest.TestCase):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
                             ('License-Expression', DISTRIBUTION_LICENSE), ('Requires-Python', '>=3.11'),
-                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.7'), ('Provides-Extra', 'viewer'),
+                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.8'), ('Provides-Extra', 'viewer'),
                             ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value
         check_metadata(meta, '0.1.0')
@@ -82,7 +82,7 @@ class ReleaseGates(unittest.TestCase):
                     dependencies={'ocp-tessellate': '3.5.1'}, cases={
                         name: dict(displayed_instances=parts, occurrences=occurrences, omissions=omissions,
                                    mesh_buffers_fetched=4, shutdown='passed')
-                        for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2)]}))
+                        for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         with tempfile.TemporaryDirectory() as temporary:
             paths = [Path(temporary) / f'{i}.json' for i in range(len(reports))]
             for path, report in zip(paths, reports):

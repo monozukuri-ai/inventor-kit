@@ -21,6 +21,7 @@ class Options:
     search_roots: tuple[str, ...] = ()
     allow_unverified_state: bool = False
     allow_partial: bool = False
+    body_ids: tuple[str, ...] = ()
 
     def __post_init__(self):
         if self.quality not in ("draft", "normal", "fine"):
@@ -30,13 +31,11 @@ class Options:
         for name in ("max_triangles", "max_buffer_bytes"):
             if type(getattr(self, name)) is not int or getattr(self, name) < 0:
                 raise ValueError(f"{name} must be a nonnegative integer")
-        if self.metadata_only and (self.candidate_id or self.require_current_state):
+        if self.metadata_only and (self.candidate_id or self.require_current_state or self.body_ids):
             raise ValueError("Selection options require geometry")
         if self.metadata_only and (self.search_roots or self.allow_unverified_state or self.allow_partial):
             raise ValueError("Assembly options cannot be combined with metadata-only")
-        if self.allow_partial and not self.allow_unverified_state:
-            raise ValueError("--allow-partial requires --allow-unverified-state")
-        if (self.search_roots or self.allow_unverified_state or self.allow_partial) and (self.candidate_id or self.require_current_state):
+        if (self.search_roots or self.allow_unverified_state) and (self.candidate_id or self.require_current_state or self.body_ids):
             raise ValueError("Assembly options cannot be combined with IPT selection options")
 
 
@@ -45,17 +44,18 @@ def empty_scene(name):
                 units="mm", current_state="unverified", complete=False,
                 stages={key: "not_attempted" for key in ("metadata", "geometry", "conversion", "tessellation")},
                 selection=None, candidates=[], nodes=[], meshes=[], properties=[], thumbnails=[],
-                diagnostics=[], tessellation=None, assembly=None, omissions=[], reference_issues=[])
+                diagnostics=[], tessellation=None, assembly=None, part=None, omissions=[], reference_issues=[])
 
 
 def discard_geometry(scene, status="not_displayed", reason="Geometry was not published"):
     """Keep the IAM inventory when a worker or conversion fails."""
     scene["meshes"] = []
     scene["tessellation"] = None
-    if scene["assembly"] is None:
+    if scene["assembly"] is None and scene.get("part") is None:
         scene["nodes"] = []
         return
-    scene["assembly"].update(displayed_instances=0, displayed_definitions=0)
+    if scene["assembly"] is not None:
+        scene["assembly"].update(displayed_instances=0, displayed_definitions=0)
     for node in scene["nodes"]:
         if node["mesh_id"] or node["status"] in ("pending", "displayable"):
             node.update(status=status, reason=reason)
@@ -128,11 +128,13 @@ def build_scene(path, directory, options, publish=lambda scene: None):
             return scene
         stage = "geometry"
         kind = doc.metadata.identification.kind
-        if kind != "assembly" and (options.search_roots or options.allow_unverified_state or options.allow_partial):
+        if kind != "assembly" and (options.search_roots or options.allow_unverified_state):
             raise ValueError("Search roots and assembly permission options apply to IAM assemblies only")
         if kind == "assembly":
-            if options.candidate_id or options.require_current_state:
+            if options.candidate_id or options.require_current_state or options.body_ids:
                 raise ValueError("Candidate and current-state options apply to IPT parts only")
+            if options.allow_partial and not options.allow_unverified_state:
+                raise ValueError("IAM --allow-partial requires --allow-unverified-state")
             from .assembly import build_assembly_scene
             return build_assembly_scene(path, directory, options, scene, publish)
         if doc.metadata.identification.kind != "part":
@@ -153,16 +155,19 @@ def build_scene(path, directory, options, publish=lambda scene: None):
             return scene
         publish(scene)
         stage = "conversion"
-        shapes = doc.to_cadquery().vals()
-        if not shapes or any(not s.isValid() for s in shapes):
-            raise ValueError("Saved geometry did not produce valid shapes")
-        scene["stages"][stage] = "available"
+        from .part import body_nodes, build_body_meshes
+        result = doc.convert_bodies()
+        scene["part"] = result.report(body_ids=options.body_ids or None)
+        scene["nodes"] = body_nodes(result, options.body_ids or None)
+        scene["diagnostics"].extend(asdict(d) for b in result.bodies for d in b.diagnostics)
+        scene["diagnostics"].extend(asdict(d) for d in result.diagnostics)
+        selected = result.selected_bodies(body_ids=options.body_ids or None, allow_partial=options.allow_partial)
+        scene["stages"][stage] = "available" if scene["part"]["status"] == "success" else "partial"
         publish(scene)
         stage = "tessellation"
-        from .tessellation import build_meshes
-        nodes, meshes, settings = build_meshes(shapes, doc, directory, options)
-        scene.update(nodes=nodes, meshes=meshes, tessellation=settings)
-        scene["stages"][stage] = "available"
+        meshes, settings = build_body_meshes(selected, scene["nodes"], directory, options)
+        scene.update(meshes=meshes, tessellation=settings)
+        scene["stages"][stage] = scene["stages"]["conversion"]
     except Exception as error:
         scene["stages"][stage] = "failed"
         diagnostic(scene, getattr(error, "code", f"viewer.{stage}_failed"), str(error))

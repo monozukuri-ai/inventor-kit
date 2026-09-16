@@ -6,6 +6,9 @@
 形状候補、読み込み診断を表示します。Python API と同じ限定パーサと
 CadQuery 変換を使い、ローカルで実行します。
 
+IPTの部分body表示には `--allow-partial` を指定します。`--body-id` を繰り返して個別選択でき、
+未対応・未選択bodyもツリーに残ります。[body選択](body-conversion.ja.md)を参照してください。
+
 ```sh
 python -m pip install 'inventor-kit[viewer]'
 python -m inventor_kit.viewer part.ipt

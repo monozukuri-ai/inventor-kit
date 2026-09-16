@@ -123,6 +123,24 @@ class AssemblyConversion:
     complete: bool = False
     source_documents: tuple[dict, ...] = ()
 
+    def report(self) -> dict:
+        """Serializable saved-occurrence result; state verification is separate."""
+        from dataclasses import asdict
+        from .conversion import dependency_versions
+        losses = (self.reference_issues or self.diagnostics or
+                  any(o.reason not in ('suppressed', 'hidden') for o in self.omissions))
+        available = self.converted_instances > 0
+        return dict(schema_version=1, kind='assembly', units='mm',
+                    status=('partial' if losses else 'success') if available else 'unsupported',
+                    geometry_complete=bool(available and not losses),
+                    selection_complete=bool(available and not losses),
+                    current_state_verified=False, complete=False,
+                    converted_instances=self.converted_instances, converted_definitions=self.converted_definitions,
+                    source_documents=list(self.source_documents), omissions=[asdict(o) for o in self.omissions],
+                    reference_issues=list(self.reference_issues),
+                    diagnostics=[dict(code='assembly.conversion', severity='error', message=d, source=None)
+                                 for d in self.diagnostics], dependencies=dependency_versions())
+
     def export_step(self, path: str | Path, *, allow_partial: bool = False) -> dict:
         """Export STEP plus a JSON loss report after verifying an XDE round-trip.
 

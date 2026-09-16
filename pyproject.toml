@@ -4,10 +4,10 @@ build-backend = "maturin"
 
 [project]
 name = "inventor-kit"
-version = "0.3.0"
+version = "0.4.0"
 description = "Bounded Rust Inventor part carrier reader with shared ACIS models"
 requires-python = ">=3.11"
-dependencies = ["cq-acis>=0.3.7,<0.4"]
+dependencies = ["cq-acis>=0.3.8,<0.4"]
 license = "PolyForm-Noncommercial-1.0.0 AND MIT AND Apache-2.0 AND BSD-3-Clause AND CC-BY-4.0 AND Zlib"
 license-files = ["LICENSE", "COMMERCIAL-LICENSE.md", "THIRD_PARTY_NOTICES.md", "licenses/*.txt", "licenses/*.md", "licenses/*.json"]
 readme = "README.md"
@@ -38,6 +38,7 @@ include = [
     {path = "viewer/*.ts", format = "sdist"},
     {path = "viewer/index.html", format = "sdist"},
     {path = "schemas/viewer-scene-v1.schema.json", format = "sdist"},
+    {path = "schemas/conversion-report-v1.schema.json", format = "sdist"},
     {path = "README.ja.md", format = "sdist"},
     {path = "CONTRIBUTING.md", format = "sdist"},
     {path = "CLA.md", format = "sdist"},

@@ -2,10 +2,10 @@
 
 English | [日本語](tolerant-trims.ja.md)
 
-Rust uses public crates.io `acis-core=0.3.7` and `acis-py-bridge=0.3.7`;
-the fuzz graph pins the same core. Python requires `cq-acis>=0.3.7,<0.4`, with
-public PyPI 0.3.7 in `uv.lock`. Shared model API 2 is unchanged. The trim checks
-also pass with the published 0.3.7 wheel. The 0.3.6 results below document the
+Rust uses public crates.io `acis-core=0.3.8` and `acis-py-bridge=0.3.8`;
+the fuzz graph pins the same core. Python requires `cq-acis>=0.3.8,<0.4`, with
+public PyPI 0.3.8 in `uv.lock`. Shared model API 2 is unchanged. The trim checks
+also pass with the published 0.3.8 wheel. The 0.3.6 results below document the
 original trim fix; see [current validation results](validation.md) for the
 additional FTC06 and CTC04 closure checks.
 

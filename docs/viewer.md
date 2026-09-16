@@ -6,6 +6,10 @@ The optional viewer displays supported saved IPT geometry and IAM placements, do
 saved previews, geometry candidates, and read diagnostics. It runs locally using
 the same bounded parser and CadQuery conversion as the Python API.
 
+Partial IPT body display is available with `--allow-partial`; use repeated `--body-id`
+to select specific source bodies. Unsupported and unselected bodies remain in the tree.
+See [body selection](body-conversion.md).
+
 ```sh
 python -m pip install 'inventor-kit[viewer]'
 python -m inventor_kit.viewer part.ipt

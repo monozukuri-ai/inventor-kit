@@ -16,16 +16,18 @@ The parser supports a limited set of validated format profiles. It does not
 determine the current Model State, reevaluate feature history, or approximate
 unsupported geometry.
 
+v0.4.0 adds [body selection](docs/body-conversion.md) and [IPT/IAM batch conversion](docs/cli.md).
+
 ## Installation
 
-Requires Python 3.11 or later, `cq-acis>=0.3.7,<0.4`, and shared model API 2.
+Requires Python 3.11 or later, `cq-acis>=0.3.8,<0.4`, and shared model API 2.
 Where compatible published wheels are available, install with:
 
 ```sh
 python -m pip install inventor-kit
 ```
 
-Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.7
+Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.8
 from crates.io. See the [development guide](docs/development.md) and
 [release requirements](docs/releasing.md).
 

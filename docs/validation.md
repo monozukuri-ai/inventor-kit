@@ -81,7 +81,7 @@ and viewing. Cone apex normals use the analytic limit at the tessellation's UV
 angle; positions and triangles remain unchanged. These checks do not establish
 the current Model State or vendor equivalence, and use regression inputs only.
 
-The optional FTC10/CTC02 trim gate requires the **unreleased** cq-acis
+The FTC10/CTC02 trim gate runs in CI with published cq-acis 0.3.8
 `cylinder_slit_faces` and elliptic-section diagnostics:
 
 ```sh
@@ -94,8 +94,7 @@ vertices through STEP, checks edge counts and mesh coverage, and requires
 whole-part conversion and automatic 3D preview to reject the still unsupported
 curves/surfaces. The local implementation has 198/223 valid FTC10 faces and
 411/443 valid CTC02 faces; neither file is counted as a complete solid.
-Public cq-acis 0.3.7 does not pass this optional gate. It is not enabled in CI
-until the shared dependency is released and adopted.
+This gate requires cq-acis>=0.3.8,<0.4; whole-part success counts remain unchanged.
 
 See the [development guide](development.md) for standard reproduction steps and
 the [benchmark guide](../benchmarks/README.md) for performance measurement.

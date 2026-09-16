@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "notices_sha256": "e9367b5543ffa40f1bb923829fe89ccd848b10e26500f95b9623a027b496dc86",
+  "notices_sha256": "a4160618ffb00f547b9bb9d96357a764af2a078e70554da86eda34d2ed589a13",
   "packages": [
     {
       "name": "acis-core",
-      "version": "0.3.7",
+      "version": "0.3.8",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "checksum": "19ddaeae1934ca798cf698d3d99508db26b87915cbd7bc23f4d52ae26530d8b6",
+      "checksum": "28523f07df5efcea2c1972a8c60a964d8e2a79c00fc0f268b50b959e29a98221",
       "upstream_license": "MIT",
       "license_source": "preserved cq-acis notice; registry package omits license text",
       "license_files": [
@@ -18,9 +18,9 @@
     },
     {
       "name": "acis-py-bridge",
-      "version": "0.3.7",
+      "version": "0.3.8",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "checksum": "71509b7f0cb3abd5ef71f987e49d9bb3f1a470d2a4e114a117c0dfa072cee4d3",
+      "checksum": "220fb0510bc4bcdd90d0a4f4548647f415999420620cda2ab91c97e4685059b1",
       "upstream_license": "MIT",
       "license_source": "registry package",
       "license_files": [
