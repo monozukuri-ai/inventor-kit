@@ -48,5 +48,6 @@ include = [
     {path = "docs/format-reference*.md", format = "wheel"},
     {path = "docs/*.md", format = "sdist"},
     {path = "schemas/vendor-oracle-v1.schema.json", format = "sdist"},
+    {path = "schemas/drawing-oracle-v1.schema.json", format = "sdist"},
     {path = "python/inventor_kit/capabilities.json", format = "sdist"},
 ]

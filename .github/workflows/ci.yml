@@ -46,6 +46,7 @@ jobs:
         run: |
           .venv/bin/python scripts/fetch_public_samples.py
           .venv/bin/python scripts/fetch_assembly_samples.py
+          .venv/bin/python scripts/fetch_drawing_samples.py
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22.18.0"
@@ -64,6 +65,9 @@ jobs:
       - name: Python and corpus checks
         run: |
           .venv/bin/python scripts/run_tests.py
+          # Inventory succeeds on input integrity; native acquisition remains incomplete.
+          .venv/bin/python scripts/validate_drawing_oracle.py --inventory
+          .venv/bin/python scripts/validate_drawing_inventory.py
           .venv/bin/python scripts/validate_public_samples.py
           .venv/bin/python scripts/validate_document_samples.py
           .venv/bin/python scripts/validate_candidate_samples.py

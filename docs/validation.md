@@ -113,3 +113,5 @@ updating succeeded. `compare_state_candidates.py` compares only candidates whose
 input hashes and capture evidence match. Synthetic oracles test the comparison
 pipeline and do not count as validation against an actual Autodesk installation.
 Explicitly choose an output location under `internal/` for captures.
+
+Drawing corpus and native comparison acquisition are tracked separately: [IDW validation](drawing-validation.md).

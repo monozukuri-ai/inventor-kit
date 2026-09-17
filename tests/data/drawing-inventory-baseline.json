@@ -1,0 +1,611 @@
+{
+  "schema_version": 1,
+  "scope": "structural_regression_not_independent_drawing_oracle",
+  "holdouts_used": false,
+  "results": [
+    {
+      "file": "_Fishing Rod Assembly.idw",
+      "sha256": "e50760e2969eae8bb47565026fa52697d8698ec744b902bdc59fff508b1d8cdc",
+      "status": "identity_only",
+      "segments": [
+        {
+          "kind": "DlDocDcSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlBRxSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlDirectorySegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "AppSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDcSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetSmSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDlSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDcSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetSmSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDlSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDcSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetSmSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDlSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDcSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetSmSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDlSegmentType",
+          "major": 23,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        }
+      ],
+      "fields_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "reference_tables_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "types": {}
+    },
+    {
+      "file": "SampleBg.idw",
+      "sha256": "c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e",
+      "status": "framed_subset",
+      "segments": [
+        {
+          "kind": "DlDocDcSegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 4749,
+          "diagnostics": [],
+          "observations": {
+            "document_sheet_list_candidate": 1,
+            "sheet_segment_links_candidate": 1
+          }
+        },
+        {
+          "kind": "DlBRxSegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 21,
+          "diagnostics": [],
+          "observations": {}
+        },
+        {
+          "kind": "DlDirectorySegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 2,
+          "diagnostics": [],
+          "observations": {
+            "font_table_candidate": 1
+          }
+        },
+        {
+          "kind": "AppSegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 52,
+          "diagnostics": [],
+          "observations": {}
+        },
+        {
+          "kind": "FBAttributeSegment",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 5,
+          "diagnostics": [],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDcSegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 153,
+          "diagnostics": [],
+          "observations": {
+            "sheet_name_candidate": 1
+          }
+        },
+        {
+          "kind": "DlSheetSmSegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 13,
+          "diagnostics": [],
+          "observations": {
+            "display_group_candidate": 2,
+            "sheet_placement_candidate": 3,
+            "sheet_space_candidate": 1
+          }
+        },
+        {
+          "kind": "DlSheetDlSegmentType",
+          "major": 31,
+          "status": "framed",
+          "framed_records": 738,
+          "diagnostics": [],
+          "observations": {
+            "display_group_candidate": 74,
+            "stored_arc_candidate": 9,
+            "stored_circle_candidate": 2,
+            "stored_line_candidate": 73,
+            "stored_polyline_candidate": 19,
+            "stored_text_candidate": 55
+          }
+        }
+      ],
+      "fields_sha256": "30d4b57010987523967ab9f1673c2d0b3d1c3407dc3c9ca6ca3b119c266f378b",
+      "reference_tables_sha256": "036b43e5d60a9adb40b5f3efe873a94839792917984442f9834cab3bcad82c42",
+      "types": {
+        "00acc000-11d1-e05f-8000-66b1e13554c7": 2,
+        "03d6552d-4915-77bf-d17d-b3b2c8a5cc97": 53,
+        "051d7180-4917-1b0f-450b-c4966076169d": 23,
+        "052cf29c-4c9f-6ea8-5c40-5ba08d6a32f8": 1,
+        "0675182e-11d2-5e1f-6000-b3856c2387b0": 22,
+        "080ed92f-11d4-f647-c000-b2a431956b4f": 1,
+        "08caef04-4e30-8b81-2d6c-20b9dd22aeb7": 419,
+        "0b9b98ea-4f02-28b2-53b1-fc9be6fbb469": 1,
+        "0d0f9548-11d4-2834-1000-bd962dba09b5": 16,
+        "0ded4bb8-4f69-97d3-5c75-e3a1ff8b4340": 6,
+        "0f177bb0-11d1-e696-8000-6fb1e13554c7": 4,
+        "0f62e49b-4e3d-1f8c-de31-56b9b3244829": 3,
+        "10dc334c-4ed6-963d-db1e-56907bf51671": 4,
+        "11058558-11d2-95e3-6000-0cb38932edb0": 62,
+        "120284ef-11d2-0173-6000-f99ac5361ab0": 3,
+        "1281b41e-4ebd-0efe-570d-86894312c193": 1,
+        "1391c98f-4e7e-0ff8-1ea9-559cae778aca": 93,
+        "17cd335a-11d1-fef7-6000-378a806bceb0": 2,
+        "189b3560-11d2-0ba5-0008-6a9a05e5dc09": 1,
+        "18fb519a-4749-96e2-98e3-b5bdc3072a15": 8,
+        "1c4cff13-4bb5-f10a-acc7-19b8e54015f1": 2,
+        "1d9ff49b-11d1-e901-6000-a8ade3bc87b0": 4,
+        "1d9ff49f-11d1-e901-6000-a8ade3bc87b0": 16,
+        "1e5cbb86-11d2-b0cd-6000-aab70b02ecb0": 1,
+        "1fbb3c01-11d2-684d-a000-9e9a3c3aa076": 94,
+        "216b3a55-11d3-6523-6000-f587346bfbb0": 5,
+        "21e870bf-11d0-d2d0-0008-ccbc0663dc09": 40,
+        "22947391-11d1-cf07-0008-35bd0663dc09": 3,
+        "22cb4259-11d1-57c5-6000-37bd861c3cb0": 8,
+        "22cb425c-11d1-57c5-6000-37bd861c3cb0": 8,
+        "2433abad-11d4-f3d1-6000-4ab31d6eefb0": 5,
+        "246ef1e0-4a5d-b9f9-f170-d8bbf05518a3": 1,
+        "2510347f-4aae-9679-1d90-47869d5f4e48": 53,
+        "2640f4eb-11d1-57e4-6000-37bd861c3cb0": 10,
+        "26f369b7-11d2-61ea-6000-86b77359ebb0": 2,
+        "271f130a-4400-cf02-e753-f7b32b1046bf": 4,
+        "281c693f-4ec8-7df3-b674-61bfe0ba5bfc": 4,
+        "28c25c43-11d4-f618-c000-b2a431956b4f": 1,
+        "28c25c44-11d4-f618-c000-b2a431956b4f": 1,
+        "28c25c45-11d4-f618-c000-b2a431956b4f": 2,
+        "2ab35572-11d2-3b9b-6000-548a806bceb0": 1,
+        "2ae52c91-11d3-071b-6000-ccb77359ebb0": 1,
+        "2c3c82ff-4482-9ce6-e168-cca995ff0282": 8,
+        "2ca160f5-11d4-3766-6000-6599f983fcb0": 3,
+        "2ccaf0e4-11d4-fd46-1000-d096808b7ab5": 3,
+        "2d1e967c-11d1-a4b6-6000-0c8a806bceb0": 7,
+        "2f402fd0-11d1-c8e8-6000-b5b1e6100d08": 1,
+        "2f6a0c3f-42e1-0b12-4e09-4e85fe16e16a": 4,
+        "312f2865-48e7-6152-334d-a48fb6d7534d": 8,
+        "31c56502-11d2-362e-6000-538a806bceb0": 1,
+        "3214005d-11d4-72dd-6000-27b31d6eefb0": 5,
+        "3235a9b8-11d2-cb5f-6000-13b3cfe8fbb0": 1,
+        "33a051f8-402b-bfc0-075e-6fa98490389e": 5,
+        "36bc43f4-482b-176b-d28a-559e5e8d7402": 2,
+        "37359718-11d1-d57c-6000-258a806bceb0": 4,
+        "37359719-11d1-d57c-6000-258a806bceb0": 4,
+        "388f6c64-4f43-b44b-a380-df9919a6ecec": 3,
+        "39a41830-11d2-b58c-6000-62882826efb0": 66,
+        "3a645317-4416-06c2-5bf0-1692734bf433": 1,
+        "3e9f410e-11d2-6481-6000-708a806bceb0": 1,
+        "422ecbce-4d91-fe39-1e08-5982b4ee49c3": 5,
+        "440f63d1-484a-1adb-0c21-099bd422cdc4": 2,
+        "454c24a9-11d4-1471-1000-c196849f0ab5": 36,
+        "46f22c6f-4622-9429-14a8-6780cc6da07b": 1,
+        "48eb8607-11d2-070c-6000-f99ac5361ab0": 156,
+        "48eb8608-11d2-070c-6000-f99ac5361ab0": 2,
+        "4eee86ce-11d2-1a7c-6000-1c9feb49cdb0": 3,
+        "51279925-11d5-aead-1000-ef97b78b7ab5": 14,
+        "54b64b1e-4d07-2b3b-d324-749101d627e4": 2,
+        "553da303-11d0-d6c4-0008-ccbc0663dc09": 32,
+        "5707d3eb-11d1-ac97-6000-108a806bceb0": 1,
+        "5741c02f-4467-1e22-0ba3-53bd0da0bc81": 2,
+        "576520b1-11d1-a496-6000-1b8aeb49cdb0": 2,
+        "57dc00f8-11d1-8892-6000-91ade3bc87b0": 44,
+        "580a7d6d-11d2-32da-6000-b1ade3bc87b0": 4,
+        "5a9a7be0-11d1-e05d-8000-66b1e13554c7": 3,
+        "5c30cdf0-11d2-0d3f-6000-6ab760fec3b0": 1,
+        "5c30cdf2-11d2-0d3f-6000-6ab760fec3b0": 3,
+        "5c30cdf6-11d2-0d3f-6000-6ab760fec3b0": 1,
+        "5c30ce1d-11d2-0d3f-6000-6ab760fec3b0": 1,
+        "5eca65c0-11d1-c8e1-6000-b5b1e6100d08": 1,
+        "5f9d0021-11d2-098e-c000-5a9a2378d04f": 1,
+        "5f9d0023-11d2-098e-c000-5a9a2378d04f": 129,
+        "5f9d0025-11d2-098e-c000-5a9a2378d04f": 4,
+        "5f9d0029-11d2-098e-c000-5a9a2378d04f": 3,
+        "5f9d002b-11d2-098e-c000-5a9a2378d04f": 1,
+        "614a01f1-4389-bddc-3716-f6baa16a6aa5": 204,
+        "624120bc-11d2-0b9b-6000-6ab760fec3b0": 254,
+        "62a8e6a6-11d1-ad4b-6000-108a806bceb0": 1,
+        "62a8e6a7-11d1-ad4b-6000-108a806bceb0": 1,
+        "62df57a0-11d2-daf5-6000-54819e4eefb0": 1,
+        "63badb11-45cf-2490-d81a-bba2eeac348c": 1,
+        "64da5250-11d1-e05e-8000-66b1e13554c7": 18,
+        "652c352e-493e-174f-2e8e-3db40287708f": 3,
+        "6759d870-11d2-7838-6000-94b70b02ecb0": 1,
+        "685f7af4-11d3-3bae-6000-20873fa6fbb0": 1,
+        "6b6fa560-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b6fa561-11d2-3d2c-6000-b58d3125c3b0": 2,
+        "6b6fa562-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b6fa563-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b6fa564-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b6fa565-11d2-3d2c-6000-b58d3125c3b0": 3,
+        "6b6fa567-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b6fa568-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b6fa569-11d2-3d2c-6000-b58d3125c3b0": 1,
+        "6b78eee9-11d1-a495-6000-9dade3bc87b0": 16,
+        "6bd04d47-4720-8c47-9da4-81bcfae149d5": 8,
+        "6dd8f4a0-4f18-a71f-7826-d2a660a35b99": 1,
+        "6eae8dfd-11d4-67e3-6000-21b31d6eefb0": 5,
+        "70b5b57b-43cf-4343-8d85-198fdc3888d0": 3,
+        "74df96e0-11d1-e069-8000-66b1e13554c7": 2,
+        "74ee719e-4faf-4fcb-88bb-02bd3a64e512": 2,
+        "77137975-4a29-0d0d-fe88-018f8386c136": 1,
+        "79ebbbea-11d2-3c4d-6000-548a806bceb0": 1,
+        "7b7ce84e-11d1-c380-6000-1e8a806bceb0": 65,
+        "7e23dd2f-11d4-72cd-6000-27b31d6eefb0": 5,
+        "7f120e9e-451e-a99a-0cfb-ae85de29b961": 1,
+        "7f4a3e30-11d2-5ed6-6000-b3856c2387b0": 2,
+        "7f644248-47c4-5ec5-ab3f-9f9ce92f09a9": 6,
+        "82303d42-11d1-c02b-6000-188a806bceb0": 1,
+        "837efbb8-4c8c-5f41-b177-94b53ce08b58": 1,
+        "84426673-4eb7-77c8-cf69-3bb410c7d091": 2,
+        "866cbe44-11d1-613f-0008-70bdec18db09": 2,
+        "866cbe45-11d1-613f-0008-70bdec18db09": 2,
+        "8a6d1381-11d1-6b56-6000-38bd861c3cb0": 1,
+        "8ac58b05-11d4-375e-6000-6599f983fcb0": 3,
+        "8c8e316c-4ed7-8dd9-5809-29b828ad58b4": 2,
+        "8f55a3c0-11d1-e05e-8000-66b1e13554c7": 10,
+        "90874d11-11d0-d1f8-0008-cabc0663dc09": 4,
+        "90874d13-11d0-d1f8-0008-cabc0663dc09": 9,
+        "90874d15-11d0-d1f8-0008-cabc0663dc09": 315,
+        "90874d18-11d0-d1f8-0008-cabc0663dc09": 4,
+        "90874d26-11d0-d1f8-0008-cabc0663dc09": 106,
+        "90874d28-11d0-d1f8-0008-cabc0663dc09": 30,
+        "90874d40-11d0-d1f8-0008-cabc0663dc09": 16,
+        "90874d62-11d0-d1f8-0008-cabc0663dc09": 7,
+        "90874d63-11d0-d1f8-0008-cabc0663dc09": 11,
+        "90874d65-11d0-d1f8-0008-cabc0663dc09": 1,
+        "90874d75-11d0-d1f8-0008-cabc0663dc09": 41,
+        "90874d94-11d0-d1f8-0008-cabc0663dc09": 300,
+        "90874d95-11d0-d1f8-0008-cabc0663dc09": 7,
+        "90874d96-11d0-d1f8-0008-cabc0663dc09": 28,
+        "90874d98-11d0-d1f8-0008-cabc0663dc09": 3,
+        "90874d99-11d0-d1f8-0008-cabc0663dc09": 7,
+        "91637937-41c8-3e0b-df69-25989432bdd3": 1,
+        "9200b040-11d3-243d-6000-1d873fa6fbb0": 1,
+        "9200b041-11d3-243d-6000-1d873fa6fbb0": 2,
+        "938bed94-4f68-910a-b877-39a1a097b026": 3,
+        "98536631-4690-dc58-2e00-91967e181a20": 54,
+        "9943de5b-11d5-a96e-1000-5d978a1148b5": 6,
+        "99b938ae-11d2-5bc3-6000-b3856c2387b0": 66,
+        "9c5953a8-4001-5b91-10f9-c1bb21b84fb8": 8,
+        "9cbb2613-4baa-fd44-d517-17b607d3f99f": 4,
+        "9e4866fe-45c2-4cab-90c3-14a630c33ca1": 2,
+        "9f81e4c8-4098-ad04-e296-84a3619b93a6": 2,
+        "9fe03186-4464-1fdc-dd81-e39a1fe75578": 2,
+        "a200fb76-11d1-6107-0008-70bdec18db09": 1,
+        "a2a688ef-44dc-8a12-05b6-3295eb351590": 8,
+        "a3277869-11d1-9690-0008-26bd0663dc09": 3,
+        "a44374ed-4d07-5b00-85c9-93ac132d0714": 116,
+        "a79eacc7-11d1-c281-6000-a38ab46bceb0": 73,
+        "a79eaccb-11d1-c281-6000-a38ab46bceb0": 19,
+        "a79eaccc-11d1-c281-6000-a38ab46bceb0": 9,
+        "a79eaccd-11d1-c281-6000-a38ab46bceb0": 2,
+        "a79eaccf-11d1-c281-6000-a38ab46bceb0": 83,
+        "a79eacd5-11d1-c281-6000-a38ab46bceb0": 62,
+        "a7a4fd41-11d4-6805-6000-21b31d6eefb0": 1,
+        "a917f560-11d4-6a4e-c000-cb9645df724f": 2,
+        "aeb2bd47-11d4-72c0-6000-27b31d6eefb0": 5,
+        "b32bf6a3-11d2-09f4-6000-f99ac5361ab0": 2,
+        "b32bf6a5-11d2-09f4-6000-f99ac5361ab0": 48,
+        "b32bf6ab-11d2-09f4-6000-f99ac5361ab0": 1,
+        "b32bf6ac-11d2-09f4-6000-f99ac5361ab0": 15,
+        "b40c3afc-11d2-3dba-6000-558a806bceb0": 1,
+        "b7aeec3d-4ad1-d87b-ce87-68ad8f562b4f": 200,
+        "b835a483-11d2-d195-6000-93b79b49ebb0": 1,
+        "bb1dd5df-11d1-726e-0008-17bd0663dc09": 15,
+        "bd1091bf-11d2-bfc1-6000-85b72c39cdb0": 1,
+        "be6b2388-4733-a60c-f4f1-c89847cc7268": 2,
+        "bf2030ab-42f7-7d53-6358-2e938ff64e18": 5,
+        "bfd09c43-11d3-8b1c-6000-09b360e9f8b0": 176,
+        "c1ab98dd-4ed8-5d1f-22c5-51841631b75e": 50,
+        "c681c2e0-11d1-e610-8000-6eb1e13554c7": 10,
+        "c733b5db-4e2e-4b0b-1b84-878290ec4834": 5,
+        "cb072b3b-11d3-656f-6000-f888cf29fbb0": 1,
+        "cca8d815-11d4-72e1-6000-27b31d6eefb0": 5,
+        "ccaad3a8-42e1-0748-a45a-1c85bf5cde3e": 4,
+        "cce92042-11d1-71c5-0008-a7ba32a3dc09": 2,
+        "ce52df35-11d0-d2d0-0008-ccbc0663dc09": 211,
+        "ce52df3a-11d0-d2d0-0008-ccbc0663dc09": 93,
+        "ce52df3b-11d0-d2d0-0008-ccbc0663dc09": 2,
+        "ce52df3e-11d0-d2d0-0008-ccbc0663dc09": 16,
+        "ce52df40-11d0-d2d0-0008-ccbc0663dc09": 4,
+        "cea6ca2d-4c22-ed9a-948b-57abeeb49768": 4,
+        "cfce885d-4a45-dc82-88f2-56af35be266a": 29,
+        "d0a64abb-11d4-72ef-6000-27b31d6eefb0": 5,
+        "d0a64abc-11d4-72ef-6000-27b31d6eefb0": 5,
+        "d0a64abd-11d4-72ef-6000-27b31d6eefb0": 5,
+        "d2d8dc28-11d1-ae0f-6000-108a806bceb0": 1,
+        "d37c90cb-11d0-fa16-6000-0dbd861c3cb0": 1,
+        "d37c90cd-11d0-fa16-6000-0dbd861c3cb0": 1,
+        "d5829e28-491a-a082-badb-2baa4f4cb421": 4,
+        "d65333b0-11d2-1699-6000-428a806bceb0": 6,
+        "d72e4f21-47a3-5773-074c-e9899fb6dc56": 7,
+        "d7d20b65-4b37-2574-5457-0381e2dfcfc9": 3,
+        "d8577fc4-4d7d-f3f4-9a82-db8d5ebd3482": 168,
+        "d95b951a-44b2-5f55-52bd-c7bdef330683": 1,
+        "dbdd00e3-4d33-6c30-e957-7ba3c0a7f959": 2,
+        "dcf55898-4242-07fc-a55e-6d83ab83dbda": 1,
+        "de84845a-447c-a612-d011-f5b90056f3db": 1,
+        "df9ca7b0-11d2-0ac0-0008-6a9a05e5dc09": 1,
+        "e1108c00-11d1-e602-8000-6db1e13554c7": 2,
+        "e1d3d023-11d2-5d7b-6000-14882826efb0": 64,
+        "e273976d-4f95-f4eb-c69e-309a2de03a4d": 4,
+        "e3cf2678-4f8c-8a55-5aa5-4da9729a5f24": 2,
+        "e454fa4d-11d2-a65a-6000-e9b2ecbc87b0": 1,
+        "e60e8137-11d2-3ecd-6000-1d9feb49cdb0": 1,
+        "e60e813a-11d2-3ecd-6000-1d9feb49cdb0": 1,
+        "e679c2b0-11d1-bf85-6000-188a806bceb0": 1,
+        "e679c2b1-11d1-bf85-6000-188a806bceb0": 1,
+        "e9487cfe-4c44-7e49-02a2-8ea75a29244f": 2,
+        "e9874a94-4c67-749a-bf51-5bbb7f230513": 4,
+        "eac90fa8-412e-7ba9-d6b8-4c80ca97de12": 2,
+        "ebee69ca-11d2-0bc6-6000-6ab760fec3b0": 1,
+        "ebee69cb-11d2-0bc6-6000-6ab760fec3b0": 1,
+        "ebee69d0-11d2-0bc6-6000-6ab760fec3b0": 1,
+        "eee03af5-11d2-61e9-6000-86b77359ebb0": 64,
+        "efb5be1a-4275-1f9f-7bd2-1cb5800faf74": 5,
+        "f2fb355d-42d4-07c8-a07b-e085474d8be7": 152,
+        "f4a2f948-11d1-7bd2-0008-7abdec18db09": 1,
+        "f4dd03ec-467a-baa9-c077-4eaaed4bc755": 5,
+        "f59755b3-4d91-7f2d-ec6e-17b11d337719": 1,
+        "f645595c-11d5-1333-1000-60a6bba647b5": 1,
+        "f710a67c-4abd-d223-4532-4d8442570f16": 6,
+        "f7309622-11d1-66a4-6000-27a5602d6bb0": 8,
+        "f8109235-11d2-33a1-6000-b1ade3bc87b0": 6,
+        "f8a779f1-11d2-098f-c000-5a9a2378d04f": 3,
+        "f8a779f3-11d2-098f-c000-5a9a2378d04f": 1,
+        "f8a779f5-11d2-098f-c000-5a9a2378d04f": 55,
+        "f8a779f6-11d2-098f-c000-5a9a2378d04f": 1,
+        "f8a779f8-11d2-098f-c000-5a9a2378d04f": 1,
+        "f8a779f9-11d2-098f-c000-5a9a2378d04f": 1,
+        "f8a779fd-11d2-098f-c000-5a9a2378d04f": 435,
+        "f8a77a04-11d2-098f-c000-5a9a2378d04f": 91,
+        "f8a77a05-11d2-098f-c000-5a9a2378d04f": 16,
+        "f8a77a08-11d2-098f-c000-5a9a2378d04f": 1,
+        "f94feee2-4294-0768-9480-959a48721ab6": 4,
+        "f9884c43-11d1-983d-0008-26bd0663dc09": 3,
+        "faf5eb4d-11d4-7220-6000-bebead9287b0": 8,
+        "fd8daa16-4d15-ad39-58e4-7091b8f6f42b": 2,
+        "fda6d020-11d2-938f-6000-a1b70b02ecb0": 24
+      }
+    },
+    {
+      "file": "Template_IACS.idw",
+      "sha256": "ecbfbf8f9a01f977f8459b471948f0e25792065e6c03e7c899b61764fac2d60e",
+      "status": "identity_only",
+      "segments": [
+        {
+          "kind": "DlDocDcSegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlBRxSegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlDirectorySegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "AppSegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "FBAttributeSegment",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDcSegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetSmSegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        },
+        {
+          "kind": "DlSheetDlSegmentType",
+          "major": 24,
+          "status": "unsupported_profile",
+          "framed_records": 0,
+          "diagnostics": [
+            "drawing.unsupported_profile"
+          ],
+          "observations": {}
+        }
+      ],
+      "fields_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "reference_tables_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "types": {}
+    }
+  ]
+}

@@ -100,3 +100,5 @@ Windows 上の `capture_vendor_oracle.py` は Apprentice から読み取り、
 `compare_state_candidates.py` は入力 hash と取得根拠が合う候補だけを比較します。
 合成オラクルは比較パイプラインのテストであり、実機検証に数えません。
 保存先には `internal/` 配下を明示してください。
+
+図面コーパスと実比較値の取得状況は別に管理します: [IDW検証](drawing-validation.ja.md)。

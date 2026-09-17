@@ -90,6 +90,7 @@ jobs:
           python scripts/check_distribution.py dist/*.whl
           python scripts/fetch_public_samples.py
           python scripts/fetch_assembly_samples.py
+          python scripts/fetch_drawing_samples.py
           python scripts/check_corpus.py
       - name: Cold install, geometry, STEP and viewer checks on Python 3.11 and 3.12
         env:
@@ -129,6 +130,7 @@ jobs:
           python scripts/check_distribution.py dist/*.tar.gz
           python scripts/fetch_public_samples.py
           python scripts/fetch_assembly_samples.py
+          python scripts/fetch_drawing_samples.py
           python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qualification/sdist-3.11.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

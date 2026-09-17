@@ -1,0 +1,252 @@
+//! Typed wire observations. Roles are hypotheses, never a qualified display list.
+use super::{FieldObservation, FieldValue, PayloadObservation};
+use crate::{document::SourceSpan, read::Reader, rse, Error, Result};
+
+pub(super) struct Fields<'a, 'b> {
+    pub r: Reader<'a>,
+    pub work: &'b mut usize,
+    source: SourceSpan,
+    pub fields: Vec<FieldObservation>,
+}
+impl<'a, 'b> Fields<'a, 'b> {
+    fn new(bytes: &'a [u8], source: SourceSpan, work: &'b mut usize) -> Self {
+        Self {
+            r: Reader::new(bytes),
+            work,
+            source,
+            fields: vec![],
+        }
+    }
+    pub fn add(&mut self, name: &'static str, start: usize, value: FieldValue) {
+        let mut source = self.source.clone();
+        source.start_offset += start;
+        source.end_offset = self.source.start_offset + self.r.pos;
+        self.fields.push(FieldObservation {
+            name,
+            value,
+            source,
+        });
+    }
+    pub fn require(&mut self, expected: u32) -> Result<()> {
+        if self.r.u32()? != expected {
+            return Err(Error("unqualified drawing field layout".into()));
+        }
+        Ok(())
+    }
+    pub fn word(&mut self, name: &'static str) -> Result<()> {
+        rse::charge(self.work, 1)?;
+        let start = self.r.pos;
+        let value = self.r.u32()?;
+        self.add(name, start, FieldValue::U32(vec![value]));
+        Ok(())
+    }
+    pub fn short(&mut self, name: &'static str) -> Result<()> {
+        rse::charge(self.work, 1)?;
+        let start = self.r.pos;
+        let value = self.r.u16()?;
+        self.add(name, start, FieldValue::U16(value));
+        Ok(())
+    }
+    pub fn display_header(&mut self) -> Result<()> {
+        self.word("header_flags")?;
+        self.short("object_id")?;
+        self.r.skip(12)?;
+        self.word("owner_reference")?;
+        self.r.skip(4)
+    }
+    pub fn floats(&mut self, name: &'static str, count: usize) -> Result<()> {
+        rse::charge(self.work, count)?;
+        let start = self.r.pos;
+        let mut values = Vec::with_capacity(count);
+        for _ in 0..count {
+            let v = f32::from_le_bytes(self.r.take(4)?.try_into().unwrap());
+            if !v.is_finite() {
+                return Err(Error("non-finite drawing field".into()));
+            }
+            values.push(v);
+        }
+        self.add(name, start, FieldValue::F32(values));
+        Ok(())
+    }
+    pub fn text(&mut self, name: &'static str) -> Result<()> {
+        let start = self.r.pos;
+        let value = self.r.utf16()?;
+        rse::charge(self.work, value.encode_utf16().count())?;
+        self.add(name, start, FieldValue::Utf16(value));
+        Ok(())
+    }
+    pub fn doubles(&mut self, name: &'static str, count: usize) -> Result<()> {
+        rse::charge(self.work, count)?;
+        let start = self.r.pos;
+        let mut values = Vec::with_capacity(count);
+        for _ in 0..count {
+            let v = f64::from_le_bytes(self.r.take(8)?.try_into().unwrap());
+            if !v.is_finite() {
+                return Err(Error("non-finite drawing field".into()));
+            }
+            values.push(v);
+        }
+        self.add(name, start, FieldValue::F64(values));
+        Ok(())
+    }
+    pub fn references(&mut self, name: &'static str) -> Result<()> {
+        self.require(0x30000002)?;
+        let count = self.r.count(65536)?;
+        rse::charge(self.work, count)?;
+        if count != 0 {
+            if self.r.u32()? < count as u32 {
+                return Err(Error("drawing list capacity below count".into()));
+            }
+            self.require(0x10)?;
+        }
+        let start = self.r.pos;
+        let mut values = Vec::with_capacity(count);
+        for _ in 0..count {
+            values.push(self.r.u32()?);
+        }
+        self.add(name, start, FieldValue::U32(values));
+        Ok(())
+    }
+    pub fn compact(&mut self) -> Result<()> {
+        rse::charge(self.work, 16)?;
+        let start = self.r.pos;
+        let prefixed =
+            self.r.bytes.get(self.r.pos..self.r.pos + 4) == Some(&0x203u32.to_le_bytes());
+        if prefixed {
+            self.require(0x203)?;
+        }
+        let set = self.r.u16()?;
+        let zero = self.r.u16()?;
+        let mut values = [0.; 16];
+        for (i, value) in values.iter_mut().enumerate() {
+            *value = match (set & (1 << i) != 0, zero & (1 << i) != 0) {
+                (false, false) => f64::from_le_bytes(self.r.take(8)?.try_into().unwrap()),
+                (true, false) => 1.,
+                (false, true) => 0.,
+                (true, true) => -1.,
+            };
+            if !value.is_finite() {
+                return Err(Error("non-finite compact drawing field".into()));
+            }
+        }
+        self.add(
+            "transform_candidate",
+            start,
+            FieldValue::CompactTransform {
+                prefixed,
+                set,
+                zero,
+                values,
+            },
+        );
+        Ok(())
+    }
+}
+
+pub(super) fn decode(
+    kind: &str,
+    type_id: &str,
+    ordinal: usize,
+    bytes: &[u8],
+    source: SourceSpan,
+    work: &mut usize,
+) -> Result<Option<PayloadObservation>> {
+    let decoder: fn(&mut Fields<'_, '_>) -> Result<()>;
+    let role = match (kind, type_id) {
+        ("DlDocDcSegmentType", "d37c90cb-11d0-fa16-6000-0dbd861c3cb0") => {
+            decoder = super::sheet::document;
+            "document_sheet_list_candidate"
+        }
+        ("DlSheetDcSegmentType", "d37c90cd-11d0-fa16-6000-0dbd861c3cb0") => {
+            decoder = super::sheet::name;
+            "sheet_name_candidate"
+        }
+        ("DlDocDcSegmentType", "a200fb76-11d1-6107-0008-70bdec18db09") => {
+            decoder = super::sheet::links;
+            "sheet_segment_links_candidate"
+        }
+        ("DlSheetSmSegmentType", "f4a2f948-11d1-7bd2-0008-7abdec18db09") => {
+            decoder = super::sheet::space;
+            "sheet_space_candidate"
+        }
+        (
+            "DlSheetSmSegmentType",
+            "d2d8dc28-11d1-ae0f-6000-108a806bceb0"
+            | "82303d42-11d1-c02b-6000-188a806bceb0"
+            | "8a6d1381-11d1-6b56-6000-38bd861c3cb0",
+        ) => {
+            decoder = super::sheet::placement;
+            "sheet_placement_candidate"
+        }
+        ("DlDirectorySegmentType", "3e9f410e-11d2-6481-6000-708a806bceb0") => {
+            decoder = super::style::fonts;
+            "font_table_candidate"
+        }
+        ("DlSheetDlSegmentType", "a79eacd5-11d1-c281-6000-a38ab46bceb0") => {
+            decoder = super::text::fields;
+            "stored_text_candidate"
+        }
+        ("DlSheetDlSegmentType", "a79eaccb-11d1-c281-6000-a38ab46bceb0") => {
+            decoder = super::geometry::points;
+            "stored_polyline_candidate"
+        }
+        ("DlSheetDlSegmentType", "a79eacc7-11d1-c281-6000-a38ab46bceb0") => {
+            decoder = super::geometry::line;
+            "stored_line_candidate"
+        }
+        ("DlSheetDlSegmentType", "a79eaccd-11d1-c281-6000-a38ab46bceb0") => {
+            decoder = super::geometry::circle;
+            "stored_circle_candidate"
+        }
+        ("DlSheetDlSegmentType", "a79eaccc-11d1-c281-6000-a38ab46bceb0") => {
+            decoder = super::geometry::arc;
+            "stored_arc_candidate"
+        }
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "a79eaccf-11d1-c281-6000-a38ab46bceb0",
+        ) => {
+            decoder = super::geometry::group;
+            "display_group_candidate"
+        }
+        _ => return Ok(None),
+    };
+    rse::charge(work, 1)?;
+    let mut fields = Fields::new(bytes, source.clone(), work);
+    decoder(&mut fields)?;
+    Ok(Some(PayloadObservation {
+        record_ordinal: ordinal,
+        type_id: type_id.into(),
+        source,
+        layout: "idw-major31-typed-fields-v1",
+        proposed_role: role,
+        status: "unqualified",
+        fields: fields.fields,
+    }))
+}
+
+#[cfg(feature = "fuzzing")]
+pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
+    let mut work = limits.max_records;
+    for decoder in [
+        super::sheet::document,
+        super::sheet::name,
+        super::sheet::links,
+        super::sheet::space,
+        super::sheet::placement,
+        super::style::fonts,
+        super::text::fields,
+        super::geometry::points,
+        super::geometry::group,
+        super::geometry::line,
+        super::geometry::circle,
+        super::geometry::arc,
+    ] {
+        let mut fields = Fields::new(
+            bytes,
+            SourceSpan::stream("fuzz", "raw", 0, bytes.len()),
+            &mut work,
+        );
+        let _ = decoder(&mut fields);
+    }
+}

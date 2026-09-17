@@ -286,6 +286,9 @@ fn compressed_members_reject_truncation_concatenation_and_bombs() {
 #[test]
 fn type_indices_and_record_lengths_must_match() {
     let meta = rse::Meta {
+        block_table_offset: 0,
+        type_table_offset: 0,
+        reference_sections: vec![],
         id: [0; 16],
         name: String::new(),
         blocks: vec![0x8000_0001],

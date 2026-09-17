@@ -11,6 +11,7 @@ pub mod analysis;
 pub mod assembly;
 pub mod candidate;
 pub mod document;
+pub mod drawing;
 #[cfg(feature = "fuzzing")]
 pub mod fuzzing;
 pub mod property;

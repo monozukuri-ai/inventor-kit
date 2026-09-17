@@ -25,7 +25,7 @@ def main():
                    cwd=ROOT.parent, env=env, check=True, stdout=subprocess.DEVNULL)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     targets = []
-    for name in ('container', 'streams'):
+    for name in ('container', 'streams', 'drawing'):
         corpus = ROOT / 'fuzz/corpus' / name
         if not corpus.is_dir() or not any(corpus.iterdir()):
             raise ValueError('Missing fuzz seeds; run scripts/seed_fuzz_corpus.py')

@@ -59,3 +59,70 @@ pub fn stream(data: &[u8]) {
         }
     }
 }
+
+/// Drawing container, paired Meta/B envelopes, and uncompressed framing. Inputs
+/// carry a mode byte so mutation reaches trailers without breaking a checksum.
+pub fn drawing(data: &[u8]) {
+    let Some((&mode, bytes)) = data.split_first() else {
+        return;
+    };
+    let limits = limits();
+    if bytes.len() > limits.max_file_bytes {
+        return;
+    }
+    match mode % 4 {
+        0 => {
+            if let Ok(doc) = crate::drawing::inspect(bytes, "fuzz", &limits) {
+                let _ = crate::drawing::experimental_scene(&doc, &limits);
+            }
+        }
+        1 if bytes.len() <= limits.max_stream_bytes => {
+            let mut reader = Reader::new(bytes);
+            if let Ok(n) = reader.count(limits.max_stream_bytes) {
+                if let Ok(meta) = reader.take(n) {
+                    crate::drawing::fuzz_pair(meta, &bytes[reader.pos..], &limits);
+                }
+            }
+        }
+        2 if bytes.len() <= limits.max_stream_bytes => {
+            let _ = (|| -> crate::Result<()> {
+                let mut r = Reader::new(bytes);
+                let n = r.count(limits.max_records)?;
+                let t = r.count(256)?;
+                let blocks = r
+                    .take(n * 4)?
+                    .chunks_exact(4)
+                    .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+                    .collect();
+                let types = r
+                    .take(t * 16)?
+                    .chunks_exact(16)
+                    .map(|b| b.try_into().unwrap())
+                    .collect();
+                let meta = rse::Meta {
+                    id: [0; 16],
+                    name: String::new(),
+                    blocks,
+                    types,
+                    inflated_bytes: 0,
+                    compressed_offset: 0,
+                    codec: "synthetic",
+                    state_words: [0; 3],
+                    block_table_offset: 0,
+                    type_table_offset: 0,
+                    reference_sections: vec![],
+                };
+                rse::record_table(
+                    &bytes[r.pos..],
+                    &meta,
+                    31,
+                    &mut { limits.max_records },
+                    true,
+                )?;
+                Ok(())
+            })();
+        }
+        3 if bytes.len() <= limits.max_stream_bytes => crate::drawing::fuzz_fields(bytes, &limits),
+        _ => {}
+    }
+}

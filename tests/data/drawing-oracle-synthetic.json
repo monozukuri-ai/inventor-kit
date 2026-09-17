@@ -1,0 +1,536 @@
+{
+  "schema_version": 1,
+  "source": {
+    "file_name": "synthetic.idw",
+    "bytes": 32,
+    "sha256": "799e1540353aa3c26e22339a2ac0eace8345db2a8fcf329142d0e5d7329d6f61"
+  },
+  "provider": {
+    "name": "synthetic",
+    "version": {
+      "status": "captured",
+      "value": "Fake provider / test"
+    },
+    "platform": "test",
+    "collector_sha256": "1837c92700ad22211b05120078513996a48396bd809c5dc048186ea63df45d60"
+  },
+  "capture": {
+    "acquired_at": "2026-09-16T00:00:00Z",
+    "scope": "synthetic",
+    "source_preserved": true,
+    "save_requested": false,
+    "update_requested": false,
+    "automatic_update": "unknown",
+    "state_evidence": {
+      "status": "unavailable",
+      "reason": "No independent confirmation of opening-time update/migration"
+    },
+    "open_options": []
+  },
+  "units": {
+    "length": "cm",
+    "angle": "rad",
+    "drawing_curves": "sheet"
+  },
+  "input_files": [
+    {
+      "path": "synthetic.idw",
+      "identity": {
+        "file_name": "synthetic.idw",
+        "bytes": 32,
+        "sha256": "799e1540353aa3c26e22339a2ac0eace8345db2a8fcf329142d0e5d7329d6f61"
+      }
+    }
+  ],
+  "document_state_before": {
+    "document_type": {
+      "status": "captured",
+      "value": 12292
+    },
+    "dirty": {
+      "status": "captured",
+      "value": false
+    },
+    "requires_update": {
+      "status": "captured",
+      "value": false
+    },
+    "defer_updates": {
+      "status": "captured",
+      "value": true
+    }
+  },
+  "document_state_after": {
+    "document_type": {
+      "status": "captured",
+      "value": 12292
+    },
+    "dirty": {
+      "status": "captured",
+      "value": false
+    },
+    "requires_update": {
+      "status": "captured",
+      "value": false
+    },
+    "defer_updates": {
+      "status": "captured",
+      "value": true
+    }
+  },
+  "sheets": {
+    "status": "captured",
+    "reported_count": 1,
+    "items": [
+      {
+        "index": 1,
+        "result": {
+          "status": "captured",
+          "value": {
+            "name": {
+              "status": "captured",
+              "value": "Sheet:1"
+            },
+            "width": {
+              "status": "captured",
+              "value": 29.7
+            },
+            "height": {
+              "status": "captured",
+              "value": 21.0
+            },
+            "orientation": {
+              "status": "captured",
+              "value": 10243
+            },
+            "size": {
+              "status": "captured",
+              "value": 9993
+            },
+            "sheet_status": {
+              "status": "captured",
+              "value": 0
+            },
+            "views": {
+              "status": "captured",
+              "reported_count": 1,
+              "items": [
+                {
+                  "index": 1,
+                  "result": {
+                    "status": "captured",
+                    "value": {
+                      "name": {
+                        "status": "captured",
+                        "value": "VIEW1"
+                      },
+                      "view_type": {
+                        "status": "captured",
+                        "value": 10501
+                      },
+                      "position": {
+                        "status": "captured",
+                        "value": [
+                          10.0,
+                          12.0
+                        ]
+                      },
+                      "scale": {
+                        "status": "captured",
+                        "value": 0.5
+                      },
+                      "rotation": {
+                        "status": "captured",
+                        "value": 0.0
+                      },
+                      "width": {
+                        "status": "captured",
+                        "value": 5.0
+                      },
+                      "height": {
+                        "status": "captured",
+                        "value": 4.0
+                      },
+                      "curves": {
+                        "status": "captured",
+                        "reported_count": 1,
+                        "items": [
+                          {
+                            "index": 1,
+                            "result": {
+                              "status": "captured",
+                              "value": {
+                                "segments": {
+                                  "status": "captured",
+                                  "reported_count": 1,
+                                  "items": [
+                                    {
+                                      "index": 1,
+                                      "result": {
+                                        "status": "captured",
+                                        "value": {
+                                          "geometry_type": {
+                                            "status": "captured",
+                                            "value": 5251
+                                          },
+                                          "visible": {
+                                            "status": "captured",
+                                            "value": true
+                                          },
+                                          "hidden_line": {
+                                            "status": "captured",
+                                            "value": false
+                                          },
+                                          "layer": {
+                                            "status": "captured",
+                                            "value": "Visible"
+                                          },
+                                          "geometry": {
+                                            "status": "captured",
+                                            "value": {
+                                              "kind": "line_segment",
+                                              "start": [
+                                                1.0,
+                                                2.0
+                                              ],
+                                              "end": [
+                                                4.0,
+                                                6.0
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "sketches": {
+                        "status": "captured",
+                        "reported_count": 0,
+                        "items": []
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "sketches": {
+              "status": "captured",
+              "reported_count": 1,
+              "items": [
+                {
+                  "index": 1,
+                  "result": {
+                    "status": "captured",
+                    "value": {
+                      "name": {
+                        "status": "captured",
+                        "value": "Sketch1"
+                      },
+                      "visible": {
+                        "status": "captured",
+                        "value": true
+                      },
+                      "coordinate_space": "sketch",
+                      "sheet_basis": {
+                        "status": "captured",
+                        "value": [
+                          [
+                            1.0,
+                            2.0
+                          ],
+                          [
+                            2.0,
+                            2.0
+                          ],
+                          [
+                            1.0,
+                            3.0
+                          ]
+                        ]
+                      },
+                      "entities": {
+                        "status": "captured",
+                        "reported_count": 1,
+                        "items": [
+                          {
+                            "index": 1,
+                            "result": {
+                              "status": "captured",
+                              "value": {
+                                "object_type": {
+                                  "status": "captured",
+                                  "value": 83896064
+                                },
+                                "construction": {
+                                  "status": "captured",
+                                  "value": false
+                                },
+                                "layer": {
+                                  "status": "captured",
+                                  "value": "Visible"
+                                },
+                                "geometry": {
+                                  "status": "captured",
+                                  "value": {
+                                    "kind": "line_segment",
+                                    "start": [
+                                      1.0,
+                                      2.0
+                                    ],
+                                    "end": [
+                                      4.0,
+                                      6.0
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "texts": {
+                        "status": "captured",
+                        "reported_count": 1,
+                        "items": [
+                          {
+                            "index": 1,
+                            "result": {
+                              "status": "captured",
+                              "value": {
+                                "text": {
+                                  "status": "captured",
+                                  "value": "図面 ⌀10\nline"
+                                },
+                                "formatted_text": {
+                                  "status": "captured",
+                                  "value": "図面 ⌀10\nline"
+                                },
+                                "position": {
+                                  "status": "captured",
+                                  "value": [
+                                    2.0,
+                                    3.0
+                                  ]
+                                },
+                                "rotation": {
+                                  "status": "captured",
+                                  "value": 0.0
+                                },
+                                "height": {
+                                  "status": "captured",
+                                  "value": 0.7
+                                },
+                                "width": {
+                                  "status": "captured",
+                                  "value": 3.0
+                                },
+                                "font": {
+                                  "status": "captured",
+                                  "value": "Synthetic Font"
+                                },
+                                "font_size": {
+                                  "status": "captured",
+                                  "value": 0.35
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "notes": {
+              "status": "captured",
+              "reported_count": 1,
+              "items": [
+                {
+                  "index": 1,
+                  "result": {
+                    "status": "captured",
+                    "value": {
+                      "text": {
+                        "status": "captured",
+                        "value": "図面 ⌀10\nline"
+                      },
+                      "formatted_text": {
+                        "status": "captured",
+                        "value": "図面 ⌀10\nline"
+                      },
+                      "position": {
+                        "status": "captured",
+                        "value": [
+                          2.0,
+                          3.0
+                        ]
+                      },
+                      "rotation": {
+                        "status": "captured",
+                        "value": 0.0
+                      },
+                      "height": {
+                        "status": "captured",
+                        "value": 0.7
+                      },
+                      "width": {
+                        "status": "captured",
+                        "value": 3.0
+                      },
+                      "font": {
+                        "status": "captured",
+                        "value": "Synthetic Font"
+                      },
+                      "font_size": {
+                        "status": "captured",
+                        "value": 0.35
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "dimensions": {
+              "status": "captured",
+              "reported_count": 1,
+              "items": [
+                {
+                  "index": 1,
+                  "result": {
+                    "status": "captured",
+                    "value": {
+                      "object_type": {
+                        "status": "captured",
+                        "value": 117474560
+                      },
+                      "text": {
+                        "status": "captured",
+                        "value": "10"
+                      },
+                      "formatted_text": {
+                        "status": "captured",
+                        "value": "10"
+                      },
+                      "position": {
+                        "status": "captured",
+                        "value": [
+                          5.0,
+                          7.0
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "parts_lists": {
+              "status": "captured",
+              "reported_count": 1,
+              "items": [
+                {
+                  "index": 1,
+                  "result": {
+                    "status": "captured",
+                    "value": {
+                      "title": {
+                        "status": "captured",
+                        "value": "PARTS LIST"
+                      },
+                      "position": {
+                        "status": "captured",
+                        "value": [
+                          4.0,
+                          8.0
+                        ]
+                      },
+                      "rows": {
+                        "status": "captured",
+                        "reported_count": 1,
+                        "items": [
+                          {
+                            "index": 1,
+                            "result": {
+                              "status": "captured",
+                              "value": {
+                                "status": "captured",
+                                "reported_count": 2,
+                                "items": [
+                                  {
+                                    "index": 1,
+                                    "result": {
+                                      "status": "captured",
+                                      "value": "1"
+                                    }
+                                  },
+                                  {
+                                    "index": 2,
+                                    "result": {
+                                      "status": "captured",
+                                      "value": "部品A"
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "border": {
+              "status": "captured",
+              "value": null
+            },
+            "title_block": {
+              "status": "captured",
+              "value": {
+                "name": {
+                  "status": "captured",
+                  "value": "Title"
+                },
+                "texts": {
+                  "status": "captured",
+                  "reported_count": 1,
+                  "items": [
+                    {
+                      "index": 1,
+                      "result": {
+                        "status": "captured",
+                        "value": "Evaluated title"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "references": {
+    "status": "captured",
+    "reported_count": 0,
+    "items": []
+  },
+  "visual_artifacts": [],
+  "limitations": [
+    "Collector has not been qualified on a Windows/Autodesk installation.",
+    "Opened document observations are not proof of the original saved drawing state.",
+    "Reference descriptors are direct references, not proof of a complete transitive dependency closure.",
+    "Only line, circle and circular arc geometry is decoded; unsupported queries retain status/reason.",
+    "Sketch basis points are provider observations; affine behavior has not been independently qualified.",
+    "Leader notes, symbols, hatches, images, border/title-block geometry and table layout are outside this capture profile.",
+    "No PDF/PNG export or font installation audit is performed."
+  ]
+}

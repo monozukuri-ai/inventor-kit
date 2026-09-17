@@ -42,3 +42,7 @@ Collector implementation references:
 [body mass properties](https://help.autodesk.com/cloudhelp/2023/ENU/Inventor-API/files/SurfaceBodyMassProperties.htm),
 [database units](https://help.autodesk.com/cloudhelp/2021/ENU/Inventor-API/files/UOM_Overview.htm),
 [Model State limitations](https://help.autodesk.com/cloudhelp/2025/ENU/Inventor-API/files/ModelStates_Overview.htm).
+
+IDW drawings use a separate [drawing capture contract](../../docs/drawing-validation.md).
+Native drawing captures are not yet collected; synthetic drawing JSON is kept under
+`tests/data/` and cannot satisfy acquisition gates.

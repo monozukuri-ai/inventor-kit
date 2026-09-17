@@ -1,0 +1,417 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "file": "drawings/iacs/Template_IACS.idw",
+      "repo": "Steigner/IACS-Inventor_template",
+      "commit": "b1d64224752097b1bc480f81379176989814315e",
+      "upstream_path": "Template/Template_IACS.idw",
+      "url": "https://raw.githubusercontent.com/Steigner/IACS-Inventor_template/b1d64224752097b1bc480f81379176989814315e/Template/Template_IACS.idw",
+      "bytes": 1112576,
+      "sha256": "ecbfbf8f9a01f977f8459b471948f0e25792065e6c03e7c899b61764fac2d60e",
+      "family_id": "iacs-template",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Download-only fixture. Upstream repository license: MIT; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/Steigner/IACS-Inventor_template/blob/b1d64224752097b1bc480f81379176989814315e/LICENSE"
+    },
+    {
+      "file": "drawings/iacs/LICENSE",
+      "repo": "Steigner/IACS-Inventor_template",
+      "commit": "b1d64224752097b1bc480f81379176989814315e",
+      "upstream_path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/Steigner/IACS-Inventor_template/b1d64224752097b1bc480f81379176989814315e/LICENSE",
+      "bytes": 1065,
+      "sha256": "b054f5f1e999d7881c8d1d1892e27be0d62bd8892ae6d0fb6a6a9627098a96e5",
+      "family_id": "iacs-template",
+      "split": "regression",
+      "asset_kind": "license",
+      "license_notice": "Download-only fixture. Upstream repository license: MIT; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/Steigner/IACS-Inventor_template/blob/b1d64224752097b1bc480f81379176989814315e/LICENSE"
+    },
+    {
+      "file": "drawings/rim/RIM.idw",
+      "repo": "sajith-subramanian/forge-rimconfigurator-inventor",
+      "commit": "187db087717c80a15ca77bdfa6d8a5c5236754bc",
+      "upstream_path": "UpdateParams/UpdateParamsBundle/ParamsPlugin.bundle/Contents/Rim/RIM.idw",
+      "url": "https://raw.githubusercontent.com/sajith-subramanian/forge-rimconfigurator-inventor/187db087717c80a15ca77bdfa6d8a5c5236754bc/UpdateParams/UpdateParamsBundle/ParamsPlugin.bundle/Contents/Rim/RIM.idw",
+      "bytes": 802304,
+      "sha256": "19fd923809ddc1c198accfbf4312e1d9f6d9c781049cc9f680b463944b778927",
+      "family_id": "forge-rim",
+      "split": "holdout",
+      "asset_kind": "native_drawing",
+      "license_notice": "Download-only fixture. Upstream repository license: MIT; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/sajith-subramanian/forge-rimconfigurator-inventor/blob/187db087717c80a15ca77bdfa6d8a5c5236754bc/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/rim/LICENSE",
+      "repo": "sajith-subramanian/forge-rimconfigurator-inventor",
+      "commit": "187db087717c80a15ca77bdfa6d8a5c5236754bc",
+      "upstream_path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/sajith-subramanian/forge-rimconfigurator-inventor/187db087717c80a15ca77bdfa6d8a5c5236754bc/LICENSE",
+      "bytes": 1071,
+      "sha256": "ce8017d3a0c4da5029aae673abcdd122c0e326abc0d36f587272b63d2add2ba6",
+      "family_id": "forge-rim",
+      "split": "holdout",
+      "asset_kind": "license",
+      "license_notice": "Download-only fixture. Upstream repository license: MIT; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/sajith-subramanian/forge-rimconfigurator-inventor/blob/187db087717c80a15ca77bdfa6d8a5c5236754bc/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/rim/RIM.ipt",
+      "repo": "sajith-subramanian/forge-rimconfigurator-inventor",
+      "commit": "187db087717c80a15ca77bdfa6d8a5c5236754bc",
+      "upstream_path": "UpdateParams/UpdateParamsBundle/ParamsPlugin.bundle/Contents/Rim/RIM.ipt",
+      "url": "https://raw.githubusercontent.com/sajith-subramanian/forge-rimconfigurator-inventor/187db087717c80a15ca77bdfa6d8a5c5236754bc/UpdateParams/UpdateParamsBundle/ParamsPlugin.bundle/Contents/Rim/RIM.ipt",
+      "bytes": 743936,
+      "sha256": "0c7071162dd2736e201e189ef03ec658cad2a3ad91d46686a487a8386c58d176",
+      "family_id": "forge-rim",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: MIT; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/sajith-subramanian/forge-rimconfigurator-inventor/blob/187db087717c80a15ca77bdfa6d8a5c5236754bc/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VISE ASSEMBLY.idw",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VISE ASSEMBLY.idw",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VISE%20ASSEMBLY.idw",
+      "bytes": 322048,
+      "sha256": "029dbe6d44d4056d77c61dbd25e608f10bc7b27a0a8d548e7ba7f9d81ac7dadf",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_drawing",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/LICENSE",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "bytes": 35129,
+      "sha256": "605e9047a563c5c8396ffb18232aa4304ec56586aee537c45064c6fb425e44ad",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "license",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/ANSI B18.6.2 - 1_4-20 UNC - 0.75.ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "ANSI B18.6.2 - 1_4-20 UNC - 0.75.ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/ANSI%20B18.6.2%20-%201_4-20%20UNC%20-%200.75.ipt",
+      "bytes": 188416,
+      "sha256": "d915d7f13c40ff5a61150d3cf1aa260fb8ac78b1f3d561a9f62cb1eedec9eea6",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/ANSI B18.8.2 - No. 2_0 x 3_4  0.1423.ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "ANSI B18.8.2 - No. 2_0 x 3_4  0.1423.ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/ANSI%20B18.8.2%20-%20No.%202_0%20x%203_4%20%200.1423.ipt",
+      "bytes": 119296,
+      "sha256": "9cdda075916fc5cd8d890a52d7cad9ba6100a9cf74eed7e444e9bd41f51667fb",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/Final Project Assembly.iam",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "Final Project Assembly.iam",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/Final%20Project%20Assembly.iam",
+      "bytes": 408064,
+      "sha256": "96ec8304ee09491756df84af2073c358b52d9c4478126f863f4b77d9b0ce6b28",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-001 (BASE).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-001 (BASE).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-001%20%28BASE%29.ipt",
+      "bytes": 377344,
+      "sha256": "bd9be4e3c26f39f7bae8990ab3a4d4b73f6963bf4a91e260941c84d9fe9a1e24",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-002 (SLIDING JAW).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-002 (SLIDING JAW).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-002%20%28SLIDING%20JAW%29.ipt",
+      "bytes": 352256,
+      "sha256": "95455a4e031133aa6de53c9b91574f77acde07270ceb9bceb16ad071ac12ef83",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-003 (JAW PLATE).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-003 (JAW PLATE).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-003%20%28JAW%20PLATE%29.ipt",
+      "bytes": 106496,
+      "sha256": "a261c6ffd82ccdc501a92c8f72bddff269e5f6094ca0d94f27c2fbc61e1d2664",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-004 (VISE SCREW).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-004 (VISE SCREW).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-004%20%28VISE%20SCREW%29.ipt",
+      "bytes": 145408,
+      "sha256": "b83b3356038074b39783cd2720a00101ee5056ebf1ffe1767c6dd602af06c850",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-005(COLLAR).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-005(COLLAR).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-005%28COLLAR%29.ipt",
+      "bytes": 141312,
+      "sha256": "d213d23047de3c6299814a205cda8e37e4209694c0839b3f4b71fd2f6d4d4d56",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-006 (SPECIAL KEY).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-006 (SPECIAL KEY).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-006%20%28SPECIAL%20KEY%29.ipt",
+      "bytes": 104448,
+      "sha256": "7bc9c0b2c49e82a430c506a671f9ee633b87a4fa97ea8caa9c00ee049b52aef2",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-007 (HANDLE ROD).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-007 (HANDLE ROD).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-007%20%28HANDLE%20ROD%29.ipt",
+      "bytes": 110080,
+      "sha256": "696bc61a186469103fc6c61a8220326c831ca46a6283facc09c9ed2a79a69c85",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-008 (HANDLE BALL).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-008 (HANDLE BALL).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-008%20%28HANDLE%20BALL%29.ipt",
+      "bytes": 155648,
+      "sha256": "d35494d5255bd417e3ae829876113fbb301eea87efd30e582fadd1e2b5428926",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-009 (SLIDE KEY).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-009 (SLIDE KEY).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-009%20%28SLIDE%20KEY%29.ipt",
+      "bytes": 98816,
+      "sha256": "924004857bd8cc76269869c34b28c45412b8ee334805af22c48595056b7c706c",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VS-010 (SET SCREW).ipt",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VS-010 (SET SCREW).ipt",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VS-010%20%28SET%20SCREW%29.ipt",
+      "bytes": 123904,
+      "sha256": "d7321f551ce7f69e007c55eda35b4dbda65e99709c33f13a12ce3e795f220e11",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "native_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/vise/VISE ASSEMBLY.pdf",
+      "repo": "LFrum/Engr_Principles-Final_Project-Vise",
+      "commit": "3dbd55f768f1170a803ff6950f10ebc8cc628f04",
+      "upstream_path": "VISE ASSEMBLY.pdf",
+      "url": "https://raw.githubusercontent.com/LFrum/Engr_Principles-Final_Project-Vise/3dbd55f768f1170a803ff6950f10ebc8cc628f04/VISE%20ASSEMBLY.pdf",
+      "bytes": 91405,
+      "sha256": "a53385a7bbab7ce7faabbed3cec6a3c0e22598b039c898c31abd8d88b02b8ff0",
+      "family_id": "lfrum-vise",
+      "split": "holdout",
+      "asset_kind": "visual_reference",
+      "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
+      "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    }
+  ],
+  "drawings": [
+    {
+      "id": "metareader-1",
+      "fixture": {
+        "manifest": "manifest.json",
+        "file": "_Fishing Rod Assembly.idw"
+      },
+      "role": "unknown",
+      "role_basis": "Existing pinned IDW; drawing semantics not decoded.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "metareader-2",
+      "fixture": {
+        "manifest": "manifest.json",
+        "file": "SampleBg.idw"
+      },
+      "role": "unknown",
+      "role_basis": "Existing pinned IDW; drawing semantics not decoded.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "iacs",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/iacs/Template_IACS.idw"
+      },
+      "role": "template",
+      "role_basis": "Upstream project and source filename; role has not been verified with Autodesk API.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "rim",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/rim/RIM.idw"
+      },
+      "role": "part",
+      "role_basis": "Upstream project and source filename; role has not been verified with Autodesk API.",
+      "references": [
+        "drawings/rim/RIM.ipt"
+      ],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "vise",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/vise/VISE ASSEMBLY.idw"
+      },
+      "role": "assembly",
+      "role_basis": "Upstream project and source filename; role has not been verified with Autodesk API.",
+      "references": [
+        "drawings/vise/ANSI B18.6.2 - 1_4-20 UNC - 0.75.ipt",
+        "drawings/vise/ANSI B18.8.2 - No. 2_0 x 3_4  0.1423.ipt",
+        "drawings/vise/Final Project Assembly.iam",
+        "drawings/vise/VS-001 (BASE).ipt",
+        "drawings/vise/VS-002 (SLIDING JAW).ipt",
+        "drawings/vise/VS-003 (JAW PLATE).ipt",
+        "drawings/vise/VS-004 (VISE SCREW).ipt",
+        "drawings/vise/VS-005(COLLAR).ipt",
+        "drawings/vise/VS-006 (SPECIAL KEY).ipt",
+        "drawings/vise/VS-007 (HANDLE ROD).ipt",
+        "drawings/vise/VS-008 (HANDLE BALL).ipt",
+        "drawings/vise/VS-009 (SLIDE KEY).ipt",
+        "drawings/vise/VS-010 (SET SCREW).ipt"
+      ],
+      "reference_completeness": "unverified",
+      "visuals": [
+        {
+          "file": "drawings/vise/VISE ASSEMBLY.pdf",
+          "binding": "unverified",
+          "basis": "Same stem and upstream commit; exact saved IDW revision/sheets not authenticated."
+        }
+      ],
+      "oracle": {
+        "status": "not_collected"
+      }
+    }
+  ]
+}

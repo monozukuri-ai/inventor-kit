@@ -39,7 +39,7 @@ class ReleaseGates(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             part = root / 'sample.ipt'
-            row = dict(file=part.name, bytes=3, sha256=hashlib.sha256(b'abc').hexdigest(), split='holdout')
+            row = dict(file=part.name, bytes=3, sha256=hashlib.sha256(b'abc').hexdigest(), split='holdout', family_id='test-sample')
             manifest = root / 'manifest.json'
             manifest.write_text(json.dumps([row]))
             with self.assertRaisesRegex(ValueError, 'Missing'):

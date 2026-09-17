@@ -1,0 +1,2420 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inventor drawing comparison capture v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "source": {
+      "$ref": "#/$defs/identity"
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": [
+            "autodesk.apprentice",
+            "autodesk.inventor",
+            "synthetic"
+          ]
+        },
+        "version": {
+          "$ref": "#/$defs/string"
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collector_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "platform",
+        "collector_sha256"
+      ]
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "acquired_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scope": {
+          "enum": [
+            "opened_document",
+            "synthetic"
+          ]
+        },
+        "source_preserved": {
+          "const": true
+        },
+        "save_requested": {
+          "const": false
+        },
+        "update_requested": {
+          "const": false
+        },
+        "automatic_update": {
+          "enum": [
+            "unknown",
+            "not_occurred",
+            "occurred"
+          ]
+        },
+        "state_evidence": {
+          "$ref": "#/$defs/string"
+        },
+        "open_options": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "acquired_at",
+        "scope",
+        "source_preserved",
+        "save_requested",
+        "update_requested",
+        "automatic_update",
+        "state_evidence",
+        "open_options"
+      ]
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "length": {
+          "const": "cm"
+        },
+        "angle": {
+          "const": "rad"
+        },
+        "drawing_curves": {
+          "const": "sheet"
+        }
+      },
+      "required": [
+        "length",
+        "angle",
+        "drawing_curves"
+      ]
+    },
+    "input_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "identity": {
+            "$ref": "#/$defs/identity"
+          }
+        },
+        "required": [
+          "path",
+          "identity"
+        ]
+      }
+    },
+    "document_state_before": {
+      "$ref": "#/$defs/document_state"
+    },
+    "document_state_after": {
+      "$ref": "#/$defs/document_state"
+    },
+    "sheets": {
+      "$ref": "#/$defs/sheets"
+    },
+    "references": {
+      "$ref": "#/$defs/references"
+    },
+    "visual_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "provider",
+    "capture",
+    "units",
+    "input_files",
+    "document_state_before",
+    "document_state_after",
+    "sheets",
+    "references",
+    "visual_artifacts",
+    "limitations"
+  ],
+  "$defs": {
+    "unavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "unavailable",
+            "failed"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "status",
+        "reason"
+      ]
+    },
+    "string": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "number": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "integer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "boolean": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "point": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "file_name",
+        "sha256",
+        "bytes"
+      ]
+    },
+    "identityResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/identity"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "line_segment"
+            },
+            "start": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "end": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "required": [
+            "kind",
+            "start",
+            "end"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "circle"
+            },
+            "center": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "radius": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "center",
+            "radius"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "arc"
+            },
+            "center": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "radius": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "start": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "end": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "start_angle": {
+              "type": "number"
+            },
+            "sweep_angle": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "center",
+            "radius",
+            "start",
+            "end",
+            "start_angle",
+            "sweep_angle"
+          ]
+        }
+      ]
+    },
+    "geometryResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/geometry"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "geometry_type": {
+          "$ref": "#/$defs/integer"
+        },
+        "visible": {
+          "$ref": "#/$defs/boolean"
+        },
+        "hidden_line": {
+          "$ref": "#/$defs/boolean"
+        },
+        "layer": {
+          "$ref": "#/$defs/string"
+        },
+        "geometry": {
+          "$ref": "#/$defs/geometryResult"
+        }
+      },
+      "required": [
+        "geometry_type",
+        "visible",
+        "hidden_line",
+        "layer",
+        "geometry"
+      ]
+    },
+    "segmentsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/segment"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "segments": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/segmentsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "curve": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "segments": {
+          "$ref": "#/$defs/segments"
+        }
+      },
+      "required": [
+        "segments"
+      ]
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/string"
+        },
+        "formatted_text": {
+          "$ref": "#/$defs/string"
+        },
+        "position": {
+          "$ref": "#/$defs/point"
+        },
+        "rotation": {
+          "$ref": "#/$defs/number"
+        },
+        "height": {
+          "$ref": "#/$defs/number"
+        },
+        "width": {
+          "$ref": "#/$defs/number"
+        },
+        "font": {
+          "$ref": "#/$defs/string"
+        },
+        "font_size": {
+          "$ref": "#/$defs/number"
+        }
+      },
+      "required": [
+        "text",
+        "formatted_text",
+        "position",
+        "rotation",
+        "height",
+        "width",
+        "font",
+        "font_size"
+      ]
+    },
+    "sketch_entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "object_type": {
+          "$ref": "#/$defs/integer"
+        },
+        "construction": {
+          "$ref": "#/$defs/boolean"
+        },
+        "layer": {
+          "$ref": "#/$defs/string"
+        },
+        "geometry": {
+          "$ref": "#/$defs/geometryResult"
+        }
+      },
+      "required": [
+        "object_type",
+        "construction",
+        "layer",
+        "geometry"
+      ]
+    },
+    "sheetBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "sketchEntitiesItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/sketch_entity"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "sketchEntities": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/sketchEntitiesItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "sketchTextsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "sketchTexts": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/sketchTextsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "sketch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/string"
+        },
+        "visible": {
+          "$ref": "#/$defs/boolean"
+        },
+        "coordinate_space": {
+          "const": "sketch"
+        },
+        "sheet_basis": {
+          "$ref": "#/$defs/sheetBasis"
+        },
+        "entities": {
+          "$ref": "#/$defs/sketchEntities"
+        },
+        "texts": {
+          "$ref": "#/$defs/sketchTexts"
+        }
+      },
+      "required": [
+        "name",
+        "visible",
+        "coordinate_space",
+        "sheet_basis",
+        "entities",
+        "texts"
+      ]
+    },
+    "curvesItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/curve"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "curves": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/curvesItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "sketchesItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/sketch"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "sketches": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/sketchesItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/string"
+        },
+        "view_type": {
+          "$ref": "#/$defs/integer"
+        },
+        "position": {
+          "$ref": "#/$defs/point"
+        },
+        "scale": {
+          "$ref": "#/$defs/number"
+        },
+        "rotation": {
+          "$ref": "#/$defs/number"
+        },
+        "width": {
+          "$ref": "#/$defs/number"
+        },
+        "height": {
+          "$ref": "#/$defs/number"
+        },
+        "curves": {
+          "$ref": "#/$defs/curves"
+        },
+        "sketches": {
+          "$ref": "#/$defs/sketches"
+        }
+      },
+      "required": [
+        "name",
+        "view_type",
+        "position",
+        "scale",
+        "rotation",
+        "width",
+        "height",
+        "curves",
+        "sketches"
+      ]
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "object_type": {
+          "$ref": "#/$defs/integer"
+        },
+        "text": {
+          "$ref": "#/$defs/string"
+        },
+        "formatted_text": {
+          "$ref": "#/$defs/string"
+        },
+        "position": {
+          "$ref": "#/$defs/point"
+        }
+      },
+      "required": [
+        "object_type",
+        "text",
+        "formatted_text",
+        "position"
+      ]
+    },
+    "blockTextsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "blockTexts": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/blockTextsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/string"
+        },
+        "texts": {
+          "$ref": "#/$defs/blockTexts"
+        }
+      },
+      "required": [
+        "name",
+        "texts"
+      ]
+    },
+    "blockResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/block"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "tableCellsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "tableCells": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/tableCellsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "tableRowsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/tableCells"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "tableRows": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/tableRowsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "parts_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/string"
+        },
+        "position": {
+          "$ref": "#/$defs/point"
+        },
+        "rows": {
+          "$ref": "#/$defs/tableRows"
+        }
+      },
+      "required": [
+        "title",
+        "position",
+        "rows"
+      ]
+    },
+    "viewsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/view"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "views": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/viewsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "notesItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "notes": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/notesItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "dimensionsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/dimension"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "dimensions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/dimensionsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "partsListsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/parts_list"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "partsLists": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/partsListsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "sheet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/string"
+        },
+        "width": {
+          "$ref": "#/$defs/number"
+        },
+        "height": {
+          "$ref": "#/$defs/number"
+        },
+        "orientation": {
+          "$ref": "#/$defs/integer"
+        },
+        "size": {
+          "$ref": "#/$defs/integer"
+        },
+        "sheet_status": {
+          "$ref": "#/$defs/integer"
+        },
+        "views": {
+          "$ref": "#/$defs/views"
+        },
+        "sketches": {
+          "$ref": "#/$defs/sketches"
+        },
+        "notes": {
+          "$ref": "#/$defs/notes"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/dimensions"
+        },
+        "parts_lists": {
+          "$ref": "#/$defs/partsLists"
+        },
+        "border": {
+          "$ref": "#/$defs/blockResult"
+        },
+        "title_block": {
+          "$ref": "#/$defs/blockResult"
+        }
+      },
+      "required": [
+        "name",
+        "width",
+        "height",
+        "orientation",
+        "size",
+        "sheet_status",
+        "views",
+        "sketches",
+        "notes",
+        "dimensions",
+        "parts_lists",
+        "border",
+        "title_block"
+      ]
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "full_file_name": {
+          "$ref": "#/$defs/string"
+        },
+        "missing": {
+          "$ref": "#/$defs/boolean"
+        },
+        "identity": {
+          "$ref": "#/$defs/identityResult"
+        }
+      },
+      "required": [
+        "full_file_name",
+        "missing",
+        "identity"
+      ]
+    },
+    "document_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_type": {
+          "$ref": "#/$defs/integer"
+        },
+        "dirty": {
+          "$ref": "#/$defs/boolean"
+        },
+        "requires_update": {
+          "$ref": "#/$defs/boolean"
+        },
+        "defer_updates": {
+          "$ref": "#/$defs/boolean"
+        }
+      },
+      "required": [
+        "document_type",
+        "dirty",
+        "requires_update",
+        "defer_updates"
+      ]
+    },
+    "dpi": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "fonts": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "media_type": {
+          "enum": [
+            "application/pdf",
+            "image/png"
+          ]
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sheet_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "binding": {
+          "enum": [
+            "unverified",
+            "same_session"
+          ]
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dpi": {
+          "$ref": "#/$defs/dpi"
+        },
+        "fonts": {
+          "$ref": "#/$defs/fonts"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "bytes",
+        "media_type",
+        "source_sha256",
+        "sheet_index",
+        "binding",
+        "provenance",
+        "dpi",
+        "fonts"
+      ]
+    },
+    "sheetsItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/sheet"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "sheets": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/sheetsItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "referencesItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "captured"
+            },
+            "value": {
+              "$ref": "#/$defs/reference"
+            }
+          },
+          "required": [
+            "status",
+            "value"
+          ]
+        },
+        {
+          "$ref": "#/$defs/unavailable"
+        }
+      ]
+    },
+    "references": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "captured",
+                "partial"
+              ]
+            },
+            "reported_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "result": {
+                    "$ref": "#/$defs/referencesItem"
+                  }
+                },
+                "required": [
+                  "index",
+                  "result"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "unavailable",
+                "failed"
+              ]
+            },
+            "reported_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items": {
+              "const": []
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "reported_count",
+            "items",
+            "reason"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -24,6 +24,7 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-features --locked
 python scripts/fetch_public_samples.py
 python scripts/fetch_assembly_samples.py
+python scripts/fetch_drawing_samples.py
 python scripts/run_tests.py
 ```
 
