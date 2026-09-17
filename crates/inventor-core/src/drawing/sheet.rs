@@ -21,7 +21,10 @@ pub(super) fn name(f: &mut Fields<'_, '_>) -> Result<()> {
 }
 
 pub(super) fn links(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(34)?;
+    // Full object key used by the SM definition reference, not a record ordinal.
+    f.word("header_flags")?;
+    f.short("object_id")?;
+    f.r.skip(28)?;
     f.references("references_unresolved")?;
     f.r.skip(11)?;
     for name in ["dc_segment_name", "dl_segment_name", "sm_segment_name"] {
@@ -53,4 +56,15 @@ pub(super) fn placement(f: &mut Fields<'_, '_>) -> Result<()> {
     }
     f.word("definition_reference")?;
     f.compact()
+}
+
+pub(super) fn image(f: &mut Fields<'_, '_>) -> Result<()> {
+    f.r.skip(15)?;
+    f.doubles("image_height_width", 2)?;
+    f.word("image_handle")?;
+    f.compact()?;
+    f.word("image_color")?;
+    f.byte("image_format")?;
+    f.word("image_reference")?;
+    f.r.finish()
 }

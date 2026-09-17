@@ -213,7 +213,9 @@
           "status": "framed",
           "framed_records": 52,
           "diagnostics": [],
-          "observations": {}
+          "observations": {
+            "layer_definition_candidate": 50
+          }
         },
         {
           "kind": "FBAttributeSegment",
@@ -242,7 +244,8 @@
           "observations": {
             "display_group_candidate": 2,
             "sheet_placement_candidate": 3,
-            "sheet_space_candidate": 1
+            "sheet_space_candidate": 1,
+            "stored_image_candidate": 2
           }
         },
         {
@@ -252,16 +255,21 @@
           "framed_records": 738,
           "diagnostics": [],
           "observations": {
+            "display_attributes_candidate": 149,
+            "display_boolean_candidate": 2,
+            "display_color_candidate": 2,
             "display_group_candidate": 74,
+            "layer_binding_candidate": 145,
             "stored_arc_candidate": 9,
             "stored_circle_candidate": 2,
             "stored_line_candidate": 73,
             "stored_polyline_candidate": 19,
-            "stored_text_candidate": 55
+            "stored_text_candidate": 55,
+            "stroke_override_candidate": 15
           }
         }
       ],
-      "fields_sha256": "30d4b57010987523967ab9f1673c2d0b3d1c3407dc3c9ca6ca3b119c266f378b",
+      "fields_sha256": "2617ee7d122b24719294d08ebc524a943b6acbcc3100c612921e1bef79d42038",
       "reference_tables_sha256": "036b43e5d60a9adb40b5f3efe873a94839792917984442f9834cab3bcad82c42",
       "types": {
         "00acc000-11d1-e05f-8000-66b1e13554c7": 2,

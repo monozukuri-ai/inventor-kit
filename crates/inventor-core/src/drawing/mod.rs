@@ -1,20 +1,26 @@
 //! IDW framing and provisional typed fields. No qualified sheet selection or rendering.
+mod appearance;
 mod fields;
 mod geometry;
+mod images;
 mod inventory;
 mod profile;
 mod scene;
 mod sheet;
+mod sheets;
 mod style;
 mod text;
 
 use crate::document::{Diagnostic, DocumentInfo, SegmentInfo, SourceSpan};
+pub use appearance::DisplayStyle;
+pub use images::{read_embedded_images, EmbeddedImage};
 pub use inventory::inspect;
 pub use scene::{
     experimental_scene, DisplayBinding, DisplayFont, DisplayGeometry, DisplayItem, DisplaySpace,
     ExperimentalScene, Omission,
 };
 use serde::Serialize;
+pub use sheets::{stored_sheets, StoredSheet, StoredSheets};
 
 #[derive(Debug, Serialize)]
 pub struct DrawingInventory {

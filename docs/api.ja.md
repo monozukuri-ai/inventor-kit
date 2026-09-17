@@ -1,5 +1,7 @@
 # API ガイド
 
+IDWの保存シート・表示要素を取得する実験的APIは[図面API](drawing.ja.md)を参照してください。
+
 [English](api.md) | 日本語
 
 ## body選択とレポート（v0.4.0）

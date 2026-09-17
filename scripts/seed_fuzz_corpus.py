@@ -84,6 +84,13 @@ def seed(fixtures, output):
           struct.pack('<5I',0x30000002,1,1,0x10,0x80000001))
     write('drawing', b'\x03'+bytes(34)+struct.pack('<2I',0x30000002,0)+bytes(11)+
           wide*3+bytes(180)+wide+bytes(8))
+    write('drawing', b'\x03'+struct.pack('<5I',0x30000002,1,1,0x10000000,77))
+    write('drawing', b'\x03'+struct.pack('<IB',4,0))
+    write('drawing', b'\x03'+struct.pack('<III f B',1,5,0xffffffff,1.,0))
+    write('drawing', b'\x03'+struct.pack('<IHfHHBHH2d3fII',8,0,.025,1,0,0,2,2,.4,-.1,-10000.,1.,0.,0,1))
+    write('drawing', b'\x03'+bytes(15)+struct.pack('<2dIHHIBI',2.,4.,11,0x8421,0x7bde,0xffffff,2,99))
+    # Synthetic baseline JPEG envelope, deliberately not an image-value oracle.
+    write('drawing', b'\x03'+bytes([255,216,255,192,0,11,8,0,2,0,3,1,1,17,0,255,218,0,8,1,1,0,0,63,0,7,255,217]))
     for selector in range(4):
         write('drawing', bytes([selector]) + b'\xff' * 32)
     # Cheap expanding stream plus integer-length extremes, independently authored.

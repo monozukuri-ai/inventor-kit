@@ -52,6 +52,8 @@ def create_server(directory, port=0):
                     scene = json.loads((directory / "state.json").read_text(encoding="utf-8"))
                     resources = {t["resource"] for t in scene["thumbnails"]}
                     resources.update(b["resource"] for m in scene["meshes"] for b in m["buffers"].values())
+                    if scene.get("drawing"):
+                        resources.update(i["resource"] for i in scene["drawing"]["images"] if i["resource"])
                     if name not in resources:
                         self.send_error(404)
                         return

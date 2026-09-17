@@ -59,3 +59,16 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; }
 .stage { display: flex; justify-content: space-between; font-size: 10px; padding: 4px 0; color: #66778b; }
 @media(max-width: 1000px) { main { grid-template-columns: 155px minmax(280px, 1fr) 260px; } .details section { padding: 15px; } nav { gap: 0; padding: 6px; } button { padding: 7px; } }
 @media(max-width: 740px) { main { grid-template-columns: 130px minmax(230px,1fr); height: auto; } .viewport, .bodies { height: 65vh; } .details { grid-column: 1 / -1; } header { padding: 0 14px; gap: 12px; } .local { display: none; } }
+
+#cad[data-mode="drawing"] { display: flex; flex-direction: column; background: #e9edf1; }
+#drawing-controls { display: flex; gap: 10px; align-items: center; padding: 10px; background: #f8fafc; flex-wrap: wrap; }
+#drawing-controls input[type="search"] { min-width: 100px; flex: 1; padding: 6px; }
+#drawing-svg { display: block; flex: 1; width: 100%; min-height: 0; touch-action: none; }
+#drawing-svg [data-item-id] { cursor: pointer; }
+#drawing-svg .drawing-selected { filter: drop-shadow(0 0 .08px #ee701b); }
+#drawing-svg .drawing-selected[data-kind="text"] { fill: #d85d00; }
+#drawing-svg .drawing-selected[data-kind="polyline"], #drawing-svg .drawing-selected[data-kind="curve"] { stroke: #d85d00; }
+#sheet-buttons, #drawing-search-results { display: flex; flex-direction: column; gap: 6px; padding: 8px; }
+#sheet-buttons button { text-align: left; overflow-wrap: anywhere; }
+#sheet-buttons button[aria-pressed="true"] { background: #e1eefb; border-color: #4082ba; }
+#drawing-search-results button { white-space: pre-wrap; text-align: left; }

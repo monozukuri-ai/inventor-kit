@@ -52,10 +52,18 @@ pub struct DisplayItem {
     pub group_path: Vec<usize>,
     pub transform: Matrix,
     pub geometry: DisplayGeometry,
+    pub style: DisplayStyle,
 }
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum DisplayGeometry {
+    Image {
+        reference: u32,
+        format: u8,
+        origin: [f64; 3],
+        u: [f64; 3],
+        v: [f64; 3],
+    },
     Polyline {
         points: Vec<[f64; 3]>,
     },
@@ -70,6 +78,8 @@ pub enum DisplayGeometry {
         text: String,
         position: [f64; 3],
         direction: [f64; 3],
+        up: [f64; 3],
+        raw_flags: u16,
         font: Option<DisplayFont>,
     },
 }
@@ -79,13 +89,15 @@ pub struct DisplayFont {
     pub family: String,
     pub height_candidate: f64,
     pub weight_candidate: u16,
+    pub width_factor: Option<f64>,
+    pub flags: u16,
     pub source: SourceSpan,
 }
 
-fn error(message: &str) -> Error {
+pub(super) fn error(message: &str) -> Error {
     Error(message.into())
 }
-fn field<'a>(o: &'a PayloadObservation, name: &str) -> Result<&'a FieldValue> {
+pub(super) fn field<'a>(o: &'a PayloadObservation, name: &str) -> Result<&'a FieldValue> {
     let mut it = o.fields.iter().filter(|f| f.name == name);
     let f = it.next().ok_or_else(|| error("missing display field"))?;
     if it.next().is_some() {
@@ -93,19 +105,19 @@ fn field<'a>(o: &'a PayloadObservation, name: &str) -> Result<&'a FieldValue> {
     }
     Ok(&f.value)
 }
-fn word(o: &PayloadObservation, name: &str) -> Result<u32> {
+pub(super) fn word(o: &PayloadObservation, name: &str) -> Result<u32> {
     match field(o, name)? {
         FieldValue::U32(v) if v.len() == 1 => Ok(v[0]),
         _ => Err(error("invalid display word")),
     }
 }
-fn references<'a>(o: &'a PayloadObservation, name: &str) -> Result<&'a [u32]> {
+pub(super) fn references<'a>(o: &'a PayloadObservation, name: &str) -> Result<&'a [u32]> {
     match field(o, name)? {
         FieldValue::U32(v) => Ok(v),
         _ => Err(error("invalid display references")),
     }
 }
-fn doubles<'a>(o: &'a PayloadObservation, name: &str, n: usize) -> Result<&'a [f64]> {
+pub(super) fn doubles<'a>(o: &'a PayloadObservation, name: &str, n: usize) -> Result<&'a [f64]> {
     match field(o, name)? {
         FieldValue::F64(v) if v.len() == n && v.iter().all(|x| x.is_finite()) => Ok(v),
         _ => Err(error("invalid display numbers")),
@@ -184,20 +196,25 @@ fn table_entry(
         .ok_or_else(|| error("display reference escapes source span"))?;
     Ok((&t.bytes[start..start + size], source))
 }
-fn short(b: &[u8]) -> u16 {
+pub(super) fn short(b: &[u8]) -> u16 {
     u16::from_le_bytes(b[..2].try_into().unwrap())
 }
-fn long(b: &[u8]) -> u32 {
+pub(super) fn long(b: &[u8]) -> u32 {
     u32::from_le_bytes(b[..4].try_into().unwrap())
 }
 
-fn bind<'a>(
+pub(super) fn resolve<'a>(
     doc: &'a DrawingInventory,
     sm: &SegmentInventory,
-    placement: &PayloadObservation,
+    raw: u32,
+    kind: &str,
     work: &mut usize,
-) -> Result<(&'a SegmentInventory, usize, DisplayBinding)> {
-    let raw = word(placement, "display_reference")?;
+) -> Result<(
+    &'a SegmentInventory,
+    &'a PayloadObservation,
+    Vec<SourceSpan>,
+    bool,
+)> {
     let index = raw
         .checked_sub(1)
         .ok_or_else(|| error("null display binding"))? as usize;
@@ -208,7 +225,10 @@ fn bind<'a>(
     let (object, object_source) = table_entry(meta, 10, index, 8)?;
     let (namespace, namespace_source) = table_entry(meta, 8, short(object) as usize, 20)?;
     let (segment, segment_source) = table_entry(meta, 7, short(&namespace[16..]) as usize, 32)?;
-    if namespace[..16] != segment[16..32] {
+    let same_context = namespace[..16] == segment[16..32];
+    // Layer caches can name an older revision. Retain that uncertainty; geometry
+    // bindings still require the matching context and never use this exception.
+    if !same_context && kind != "AppSegmentType" {
         return Err(error("external display context is not admitted"));
     }
     let id = guid(&segment[..16]);
@@ -220,7 +240,7 @@ fn bind<'a>(
     if targets.next().is_some()
         || target.status != "framed"
         || target.registry.major != 31
-        || target.registry.kind != "DlSheetDlSegmentType"
+        || target.registry.kind != kind
     {
         return Err(error("ambiguous or unsupported display segment"));
     }
@@ -232,24 +252,39 @@ fn bind<'a>(
     let root = objects
         .next()
         .ok_or_else(|| error("display object key is not decoded"))?;
-    if objects.next().is_some()
-        || root.proposed_role != "display_group_candidate"
-        || word(root, "owner_reference")? != 0
-    {
-        return Err(error("display object key/root is ambiguous"));
+    if objects.next().is_some() {
+        return Err(error("ambiguous display object key"));
     }
-    let binding = DisplayBinding {
-        placement_record: placement.record_ordinal,
-        display_reference: raw,
-        target_segment: id,
-        target_record: root.record_ordinal,
-        sources: vec![
-            placement.source.clone(),
+    Ok((
+        target,
+        root,
+        vec![
             object_source,
             namespace_source,
             segment_source,
             root.source.clone(),
         ],
+        same_context,
+    ))
+}
+fn bind<'a>(
+    doc: &'a DrawingInventory,
+    sm: &SegmentInventory,
+    placement: &PayloadObservation,
+    work: &mut usize,
+) -> Result<(&'a SegmentInventory, usize, DisplayBinding)> {
+    let raw = word(placement, "display_reference")?;
+    let (target, root, mut sources, _) = resolve(doc, sm, raw, "DlSheetDlSegmentType", work)?;
+    if root.proposed_role != "display_group_candidate" || word(root, "owner_reference")? != 0 {
+        return Err(error("display object key/root is ambiguous"));
+    }
+    sources.insert(0, placement.source.clone());
+    let binding = DisplayBinding {
+        placement_record: placement.record_ordinal,
+        display_reference: raw,
+        target_segment: target.registry.id.clone(),
+        target_record: root.record_ordinal,
+        sources,
     };
     Ok((target, root.record_ordinal, binding))
 }
@@ -328,6 +363,12 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
             return Err(error("invalid font size or identifier"));
         }
         rse::charge(work, name.len())?;
+        let FieldValue::U16(raw_flags) = flags.value else {
+            return Err(error("invalid font flags"));
+        };
+        if !size[1].is_finite() || size[1] < 0. {
+            return Err(error("invalid font width factor"));
+        }
         let mut source = id.source.clone();
         source.end_offset = tail.source.end_offset;
         if result
@@ -338,6 +379,8 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
                     family: name.clone(),
                     height_candidate: size[0] as f64,
                     weight_candidate: *weight,
+                    width_factor: (size[1] > 0.).then_some(size[1] as f64),
+                    flags: raw_flags,
                     source,
                 },
             )
@@ -380,6 +423,13 @@ fn geometry(
             let v = doubles(o, "position_and_direction_candidate", 6)?;
             let position = transform(m, &v[..3], 1.)?;
             let direction = transform(m, &v[3..], 0.)?;
+            if v[5] != 0. || (v[3] * v[3] + v[4] * v[4] - 1.).abs() > 1e-9 {
+                return Err(error("unsupported text plane/direction"));
+            }
+            let up = transform(m, &[-v[4], v[3], 0.], 0.)?;
+            let FieldValue::U16(raw_flags) = field(o, "raw_text_flags")? else {
+                return Err(error("invalid text flags"));
+            };
             let font = fonts.get(&word(o, "style_index_candidate")?);
             if let Some(f) = font {
                 rse::charge(work, f.family.len())?;
@@ -389,6 +439,8 @@ fn geometry(
                 text: text.clone(),
                 position,
                 direction,
+                up,
+                raw_flags: *raw_flags,
                 font,
             }))
         }
@@ -505,17 +557,19 @@ fn owners<'a>(
 
 fn display_branch(
     space: &mut DisplaySpace,
+    doc: &DrawingInventory,
     target: &SegmentInventory,
-    root: usize,
-    placement: usize,
+    binding: &DisplayBinding,
     parent: Matrix,
     fonts: &BTreeMap<u32, DisplayFont>,
     work: &mut usize,
 ) -> Result<()> {
+    let root = binding.target_record;
+    let placement = binding.placement_record;
     let nodes = owners(target, work)?;
-    let mut stack = vec![(root, parent, Vec::new())];
+    let mut stack = vec![(root, parent, Vec::new(), DisplayStyle::default())];
     let mut visited = BTreeSet::new();
-    while let Some((id, mut m, mut path)) = stack.pop() {
+    while let Some((id, mut m, mut path, inherited)) = stack.pop() {
         rse::charge(work, 1)?;
         if !visited.insert(id) || path.len() > 128 {
             return Err(error("repeated/deep display branch"));
@@ -528,6 +582,24 @@ fn display_branch(
             });
             continue;
         };
+        let style = super::appearance::apply(doc, target, o, &nodes, &inherited, work)?;
+        if !style.visible {
+            space.omitted.push(Omission {
+                segment_id: target.registry.id.clone(),
+                record_ordinal: id,
+                reason: "hidden_by_stored_attribute",
+            });
+            if o.proposed_role == "display_group_candidate" {
+                path.push(id);
+                for &raw in references(o, "child_references_unresolved")?.iter().rev() {
+                    if raw != 0 {
+                        rse::charge(work, path.len() + style.cost() + 1)?;
+                        stack.push((slot(raw)?, m, path.clone(), style.clone()));
+                    }
+                }
+            }
+            continue;
+        }
         if o.proposed_role == "display_group_candidate" {
             match field(o, "transform_branch")? {
                 FieldValue::U8(0) => (), // Experimental grammar: absent local matrix inherits parent.
@@ -540,8 +612,8 @@ fn display_branch(
             path.push(id);
             for &raw in references(o, "child_references_unresolved")?.iter().rev() {
                 if raw != 0 {
-                    rse::charge(work, path.len() + 1)?;
-                    stack.push((slot(raw)?, m, path.clone()));
+                    rse::charge(work, path.len() + style.cost() + 1)?;
+                    stack.push((slot(raw)?, m, path.clone(), style.clone()));
                 }
             }
         } else if let Some(geometry) = geometry(o, &m, fonts, work)? {
@@ -553,6 +625,7 @@ fn display_branch(
                 group_path: path,
                 transform: m,
                 geometry,
+                style,
             });
         } else {
             space.omitted.push(Omission {
@@ -629,6 +702,35 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
                     });
                     continue;
                 };
+                if node.proposed_role == "stored_image_candidate" {
+                    let size = doubles(node, "image_height_width", 2)?;
+                    let reference = word(node, "image_reference")?;
+                    let FieldValue::U8(format) = field(node, "image_format")? else {
+                        return Err(error("invalid image format"));
+                    };
+                    if size.iter().any(|x| *x <= 0.) || reference == 0 || !matches!(format, 0 | 2) {
+                        return Err(error("unsupported image placement"));
+                    }
+                    rse::charge(&mut work, 32)?;
+                    let world = compose(&parent, &matrix(node)?)?;
+                    space.items.push(DisplayItem {
+                        segment_id: sm.registry.id.clone(),
+                        record_ordinal: id,
+                        source: node.source.clone(),
+                        placement_record: id,
+                        group_path: vec![],
+                        transform: world,
+                        style: DisplayStyle::default(),
+                        geometry: DisplayGeometry::Image {
+                            reference,
+                            format: *format,
+                            origin: transform(&world, &[0., 0., 0.], 1.)?,
+                            u: transform(&world, &[size[1], 0., 0.], 0.)?,
+                            v: transform(&world, &[0., -size[0], 0.], 0.)?,
+                        },
+                    });
+                    continue;
+                }
                 if !matches!(
                     node.proposed_role,
                     "sheet_space_candidate" | "sheet_placement_candidate"
@@ -642,7 +744,7 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
                         "repeated display-root instance needs explicit semantics",
                     ));
                 }
-                display_branch(&mut space, target, root, id, world, &fonts, &mut work)?;
+                display_branch(&mut space, doc, target, &binding, world, &fonts, &mut work)?;
                 space.bindings.push(binding);
                 for &raw in references(node, "references_unresolved")?.iter().rev() {
                     rse::charge(&mut work, 1)?;
@@ -654,12 +756,18 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
             // Parsed but unreachable primitives are not promoted to visible objects.
             rse::charge(
                 &mut work,
-                space.items.len() + space.bindings.len() + doc.segments.len(),
+                space.items.len() + space.omitted.len() + space.bindings.len() + doc.segments.len(),
             )?;
             let emitted: BTreeSet<_> = space
                 .items
                 .iter()
-                .map(|i| (i.segment_id.as_str(), i.record_ordinal))
+                .map(|i| (i.segment_id.clone(), i.record_ordinal))
+                .chain(
+                    space
+                        .omitted
+                        .iter()
+                        .map(|i| (i.segment_id.clone(), i.record_ordinal)),
+                )
                 .collect();
             let bound_segments: BTreeSet<_> = space
                 .bindings
@@ -674,7 +782,7 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
                 rse::charge(&mut work, target.observations.len())?;
                 for o in &target.observations {
                     if o.proposed_role.starts_with("stored_")
-                        && !emitted.contains(&(target.registry.id.as_str(), o.record_ordinal))
+                        && !emitted.contains(&(target.registry.id.clone(), o.record_ordinal))
                     {
                         space.omitted.push(Omission {
                             segment_id: target.registry.id.clone(),

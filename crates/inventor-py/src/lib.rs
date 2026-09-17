@@ -42,6 +42,42 @@ fn inspect_assembly(
 }
 
 #[pyfunction]
+#[pyo3(signature = (data, source_id, limits_json=None))]
+fn read_drawing(
+    data: &Bound<'_, PyBytes>,
+    source_id: &str,
+    limits_json: Option<&str>,
+) -> PyResult<String> {
+    let limits = read_limits(limits_json)?;
+    if data.as_bytes().len() > limits.max_file_bytes {
+        return Err(PyValueError::new_err("file byte limit exceeded"));
+    }
+    let bytes = data.as_bytes();
+    data.py().detach(|| {
+        let inventory = inventor_core::drawing::inspect(bytes, source_id, &limits)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        if inventory.metadata.identification.kind != "drawing" {
+            return Err(PyValueError::new_err("identified IDW document required"));
+        }
+        let sheets = inventor_core::drawing::stored_sheets(&inventory, &limits);
+        let preview = inventor_core::drawing::experimental_scene(&inventory, &limits);
+        let images = inventor_core::drawing::read_embedded_images(bytes, &preview, &limits)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let diagnostics: Vec<_> = inventory
+            .diagnostics
+            .iter()
+            .chain(inventory.segments.iter().flat_map(|s| s.diagnostics.iter()))
+            .collect();
+        serde_json::to_string(&serde_json::json!({
+            "api_version": 1, "source_sha256": inventory.source_sha256,
+            "metadata": inventory.metadata, "sheets": sheets,
+            "preview": preview, "images": images, "diagnostics": diagnostics,
+        }))
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+    })
+}
+
+#[pyfunction]
 #[pyo3(signature = (path, search_roots, max_documents=256, max_instances=10000, max_depth=32,
     max_total_file_bytes=536870912, max_directory_entries=100000, limits_json=None))]
 #[allow(clippy::too_many_arguments)] // Explicit independently bounded Python options.
@@ -139,10 +175,12 @@ fn _inventor(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(read, module)?)?;
     module.add_function(wrap_pyfunction!(inspect, module)?)?;
     module.add_function(wrap_pyfunction!(inspect_assembly, module)?)?;
+    module.add_function(wrap_pyfunction!(read_drawing, module)?)?;
     module.add_function(wrap_pyfunction!(resolve_assembly, module)?)?;
     module.add("MODEL_API_VERSION", acis_py_bridge::MODEL_API_VERSION)?;
     module.add("DOCUMENT_API_VERSION", 1)?;
     module.add("GEOMETRY_INVENTORY_API_VERSION", 1)?;
     module.add("ASSEMBLY_API_VERSION", 1)?;
+    module.add("DRAWING_API_VERSION", 1)?;
     Ok(())
 }

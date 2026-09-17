@@ -113,6 +113,17 @@ def installed(corpus):
     inventory = inventor_kit.inspect_file(corpus / 'SamplePart.ipt', include_candidates=True).geometry
     assert len(inventory.candidates) == 1 and inventory.selection.status == 'not_requested'
     assert 'cq_acis' not in sys.modules and 'cadquery' not in sys.modules
+    drawing = inventor_kit.read_drawing_file(corpus / 'SampleBg.idw')
+    assert drawing.status == 'experimental_partial' and len(drawing.sheets[0].items) == 157
+    assert drawing.sheets[0].name == 'Blatt' and not drawing.qualified
+    assert drawing.length_unit is None and drawing.millimeters_per_unit is None
+    assert len(drawing.images) == 2 and all(image.data for image in drawing.images)
+    from inventor_kit.viewer.scene import Options, build_scene
+    with tempfile.TemporaryDirectory(prefix='inventor-installed-drawing-') as temporary:
+        scene = build_scene(corpus / 'SampleBg.idw', Path(temporary), Options(experimental_drawing=True))
+        assert scene['drawing']['status'] == 'experimental_partial' and not scene['meshes']
+        assert all((Path(temporary)/i['resource']).is_file() for i in scene['drawing']['images'])
+    assert not {'cq_acis', 'cadquery', 'ocp_tessellate', 'OCP'} & sys.modules.keys()
     saved = inventor_kit.inspect_assembly_file(corpus / 'm5-samplebg/Subassembly.iam')
     assembly = inventor_kit.read_assembly_file(corpus / 'm5-samplebg/Subassembly.iam')
     assert saved.stored_occurrences[0]['properties']

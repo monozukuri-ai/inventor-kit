@@ -249,3 +249,80 @@ test('broken input reports failure without a blank page', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'No 3D geometry to display' })).toBeVisible();
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+test('IDW stored elements, images and source-unit controls without the 3D bundle', async ({ page }, testInfo) => {
+  const scripts: string[] = [];
+  page.on('request', request => { if (request.resourceType() === 'script') scripts.push(request.url()); });
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  await expect(page.locator('#cad')).toHaveAttribute('data-mode', 'drawing');
+  await expect(page.locator('#drawing-svg [data-kind="polyline"]')).toHaveCount(91);
+  await expect(page.locator('#drawing-svg [data-kind="curve"]')).toHaveCount(11);
+  await expect(page.locator('#drawing-svg [data-kind="text"]')).toHaveCount(53);
+  await expect(page.locator('#drawing-svg image')).toHaveCount(2);
+  await expect(page.locator('#sheet-buttons button')).toHaveText(['Blatt']);
+  await expect(page.locator('#document-info')).toContainText('Source units (unverified)');
+  expect(scripts.some(s => s.includes('three-cad-viewer'))).toBe(false);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  expect(state.drawing.qualified).toBe(false);
+  expect(state.drawing.millimeters_per_unit).toBeNull();
+  for (const image of state.drawing.images) {
+    const response = await page.request.get(url + image.resource);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toMatch(/^image\/(jpeg|png)$/);
+    expect((await response.body()).length).toBeGreaterThan(100);
+  }
+  const initial = await page.locator('#drawing-svg').getAttribute('viewBox');
+  await page.locator('#drawing-zoom').click();
+  expect(await page.locator('#drawing-svg').getAttribute('viewBox')).not.toBe(initial);
+  await page.locator('#drawing-fit').click();
+  await expect(page.locator('#drawing-svg')).toHaveAttribute('viewBox', initial!);
+  await page.locator('#drawing-text').uncheck();
+  await expect(page.locator('#drawing-svg [data-kind="text"]')).toHaveCount(0);
+  await page.locator('#drawing-text').check();
+  await page.locator('#drawing-curves').uncheck();
+  await expect(page.locator('#drawing-svg [data-kind="curve"]')).toHaveCount(0);
+  await page.locator('#drawing-curves').check();
+  await page.locator('#drawing-search').fill('Sample');
+  await page.locator('#drawing-search-results button').first().click();
+  await expect(page.locator('#selection-info')).toContainText('Source details');
+  await page.locator('#drawing-search').fill('');
+  await page.screenshot({ path: testInfo.outputPath('idw-viewer.png'), fullPage: true });
+});
+
+test('IDW unsupported profile retains previews and a clear unavailable state', async ({ page }) => {
+  await open(page, 'drawings/iacs/Template_IACS.idw', ['--experimental-drawing']);
+  await expect(page.locator('#empty')).toBeVisible();
+  await expect(page.locator('#empty h2')).toHaveText('Drawing display unavailable');
+  await expect(page.locator('#previews img')).not.toHaveCount(0);
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+});
+
+test('IDW synthetic sheet switches clear stale selection and preserve literal multiline text', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const first = state.drawing.sheets[0];
+  const second = structuredClone(first); second.id = 'synthetic-second'; second.name = 'Second';
+  second.items = [structuredClone(first.items.find((i: any) => i.geometry.kind === 'text'))];
+  second.items[0].id = 'synthetic-literal';
+  second.items[0].geometry.text = '<script>window.injected=true</script>\n日本語';
+  const third = { ...second, id: 'synthetic-unavailable', name: 'Unavailable', status: 'unavailable', items: [], size_in_source_units: null };
+  state.drawing.sheets.push(second, third);
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  await page.reload();
+  await expect(page.locator('#sheet-buttons button')).toHaveCount(3);
+  await page.locator('#sheet-buttons button').nth(1).click();
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(1);
+  await expect(page.locator('#drawing-svg text tspan')).toHaveCount(2);
+  expect(await page.evaluate(() => (window as any).injected)).toBeUndefined();
+  await page.locator('#drawing-search').fill('script');
+  await page.locator('#drawing-search-results button').click();
+  await expect(page.locator('#selected')).toContainText('<script>');
+  await page.locator('#sheet-buttons button').nth(2).click();
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  await expect(page.locator('#selected')).toHaveText('No drawing element selected');
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  for (let i = 0; i < 4; i++) {
+    await page.locator('#sheet-buttons button').nth(i % 2).click();
+  }
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(1);
+});

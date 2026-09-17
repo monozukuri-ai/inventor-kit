@@ -15,6 +15,8 @@ from .conversion import BodyConversion, PartConversion, BodyConversionError, Con
 from .assembly import (AssemblyDocument, SavedOccurrence, AssemblyDefinition, AssemblyInstance,
                        InventorAssembly, FileSystemResolver, AssemblyConversion, AssemblyConversionError,
                        AssemblyOmission, inspect_assembly, inspect_assembly_file, read_assembly_file)
+from .drawing import (DrawingDocument, DrawingSheet, DrawingItem, DrawingImage,
+                      read_drawing, read_drawing_file)
 
 if TYPE_CHECKING:
     from cq_acis import AcisModel
@@ -99,4 +101,5 @@ __all__ = ["Limits", "capabilities", "InventorDocument", "DocumentInfo", "Proper
            "KernelCandidate", "SegmentInventory", "read", "read_file", "inspect", "inspect_file",
            "AssemblyDocument", "SavedOccurrence", "AssemblyDefinition", "AssemblyInstance", "InventorAssembly",
            "FileSystemResolver", "AssemblyConversion", "AssemblyConversionError", "AssemblyOmission",
-           "inspect_assembly", "inspect_assembly_file", "read_assembly_file"]
+           "inspect_assembly", "inspect_assembly_file", "read_assembly_file",
+           "DrawingDocument", "DrawingSheet", "DrawingItem", "DrawingImage", "read_drawing", "read_drawing_file"]

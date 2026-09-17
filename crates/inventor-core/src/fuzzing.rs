@@ -73,7 +73,9 @@ pub fn drawing(data: &[u8]) {
     match mode % 4 {
         0 => {
             if let Ok(doc) = crate::drawing::inspect(bytes, "fuzz", &limits) {
-                let _ = crate::drawing::experimental_scene(&doc, &limits);
+                let _ = crate::drawing::stored_sheets(&doc, &limits);
+                let scene = crate::drawing::experimental_scene(&doc, &limits);
+                let _ = crate::drawing::read_embedded_images(bytes, &scene, &limits);
             }
         }
         1 if bytes.len() <= limits.max_stream_bytes => {

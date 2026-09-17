@@ -568,10 +568,10 @@ fn typed_text_preserves_unicode_nul_z_and_unqualified_source_fields() {
         .unwrap();
     assert_eq!(o.status, "unqualified");
     assert_eq!(o.record_ordinal, 17);
-    assert_eq!(o.fields[3].source.start_offset, 126);
-    assert_eq!(o.fields[3].source.end_offset, 140);
-    assert!(matches!(&o.fields[3].value, FieldValue::Utf16(s) if s=="図面\0𝄞"));
-    assert!(matches!(&o.fields[4].value, FieldValue::F64(v) if v==&[-2.5,4.,9.,0.,-1.,0.]));
+    assert_eq!(o.fields[4].source.start_offset, 126);
+    assert_eq!(o.fields[4].source.end_offset, 140);
+    assert!(matches!(&o.fields[4].value, FieldValue::Utf16(s) if s=="図面\0𝄞"));
+    assert!(matches!(&o.fields[5].value, FieldValue::F64(v) if v==&[-2.5,4.,9.,0.,-1.,0.]));
     // Same type in DocDC can be a definition; it must not become displayed text.
     assert!(observed("DlDocDcSegmentType", TEXT_TYPE, &b, &mut 100)
         .unwrap()
@@ -613,8 +613,8 @@ fn typed_points_reject_unknown_encoding_and_nonfinite_without_projecting_z() {
     let o = observed("DlSheetDlSegmentType", POINT_TYPE, &b, &mut 100)
         .unwrap()
         .unwrap();
-    assert!(matches!(&o.fields[3].value,FieldValue::F32(v) if v==&[1.,-2.,3.,4.,5.,6.]));
-    assert_eq!(o.fields[3].source.start_offset, 142);
+    assert!(matches!(&o.fields[4].value,FieldValue::F32(v) if v==&[1.,-2.,3.,4.,5.,6.]));
+    assert_eq!(o.fields[4].source.start_offset, 142);
     for i in 0..b.len() {
         assert!(observed("DlSheetDlSegmentType", POINT_TYPE, &b[..i], &mut 100).is_err());
     }
@@ -647,10 +647,10 @@ fn display_group_keeps_repeated_self_references_and_both_compact_forms_raw() {
         let o = observed("DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 100)
             .unwrap()
             .unwrap();
-        assert_eq!(o.fields.len(), 6);
-        assert!(matches!(&o.fields[3].value,FieldValue::U32(v) if v==&[0x80000012,0x80000012]));
+        assert_eq!(o.fields.len(), 7);
+        assert!(matches!(&o.fields[4].value,FieldValue::U32(v) if v==&[0x80000012,0x80000012]));
         assert!(
-            matches!(&o.fields[5].value,FieldValue::CompactTransform {prefixed,values,..}
+            matches!(&o.fields[6].value,FieldValue::CompactTransform {prefixed,values,..}
             if *prefixed==prefix && values[3]==5. && values[7]==-7.)
         );
         for i in 0..b.len() {
@@ -694,8 +694,10 @@ fn sheet_name_and_links_use_counted_fields_not_file_offsets_or_segment_name_scan
     )
     .unwrap()
     .unwrap();
-    assert_eq!(o.fields.len(), 5);
-    assert!(matches!(&o.fields[2].value,FieldValue::Utf16(s) if s=="DLSheet999DLSegment"));
+    assert_eq!(o.fields.len(), 7);
+    assert_eq!(o.fields[0].name, "header_flags");
+    assert_eq!(o.fields[1].name, "object_id");
+    assert!(matches!(&o.fields[4].value,FieldValue::Utf16(s) if s=="DLSheet999DLSegment"));
 }
 
 #[test]
@@ -794,4 +796,68 @@ fn sheet_space_preserves_raw_extent_and_rejects_unknown_branch() {
     }
     b[40] = 2;
     assert!(observed(kind, typ, &b, &mut 100).is_err());
+}
+
+#[test]
+fn style_and_image_wire_layouts_preserve_values_and_reject_incomplete_records() {
+    let mut list = vec![];
+    for n in [0x30000002, 1, 1, 0x10000000, 77] {
+        word(&mut list, n);
+    }
+    let mut stroke = vec![];
+    word(&mut stroke, 8);
+    stroke.extend(0u16.to_le_bytes());
+    stroke.extend(0.025f32.to_le_bytes());
+    stroke.extend(1u16.to_le_bytes());
+    stroke.extend(0u16.to_le_bytes());
+    stroke.push(0);
+    stroke.extend(2u16.to_le_bytes());
+    stroke.extend(2u16.to_le_bytes());
+    stroke.extend(0.4f64.to_le_bytes());
+    stroke.extend((-0.1f64).to_le_bytes());
+    for x in [-10000f32, 1., 0.] {
+        stroke.extend(x.to_le_bytes());
+    }
+    word(&mut stroke, 0);
+    word(&mut stroke, 1);
+    let mut image = vec![0; 15];
+    image.extend(2f64.to_le_bytes());
+    image.extend(4f64.to_le_bytes());
+    word(&mut image, 11);
+    image.extend(0x8421u16.to_le_bytes());
+    image.extend(0x7bdeu16.to_le_bytes());
+    word(&mut image, 0xffffff);
+    image.push(2);
+    word(&mut image, 99);
+    for (kind, typ, data) in [
+        (
+            "DlSheetDlSegmentType",
+            "48eb8607-11d2-070c-6000-f99ac5361ab0",
+            list,
+        ),
+        (
+            "DlSheetDlSegmentType",
+            "b32bf6a3-11d2-09f4-6000-f99ac5361ab0",
+            vec![4, 0, 0, 0, 0],
+        ),
+        (
+            "DlSheetDlSegmentType",
+            "b32bf6ac-11d2-09f4-6000-f99ac5361ab0",
+            stroke,
+        ),
+        (
+            "DlSheetSmSegmentType",
+            "5741c02f-4467-1e22-0ba3-53bd0da0bc81",
+            image,
+        ),
+    ] {
+        assert!(observed(kind, typ, &data, &mut 1000).unwrap().is_some());
+        for n in 0..data.len() {
+            assert!(observed(kind, typ, &data[..n], &mut 1000).is_err());
+        }
+        let mut extra = data.clone();
+        extra.push(0);
+        assert!(observed(kind, typ, &extra, &mut 1000).is_err());
+        assert!(observed(kind, typ, &data, &mut 0).is_err());
+    }
 }

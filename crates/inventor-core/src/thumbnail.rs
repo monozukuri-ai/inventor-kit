@@ -64,7 +64,7 @@ pub(crate) fn extract(set: &PropertySet, prop: &Property) -> Result<Option<Thumb
         state_binding: "unresolved",
     }))
 }
-fn validate_png(b: &[u8]) -> Result<(u32, u32)> {
+pub(crate) fn validate_png(b: &[u8]) -> Result<(u32, u32)> {
     if !b.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Err(Error("thumbnail payload is not PNG".into()));
     }

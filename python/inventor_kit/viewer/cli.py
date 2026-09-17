@@ -35,12 +35,13 @@ def shutdown_signals():
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="View saved Inventor part and assembly geometry locally")
+    parser = argparse.ArgumentParser(description="View saved Inventor parts, assemblies and experimental IDW drawings locally")
     parser.add_argument("path")
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--quality", choices=("draft", "normal", "fine"), default="normal")
     parser.add_argument("--metadata-only", action="store_true")
+    parser.add_argument("--experimental-drawing", action="store_true", help="Display experimental saved IDW elements; units and completeness are unverified")
     parser.add_argument("--candidate-id")
     parser.add_argument("--require-current-state", action="store_true")
     parser.add_argument("--search-root", action="append", default=[], help="IAM reference search directory (repeatable)")
@@ -56,7 +57,7 @@ def main(argv=None):
                           candidate_id=args.candidate_id, require_current_state=args.require_current_state,
                           search_roots=tuple(args.search_root), allow_unverified_state=args.allow_unverified_state,
                           allow_partial=args.allow_partial, body_ids=tuple(args.body_id),
-                          timeout=args.timeout)
+                          timeout=args.timeout, experimental_drawing=args.experimental_drawing)
     except ValueError as error:
         parser.error(str(error))
     suffix = Path(args.path).suffix.lower()
@@ -66,7 +67,8 @@ def main(argv=None):
         parser.error("Assembly options apply to IAM assemblies only")
     if suffix == ".iam" and args.allow_partial and not args.allow_unverified_state:
         parser.error("IAM --allow-partial requires --allow-unverified-state")
-    if not args.metadata_only and (suffix != ".iam" or args.allow_unverified_state) and find_spec("ocp_tessellate") is None:
+    if (not args.metadata_only and not args.experimental_drawing and suffix not in (".idw", ".ipn")
+            and (suffix != ".iam" or args.allow_unverified_state) and find_spec("ocp_tessellate") is None):
         parser.error("Install viewer dependencies: python -m pip install 'inventor-kit[viewer]'")
     from .server import create_server
     from .worker import Job

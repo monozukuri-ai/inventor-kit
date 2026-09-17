@@ -1,5 +1,7 @@
 # inventor-kit
 
+Experimental IDW sheets and saved 2D display: [Python API and Viewer](docs/drawing.md).
+
 English | [日本語](README.ja.md)
 
 Read Autodesk Inventor document metadata and saved part geometry with a Rust

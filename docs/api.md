@@ -1,5 +1,7 @@
 # API guide
 
+For experimental IDW sheet/display reading, see [the drawing API](drawing.md).
+
 English | [日本語](api.ja.md)
 
 ## Body selection and reports (v0.4.0)

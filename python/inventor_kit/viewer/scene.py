@@ -23,6 +23,7 @@ class Options:
     allow_unverified_state: bool = False
     allow_partial: bool = False
     body_ids: tuple[str, ...] = ()
+    experimental_drawing: bool = False
 
     def __post_init__(self):
         if self.quality not in ("draft", "normal", "fine"):
@@ -38,6 +39,9 @@ class Options:
             raise ValueError("Assembly options cannot be combined with metadata-only")
         if (self.search_roots or self.allow_unverified_state) and (self.candidate_id or self.require_current_state or self.body_ids):
             raise ValueError("Assembly options cannot be combined with IPT selection options")
+        if self.experimental_drawing and (self.metadata_only or self.candidate_id or self.require_current_state
+                or self.body_ids or self.search_roots or self.allow_unverified_state or self.allow_partial):
+            raise ValueError("Experimental drawing cannot be combined with metadata-only or IPT/IAM selection options")
 
 
 def empty_scene(name):
@@ -45,13 +49,14 @@ def empty_scene(name):
                 units="mm", current_state="unverified", complete=False,
                 stages={key: "not_attempted" for key in ("metadata", "geometry", "conversion", "tessellation")},
                 selection=None, candidates=[], nodes=[], meshes=[], properties=[], thumbnails=[],
-                diagnostics=[], tessellation=None, assembly=None, part=None, omissions=[], reference_issues=[])
+                diagnostics=[], tessellation=None, assembly=None, part=None, drawing=None, omissions=[], reference_issues=[])
 
 
 def discard_geometry(scene, status="not_displayed", reason="Geometry was not published"):
     """Keep the IAM inventory when a worker or conversion fails."""
     scene["meshes"] = []
     scene["tessellation"] = None
+    scene["drawing"] = None
     if scene["assembly"] is None and scene.get("part") is None:
         scene["nodes"] = []
         return
@@ -119,6 +124,8 @@ def build_scene(path, directory, options, publish=lambda scene: None):
         scene["source"]["sha256"] = hashlib.sha256(data).hexdigest()
         doc = inspect(data, source_id=path.name, include_candidates=not options.metadata_only, limits=options.limits)
         scene["source"]["kind"] = doc.metadata.identification.kind
+        if doc.metadata.identification.kind == "drawing":
+            scene["units"] = "source_units_unverified"
         scene["stages"]["metadata"] = "available"
         for prop_set in doc.metadata.property_sets:
             for p in prop_set.properties:
@@ -145,6 +152,13 @@ def build_scene(path, directory, options, publish=lambda scene: None):
             return scene
         stage = "geometry"
         kind = doc.metadata.identification.kind
+        if kind == "drawing":
+            from .drawing import build_drawing_scene
+            scene = build_drawing_scene(data, directory, options, scene)
+            scene["job_status"] = "finished"
+            return scene
+        if options.experimental_drawing:
+            raise ValueError("--experimental-drawing requires an identified IDW document")
         if kind != "assembly" and (options.search_roots or options.allow_unverified_state):
             raise ValueError("Search roots and assembly permission options apply to IAM assemblies only")
         if kind == "assembly":

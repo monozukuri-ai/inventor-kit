@@ -40,6 +40,13 @@ impl<'a, 'b> Fields<'a, 'b> {
         self.add(name, start, FieldValue::U32(vec![value]));
         Ok(())
     }
+    pub fn byte(&mut self, name: &'static str) -> Result<()> {
+        rse::charge(self.work, 1)?;
+        let start = self.r.pos;
+        let value = self.r.u8()?;
+        self.add(name, start, FieldValue::U8(value));
+        Ok(())
+    }
     pub fn short(&mut self, name: &'static str) -> Result<()> {
         rse::charge(self.work, 1)?;
         let start = self.r.pos;
@@ -50,7 +57,9 @@ impl<'a, 'b> Fields<'a, 'b> {
     pub fn display_header(&mut self) -> Result<()> {
         self.word("header_flags")?;
         self.short("object_id")?;
-        self.r.skip(12)?;
+        self.r.skip(4)?;
+        self.word("attribute_reference")?;
+        self.r.skip(4)?;
         self.word("owner_reference")?;
         self.r.skip(4)
     }
@@ -178,9 +187,37 @@ pub(super) fn decode(
             decoder = super::sheet::placement;
             "sheet_placement_candidate"
         }
+        ("DlSheetSmSegmentType", "5741c02f-4467-1e22-0ba3-53bd0da0bc81") => {
+            decoder = super::sheet::image;
+            "stored_image_candidate"
+        }
         ("DlDirectorySegmentType", "3e9f410e-11d2-6481-6000-708a806bceb0") => {
             decoder = super::style::fonts;
             "font_table_candidate"
+        }
+        ("DlSheetDlSegmentType", "48eb8607-11d2-070c-6000-f99ac5361ab0") => {
+            decoder = super::style::attributes;
+            "display_attributes_candidate"
+        }
+        ("DlSheetDlSegmentType", "b32bf6a3-11d2-09f4-6000-f99ac5361ab0") => {
+            decoder = super::style::boolean;
+            "display_boolean_candidate"
+        }
+        ("DlSheetDlSegmentType", "f2fb355d-42d4-07c8-a07b-e085474d8be7") => {
+            decoder = super::style::layer_binding;
+            "layer_binding_candidate"
+        }
+        ("DlSheetDlSegmentType", "b32bf6ac-11d2-09f4-6000-f99ac5361ab0") => {
+            decoder = super::style::stroke;
+            "stroke_override_candidate"
+        }
+        ("DlSheetDlSegmentType", "48eb8608-11d2-070c-6000-f99ac5361ab0") => {
+            decoder = super::style::color;
+            "display_color_candidate"
+        }
+        ("AppSegmentType", "c1ab98dd-4ed8-5d1f-22c5-51841631b75e") => {
+            decoder = super::style::layer;
+            "layer_definition_candidate"
         }
         ("DlSheetDlSegmentType", "a79eacd5-11d1-c281-6000-a38ab46bceb0") => {
             decoder = super::text::fields;
@@ -235,6 +272,13 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::sheet::space,
         super::sheet::placement,
         super::style::fonts,
+        super::style::attributes,
+        super::style::boolean,
+        super::style::layer_binding,
+        super::style::layer,
+        super::style::stroke,
+        super::style::color,
+        super::sheet::image,
         super::text::fields,
         super::geometry::points,
         super::geometry::group,
@@ -248,5 +292,8 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
             &mut work,
         );
         let _ = decoder(&mut fields);
+    }
+    if bytes.len() <= limits.max_property_bytes {
+        super::images::fuzz(bytes);
     }
 }

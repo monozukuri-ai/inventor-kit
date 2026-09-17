@@ -1,10 +1,12 @@
-import { Display, Viewer, type Shape, type ChangeNotification } from 'three-cad-viewer';
+import type { Display, Viewer, Shape, ChangeNotification } from 'three-cad-viewer';
+import { showDrawing, type DrawingScene } from './drawing';
 import { renderTree, type Mesh, type Node } from './scene-graph';
 import 'three-cad-viewer/css';
 import './style.css';
 
 type Scene = {
   schema_version: number; job_status: string; source: { name: string; kind: string; sha256: string | null };
+  units: string; drawing?: DrawingScene | null;
   stages: Record<string, string>; nodes: Node[]; meshes: Mesh[];
   selection: { selected_id: string | null; status: string; basis: string | null } | null;
   candidates: { id: string; table_status: string; state_binding: string; source: unknown }[];
@@ -27,6 +29,7 @@ let viewer: Viewer | undefined;
 let display: Display | undefined;
 let scene: Scene | undefined;
 let stopped = false;
+let disposeDrawing: (() => void) | undefined;
 const visible = new Map<string, boolean>();
 let renderedIds = new Set<string>();
 let selectedId: string | null = null;
@@ -47,7 +50,7 @@ function information(s: Scene) {
   el('file-name').textContent = s.source.name;
   document.title = `${s.source.name} · Inventor Kit`;
   const info = el('document-info'); info.replaceChildren();
-  for (const [key, value] of [['Name', s.source.name], ['Type', s.source.kind], ['Units', 'mm (geometry)'], ['State', 'Unverified'], ['SHA-256', s.source.sha256]]) {
+  for (const [key, value] of [['Name', s.source.name], ['Type', s.source.kind], ['Units', s.units === 'source_units_unverified' ? 'Source units (unverified)' : 'mm (geometry)'], ['State', 'Unverified'], ['SHA-256', s.source.sha256]]) {
     info.append(text('dt', key), text('dd', value));
   }
   el('property-count').textContent = String(s.properties.length);
@@ -156,6 +159,8 @@ function bodyTree(s: Scene) {
 }
 
 async function render(s: Scene) {
+  const { Display, Viewer } = await import('three-cad-viewer');
+  if (stopped) return;
   const container = el('cad');
   // Shared definitions have one buffer download and one decoded Shape object.
   const values = new Map(await Promise.all(s.meshes.map(async mesh => [mesh.id, await loadMesh(mesh)] as const)));
@@ -201,7 +206,7 @@ el('isolate').addEventListener('click', () => {
 el('show-all').addEventListener('click', () => { for (const node of scene?.nodes ?? []) if (node.mesh_id) visible.set(node.id, true); setVisibility(); });
 const observer = new ResizeObserver(() => { if (viewer) viewer.resizeCadView(el('cad').clientWidth, 0, el('cad').clientHeight); });
 observer.observe(el('cad'));
-window.addEventListener('pagehide', () => { stopped = true; observer.disconnect(); viewer?.dispose(); display?.dispose(); });
+window.addEventListener('pagehide', () => { stopped = true; observer.disconnect(); disposeDrawing?.(); viewer?.dispose(); display?.dispose(); });
 
 function message(title: string, description: string) {
   el('empty').hidden = false;
@@ -214,6 +219,7 @@ async function poll() {
     const response = await fetch('state.json');
     if (!response.ok) throw new Error(`Local server returned ${response.status}`);
     scene = await response.json() as Scene;
+    if (stopped) return;
     if (scene.schema_version !== 1) throw new Error('Unsupported scene version');
     information(scene);
     if (scene.job_status === 'queued' || scene.job_status === 'running') {
@@ -223,9 +229,16 @@ async function poll() {
       return;
     }
     document.body.dataset.jobStatus = scene.job_status;
+    if (scene.source.kind === 'drawing' && scene.drawing) {
+      disposeDrawing?.(); disposeDrawing = showDrawing(scene.drawing);
+      return;
+    }
     if (scene.meshes.length) await render(scene);
     else {
-      message('No 3D geometry to display', 'See Read results for the outcome. Available document information and saved previews are shown in the side panel.');
+      const title = scene.source.kind === 'drawing'
+        ? (scene.stages.geometry === 'failed' || scene.job_status === 'failed' ? 'Drawing display unavailable' : 'Drawing display not enabled')
+        : 'No 3D geometry to display';
+      message(title, 'See Read results for the outcome. Available document information and saved previews are shown in the side panel.');
       el('render-status').textContent = scene.job_status === 'failed' ? 'Conversion process failed' : 'Document information';
     }
     bodyTree(scene);

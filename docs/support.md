@@ -1,5 +1,7 @@
 # Supported scope
 
+IDW also has a separately labelled [experimental saved 2D path](drawing.md). This does not qualify drawing semantics, physical units or native accuracy.
+
 English | [日本語](support.ja.md)
 
 `inventor_kit.capabilities()` returns the

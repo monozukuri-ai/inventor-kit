@@ -1,5 +1,7 @@
 # inventor-kit
 
+IDWの保存シートと2D要素の実験表示は[Python API・Viewer](docs/drawing.ja.md)を参照してください。
+
 [English](README.md) | 日本語
 
 Autodesk Inventor の文書情報と保存済み部品形状を Rust で読み、Python から利用する

@@ -1,5 +1,7 @@
 # 対応範囲
 
+IDWには別途[保存2D要素の実験表示](drawing.ja.md)があります。図面意味・物理単位・native描画精度を適格化した対応ではありません。
+
 [English](support.md) | 日本語
 
 `inventor_kit.capabilities()` は [機械可読な対応表](../python/inventor_kit/capabilities.json) を返します。

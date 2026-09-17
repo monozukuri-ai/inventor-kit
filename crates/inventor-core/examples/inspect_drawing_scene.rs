@@ -13,9 +13,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             .read_to_end(&mut bytes)?;
         let result = inventor_core::drawing::inspect(&bytes, &path, &limits)?;
         let preview = inventor_core::drawing::experimental_scene(&result, &limits);
+        let sheets = inventor_core::drawing::stored_sheets(&result, &limits);
+        let images = inventor_core::drawing::read_embedded_images(&bytes, &preview, &limits)?;
         println!(
             "{}",
-            serde_json::json!({"inventory":result,"preview":preview})
+            serde_json::json!({"inventory":result,"sheets":sheets,"preview":preview,"images":images})
         );
     }
     Ok(())

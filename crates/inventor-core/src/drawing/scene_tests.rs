@@ -358,7 +358,7 @@ fn fonts_use_stored_identifier_and_reject_duplicates() {
             ("font_tag", FieldValue::U16(4)),
             ("font_weight", FieldValue::U16(700)),
             ("font_flags", FieldValue::U16(0)),
-            ("font_size_parameters", FieldValue::F32(vec![0.5, 0.])),
+            ("font_size_parameters", FieldValue::F32(vec![0.5, 1.])),
             ("font_name", FieldValue::Utf16("Synthetic font".into())),
             ("font_tail_parameters", FieldValue::F32(vec![0., 1., 0.])),
         ]
@@ -382,4 +382,297 @@ fn fonts_use_stored_identifier_and_reject_duplicates() {
         vec![observation(0, "font_table_candidate", rows)],
     )]);
     assert!(fonts(&d, &mut 100).is_err());
+}
+
+fn attach_attribute(doc: &mut DrawingInventory, ordinal: usize, attribute: PayloadObservation) {
+    let o = &mut doc.segments[1].observations[ordinal];
+    o.fields.push(FieldObservation {
+        name: "attribute_reference",
+        value: w(101),
+        source: source(),
+    });
+    doc.segments[1].observations.push(observation(
+        100,
+        "display_attributes_candidate",
+        vec![("attribute_entry", w(102))],
+    ));
+    doc.segments[1].observations.push(attribute);
+}
+
+#[test]
+fn visibility_is_attribute_driven_inherited_and_rejects_broken_links() {
+    for owner in [0, 1] {
+        let mut d = placement_doc();
+        attach_attribute(
+            &mut d,
+            owner,
+            observation(
+                101,
+                "display_boolean_candidate",
+                vec![
+                    ("attribute_mask", w(4)),
+                    ("attribute_boolean", FieldValue::U8(0)),
+                ],
+            ),
+        );
+        let result = experimental_scene(&d, &Limits::default());
+        assert_eq!(result.spaces.len(), 1);
+        assert!(result.spaces[0].items.is_empty());
+        assert!(result.spaces[0]
+            .omitted
+            .iter()
+            .any(|x| x.record_ordinal == 1 && x.reason == "hidden_by_stored_attribute"));
+        d.segments[1].observations.last_mut().unwrap().fields[1].value = FieldValue::U8(1);
+        assert_eq!(
+            experimental_scene(&d, &Limits::default()).spaces[0]
+                .items
+                .len(),
+            1
+        );
+        d.segments[1].observations.last_mut().unwrap().fields[1].value = FieldValue::U8(9);
+        assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+        d.segments[1].observations.pop();
+        assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+    }
+}
+
+#[test]
+fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
+    let mut d = placement_doc();
+    attach_attribute(
+        &mut d,
+        0,
+        observation(
+            101,
+            "layer_binding_candidate",
+            vec![
+                ("layer_binding_mask", w(1)),
+                ("layer_reference", w(1)),
+                ("color_override", w(u32::MAX)),
+                ("stroke_scale", FieldValue::F32(vec![2.])),
+            ],
+        ),
+    );
+    let mut meta = placement_doc().segments.remove(0).meta.unwrap();
+    meta.reference_tables[0].bytes[..16].copy_from_slice(&[8; 16]);
+    meta.reference_tables[1].bytes[..16].copy_from_slice(&[9; 16]);
+    d.segments[1].meta = Some(meta);
+    d.segments.push(segment(
+        "AppSegmentType",
+        [8; 16],
+        vec![observation(
+            7,
+            "layer_definition_candidate",
+            vec![
+                ("header_flags", w(0)),
+                ("object_id", FieldValue::U16(77)),
+                (
+                    "layer_name",
+                    FieldValue::Utf16("arbitrary renamed layer".into()),
+                ),
+                ("layer_width", FieldValue::F64(vec![0.03])),
+                ("layer_rgba", FieldValue::F32(vec![0.2, 0.3, 0.4, 1.])),
+                ("line_pattern", w(0x6dc4)),
+            ],
+        )],
+    ));
+    let result = experimental_scene(&d, &Limits::default());
+    let style = &result.spaces[0].items[0].style;
+    assert_eq!(style.width, Some(0.06));
+    assert_eq!(style.dash, Some(vec![]));
+    assert_eq!(style.layer.as_deref(), Some("arbitrary renamed layer"));
+    assert!(style
+        .unresolved
+        .contains(&"layer_revision_binding_unverified"));
+    // Duplicated object keys cannot be resolved by first-match or by label.
+    d.segments[2].observations.push(observation(
+        8,
+        "layer_definition_candidate",
+        vec![("header_flags", w(0)), ("object_id", FieldValue::U16(77))],
+    ));
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+}
+
+#[test]
+fn dash_overrides_and_rotated_text_basis_preserve_stored_values() {
+    let mut d = placement_doc();
+    attach_attribute(
+        &mut d,
+        1,
+        observation(
+            101,
+            "stroke_override_candidate",
+            vec![
+                ("stroke_mask", w(8)),
+                ("stroke_width", FieldValue::F32(vec![0.025])),
+                (
+                    "stroke_dashes",
+                    FieldValue::F64(vec![0.4, -0.1, 0.02, -0.1]),
+                ),
+            ],
+        ),
+    );
+    let scene = experimental_scene(&d, &Limits::default());
+    assert_eq!(
+        scene.spaces[0].items[0].style.dash,
+        Some(vec![0.4, 0.1, 0.02, 0.1])
+    );
+    d.segments[1].observations.last_mut().unwrap().fields[2].value =
+        FieldValue::F64(vec![0.4, 0.1]);
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+    let t = observation(
+        0,
+        "stored_text_candidate",
+        vec![
+            ("text", FieldValue::Utf16("寸法\n<>".into())),
+            (
+                "position_and_direction_candidate",
+                FieldValue::F64(vec![3., 4., 2., 0., 1., 0.]),
+            ),
+            ("style_index_candidate", w(99)),
+            ("raw_text_flags", FieldValue::U16(9)),
+        ],
+    );
+    let mut m = IDENTITY;
+    m[0][0] = -1.;
+    m[0][3] = 10.;
+    let Some(DisplayGeometry::Text {
+        text,
+        position,
+        direction,
+        up,
+        font,
+        ..
+    }) = geometry(&t, &m, &BTreeMap::new(), &mut 100).unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(text, "寸法\n<>");
+    assert_eq!(position, [7., 4., 2.]);
+    assert_eq!(direction, [0., 1., 0.]);
+    assert_eq!(up, [1., 0., 0.]);
+    assert!(font.is_none());
+}
+
+fn sheet_document() -> DrawingInventory {
+    let mut d = placement_doc();
+    let context = [4; 16];
+    let doc_id = [9; 16];
+    d.segments[0].observations[0].fields.push(FieldObservation {
+        name: "definition_reference",
+        value: w(2),
+        source: source(),
+    });
+    let meta = d.segments[0].meta.as_mut().unwrap();
+    meta.reference_tables[0] = table(7, [[3; 16], context, doc_id, context].concat(), 32);
+    meta.reference_tables[1] = table(
+        8,
+        [
+            context.to_vec(),
+            vec![0; 4],
+            context.to_vec(),
+            vec![1, 0, 0, 0],
+        ]
+        .concat(),
+        20,
+    );
+    meta.reference_tables[2] = table(
+        10,
+        vec![0, 0, 0, 0, 0, 0, 77, 0, 1, 0, 18, 0, 0, 0, 42, 0],
+        8,
+    );
+    let definition = |id, key| {
+        observation(
+            id,
+            "sheet_segment_links_candidate",
+            vec![
+                ("header_flags", w(18)),
+                ("object_id", FieldValue::U16(key)),
+                ("name", FieldValue::Utf16("同名のシート".into())),
+            ],
+        )
+    };
+    d.segments.push(segment(
+        "DlDocDcSegmentType",
+        doc_id,
+        vec![
+            observation(
+                3,
+                "document_sheet_list_candidate",
+                vec![(
+                    "sheet_references_candidate",
+                    FieldValue::U32(vec![0x80000016, 0x8000000d]),
+                )],
+            ),
+            definition(12, 42),
+            definition(21, 43),
+            definition(30, 44),
+        ],
+    ));
+    let mut other = placement_doc().segments.remove(0);
+    other.registry.id = guid(&[8; 16]);
+    other.meta = Some(MetaInventory {
+        source: source(),
+        compressed_source: source(),
+        codec: "synthetic",
+        expanded_bytes: 0,
+        state_words: [0; 3],
+        block_words: vec![],
+        block_table_source: source(),
+        types: vec![],
+        reference_tables: vec![
+            table(7, [doc_id, context].concat(), 32),
+            table(8, [context.to_vec(), vec![0; 4]].concat(), 20),
+            table(10, vec![0, 0, 18, 0, 0, 0, 43, 0], 8),
+        ],
+    });
+    other.observations[0].fields.push(FieldObservation {
+        name: "definition_reference",
+        value: w(1),
+        source: source(),
+    });
+    d.segments.push(other);
+    d
+}
+
+#[test]
+fn sheets_follow_list_order_and_full_backlinks_without_names_or_units_guesses() {
+    let mut d = sheet_document();
+    d.segments.reverse();
+    let sheets = stored_sheets(&d, &Limits::default());
+    assert_eq!(sheets.status, "stored_order_unverified_state");
+    assert_eq!(sheets.sheets.len(), 2);
+    assert_eq!(sheets.sheets[0].definition_record, 21);
+    assert_eq!(sheets.sheets[1].definition_record, 12);
+    assert_eq!(sheets.sheets[0].name, sheets.sheets[1].name);
+    assert_ne!(sheets.sheets[0].id, sheets.sheets[1].id);
+    assert_eq!(sheets.sheets[0].space_segment, Some(guid(&[8; 16])));
+    assert_eq!(sheets.sheets[1].space_segment, Some(guid(&[2; 16])));
+    assert_eq!(sheets.sheets[0].size_in_source_units, Some([42., 29.7]));
+    assert_eq!(sheets.length_unit, None);
+    assert_eq!(sheets.millimeters_per_unit, None);
+    assert!(!sheets.qualified);
+}
+
+#[test]
+fn sheets_reject_corrupt_lists_and_keep_ambiguous_backlinks_unavailable() {
+    for raw in [0, 0x80000000, 0x800000ff, 12] {
+        let mut d = sheet_document();
+        d.segments[2].observations[0].fields[0].value = FieldValue::U32(vec![raw]);
+        assert_eq!(stored_sheets(&d, &Limits::default()).status, "unavailable");
+    }
+    let mut d = sheet_document();
+    d.segments[2].observations[0].fields[0].value = FieldValue::U32(vec![0x8000000d; 2]);
+    assert!(stored_sheets(&d, &Limits::default()).sheets.is_empty());
+    let mut d = sheet_document();
+    d.segments[0].meta.as_mut().unwrap().reference_tables[1].bytes[20] ^= 1;
+    let sheets = stored_sheets(&d, &Limits::default());
+    assert_eq!(sheets.sheets[1].status, "unavailable");
+    assert!(sheets.sheets[1].space_segment.is_none());
+    let d = sheet_document();
+    let small = Limits {
+        max_records: 10,
+        ..Limits::default()
+    };
+    assert!(stored_sheets(&d, &small).sheets.is_empty());
 }
