@@ -54,6 +54,7 @@ def create_server(directory, port=0):
                     resources.update(b["resource"] for m in scene["meshes"] for b in m["buffers"].values())
                     if scene.get("drawing"):
                         resources.update(i["resource"] for i in scene["drawing"]["images"] if i["resource"])
+                        resources.update(s["resource"] for s in scene["drawing"]["sheets"] if s["resource"])
                     if name not in resources:
                         self.send_error(404)
                         return

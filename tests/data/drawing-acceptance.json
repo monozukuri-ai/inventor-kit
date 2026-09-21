@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "profile": "major31-schema31-meta8-zstd",
+  "scope": "saved_display",
+  "minimum_independent_holdout_families": 2,
+  "tolerances": {
+    "sheet_size_mm": 0.001,
+    "geometry_mm": 0.001,
+    "angle_rad": 1e-06,
+    "text_content": "exact_unicode",
+    "visual_comparison": "not_qualified"
+  },
+  "tolerance_basis": "Conservative provisional API comparisons, fixed before holdout evaluation. PDF rounding, browser fonts and native capture precision still need qualification; these tolerances cannot certify display by themselves.",
+  "required_features": [
+    "sheet_identity_order",
+    "physical_units",
+    "paper_transform",
+    "basic_projected_views",
+    "lines_circles_arcs",
+    "text_content_placement",
+    "rotated_multiline_text",
+    "dimensions_leaders",
+    "border_title_block",
+    "simple_parts_list",
+    "styles_fonts",
+    "clipping_draw_order",
+    "without_reference_models"
+  ],
+  "control_matrix": [
+    {
+      "case": "sheet_size_orientation_order_units",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "line_translation_rotation_length",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "circle_arc",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "text_rotation_multiline_alignment",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "text_bold_italic_alternate_family",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "basic_projected_view_scale_rotation",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "dimension_leader_parts_list",
+      "status": "bounded_existing_observations"
+    },
+    {
+      "case": "missing_reference_deferred_update",
+      "status": "additional_native_capture_required"
+    }
+  ],
+  "control_evidence": {
+    "independent_holdout": false,
+    "qualified_oracle": false,
+    "manifests": [
+      "tests/data/drawing-native-controls.json",
+      "tests/data/drawing-additional-controls.json",
+      "tests/data/drawing-annotation-controls.json",
+      "tests/data/drawing-unit-controls.json"
+    ],
+    "remaining": [
+      "physical_units_profile_qualification",
+      "formal_oracle_getter_failures",
+      "view_projection_clip_and_draw_order",
+      "font_substitution_and_color_alpha_caches",
+      "two_qualified_independent_holdout_families"
+    ]
+  }
+}

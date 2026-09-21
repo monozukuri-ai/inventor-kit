@@ -50,7 +50,7 @@ def fake_capture(root):
                 DrawingDimensions=Collection(Obj(Type=117474560, Text=Obj(Text='10',FormattedText='10',Origin=point(5.,7.)))),
                 PartsLists=Collection(Obj(Title='PARTS LIST',Position=point(4.,8.),PartsListRows=Collection(Collection(Obj(Value='1'),Obj(Value='部品A'))))),
                 Border=None, TitleBlock=Obj(Name='Title', Definition=Obj(Sketch=Obj(TextBoxes=Collection(text))),GetResultText=lambda t:'Evaluated title'))
-    doc = Obj(DocumentType=12292, Dirty=False, RequiresUpdate=False, DeferUpdates=True, Sheets=Collection(sheet),
+    doc = Obj(DocumentType=12292, Dirty=False, RequiresUpdate=False, DrawingSettings=Obj(DeferUpdates=True), Sheets=Collection(sheet),
               File=Obj(ReferencedFileDescriptors=Collection()))
     app = Obj(SoftwareVersion=Obj(DisplayName='Fake provider', BuildIdentifier='test'),
               TransientGeometry=Obj(CreatePoint2d=point))
@@ -89,6 +89,12 @@ class DrawingOracle(unittest.TestCase):
         result = capture.observe(lambda: collector.geometry(circle,5254))
         self.assertEqual(result['status'],'unavailable')
         self.assertNotIn('value',result)
+        result = capture.observe(lambda: collector.geometry(None, 5251))
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertNotIn('value', result)
+        block = collector.block(Obj(Name='Default border', Definition=Obj(Sketch=None)))
+        self.assertEqual(block['texts']['status'], 'unavailable')
+        self.assertIsNone(block['texts']['reported_count'])
 
     def test_failed_properties_and_items_never_become_zero_or_empty(self):
         collector = capture.Collector(None, ROOT)

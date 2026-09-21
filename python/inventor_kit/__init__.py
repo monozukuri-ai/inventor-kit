@@ -15,7 +15,8 @@ from .conversion import BodyConversion, PartConversion, BodyConversionError, Con
 from .assembly import (AssemblyDocument, SavedOccurrence, AssemblyDefinition, AssemblyInstance,
                        InventorAssembly, FileSystemResolver, AssemblyConversion, AssemblyConversionError,
                        AssemblyOmission, inspect_assembly, inspect_assembly_file, read_assembly_file)
-from .drawing import (DrawingDocument, DrawingSheet, DrawingItem, DrawingImage,
+from .drawing import (DrawingDocument, DrawingSheet, DrawingView, DrawingItem, DrawingImage,
+                      DrawingDisplayError, SheetDisplay, DrawingLimits,
                       read_drawing, read_drawing_file)
 
 if TYPE_CHECKING:
@@ -102,4 +103,4 @@ __all__ = ["Limits", "capabilities", "InventorDocument", "DocumentInfo", "Proper
            "AssemblyDocument", "SavedOccurrence", "AssemblyDefinition", "AssemblyInstance", "InventorAssembly",
            "FileSystemResolver", "AssemblyConversion", "AssemblyConversionError", "AssemblyOmission",
            "inspect_assembly", "inspect_assembly_file", "read_assembly_file",
-           "DrawingDocument", "DrawingSheet", "DrawingItem", "DrawingImage", "read_drawing", "read_drawing_file"]
+           "DrawingDocument", "DrawingSheet", "DrawingView", "DrawingItem", "DrawingImage", "DrawingDisplayError", "DrawingLimits", "SheetDisplay", "read_drawing", "read_drawing_file"]

@@ -1,0 +1,70 @@
+{
+  "scope": "native_saved_snapshot_unit_regression_not_qualified_oracle",
+  "family": "inventor-kit-generated-controls-2027",
+  "split": "regression",
+  "independent_holdout": false,
+  "provider": "2027.1 (Build 311270010, 270A)",
+  "archive": {
+    "file_name": "InventorKitUnits_20260922_021518.zip",
+    "bytes": 1549578,
+    "sha256": "fc9b78a4f2f2edb600c63c4c3887c46010d83b87752a7af1fc75d2cd85d61d95"
+  },
+  "script": {
+    "sha256": "c2507705a90c78914aac5f4c126f648e747a67ae73d01bf8e4c1630956e31e7d",
+    "file_name": "InventorKitUnits_20260922_021518.ps1",
+    "bytes": 6779
+  },
+  "distribution": "User-supplied local controls; binary files excluded from Git and packages. No download URL.",
+  "files": [
+    {
+      "file_name": "custom-paper.idw",
+      "bytes": 357376,
+      "sha256": "6644063392636a7807a98883324cc1a799f5d12a52405a8c51b162714666c240"
+    },
+    {
+      "file_name": "custom-paper.pdf",
+      "bytes": 73156,
+      "sha256": "979d9a8608b4288f53d9ae40b3bd96e87ece920511f1e4104a42a1e8a645d248"
+    },
+    {
+      "file_name": "observations.native.json",
+      "bytes": 25588,
+      "sha256": "2931459db7f1b64db85c90826ee1eb515cb17ebb681ffa1c04cf4bec53c6ab33"
+    },
+    {
+      "file_name": "unit-cm.idw",
+      "bytes": 341504,
+      "sha256": "e67fa7cee189dd95fe93398a87e862d17f9df308edc8b4d3956240461e9eead8"
+    },
+    {
+      "file_name": "unit-cm.pdf",
+      "bytes": 73153,
+      "sha256": "ea4ad7110b5f999a4483bbea20394c295cee490439540796a9aa8f7381aee7c8"
+    },
+    {
+      "file_name": "unit-inch.idw",
+      "bytes": 341504,
+      "sha256": "6b3be9f143ad34b565dbd15dc4066bd00794b7b57935586bf01c80ca9b11ab47"
+    },
+    {
+      "file_name": "unit-inch.pdf",
+      "bytes": 73153,
+      "sha256": "ea4ad7110b5f999a4483bbea20394c295cee490439540796a9aa8f7381aee7c8"
+    },
+    {
+      "file_name": "unit-mm.idw",
+      "bytes": 341504,
+      "sha256": "32626b93f5e1fd3eb0e1ade1db60a0f814878cbb5f513732106d70487f104926"
+    },
+    {
+      "file_name": "unit-mm.pdf",
+      "bytes": 73153,
+      "sha256": "ea4ad7110b5f999a4483bbea20394c295cee490439540796a9aa8f7381aee7c8"
+    },
+    {
+      "file_name": "units.native.json",
+      "bytes": 33433,
+      "sha256": "cc175d69ccc602143abb634420097addb1aa9a62efd57669984ace5791995ce5"
+    }
+  ]
+}

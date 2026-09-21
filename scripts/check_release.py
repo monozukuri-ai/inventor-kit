@@ -77,13 +77,19 @@ def viewer_reports(paths, artifacts):
         if report['dependencies']['ocp-tessellate'] != '3.5.1':
             raise ValueError('Viewer qualification used an unexpected tessellator')
         cases = report['cases']
-        if set(cases) != {'part', 'assembly', 'partial_assembly', 'partial_part'}:
+        if set(cases) != {'part', 'assembly', 'partial_assembly', 'partial_part', 'drawing', 'partial_drawing'}:
             raise ValueError('Missing viewer qualification scenario')
         for case, counts in [('part', (1, 1, 0)), ('assembly', (1, 1, 0)), ('partial_assembly', (5, 7, 2)), ('partial_part', (1, 3, 2))]:
             result = cases[case]
             if (tuple(result[k] for k in ('displayed_instances', 'occurrences', 'omissions')) != counts
                     or result['mesh_buffers_fetched'] <= 0 or result['shutdown'] != 'passed'):
                 raise ValueError('Viewer qualification scenario failed')
+        for case, status, resources in [('drawing', 'unavailable', 0), ('partial_drawing', 'experimental_partial', 3)]:
+            result = cases[case]
+            if (result['status'] != status or result['sheet_count'] != 1 or result['resources_fetched'] != resources
+                    or result['qualified'] is not False or result['shutdown'] != 'passed'
+                    or result['source_sha256'] != 'c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e'):
+                raise ValueError('Drawing viewer qualification scenario failed')
         found.add(key)
     if found != set(expected):
         raise ValueError('Incomplete viewer qualification: expected all four wheels on Python 3.11/3.12 and rebuilt sdist')

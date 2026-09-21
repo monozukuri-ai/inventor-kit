@@ -9,42 +9,18 @@ entire model.
 
 The [part manifest](../fixtures/manifest.json) and
 [assembly manifest](../fixtures/assembly-manifest.json) record public sample
-sources, license conditions, sizes, and SHA-256 hashes. Together they contain
-45 entries, including four holdouts. They include related models and duplicate
-content, so they do not represent 45 independent model families. Download scripts
+sources, license conditions, sizes, SHA-256 hashes and holdout assignments.
+Related models and duplicate content do not count as independent model families. Download scripts
 retrieve the CAD files; the files are excluded from Git and distributions.
 
-## Published results
+## Validation results
 
-The [validation summary](../reports/validation-summary.json) contains only the
-execution environment category, test counts, corpus counts by stage, and fuzz
-results. It excludes local paths, detailed diagnostics, raw property or model
-data, and execution logs. The fixed part corpus has 33 inputs, including 28 IPT
-files and five other document types. Saved tables were parsed in 28 files and
-12 files were converted to valid solids (regression: 11/30;
-holdout: 1/3). Diagnostics for unsupported cases are also regression checks.
-The holdout IAM remains an unsupported profile and is not used to tune acceptance
-criteria.
-
-These results cover a limited set of public samples. They do not establish
-agreement with the current state or vendor implementation, or successful
-distribution CI on Windows and macOS.
-
-On 2026-09-14, public `acis-core` / `acis-py-bridge` / `cq-acis` 0.3.7
-passed 42 Rust tests, 87 Python tests and 29 viewer integration tests with zero
-skips on Linux. FTC07 (2021) retains its valid 258-face solid. The focused closure
-gate produced these results with the published dependencies:
-
-| Input | Valid individual faces | Primary solid | Complete saved-part conversion |
-| --- | --- | --- | --- |
-| FTC06 (2021) | 148 / 148 | closed, valid, 146 faces | rejected: two auxiliary open planar bodies |
-| FTC06 (2024) | 148 / 148 | closed, valid, 146 faces | rejected: two auxiliary open planar bodies |
-| CTC04 (2021) | 368 / 368 | closed, valid, 368 faces | converted; viewer includes every face |
-
-The primary solids passed STEP roundtrips with matching face counts, volume,
-area and bounding boxes. FTC06 is excluded from the complete-conversion count.
-Distribution installation and browser checks run separately as described in the
-[release guide](releasing.md).
+Validation scripts write detailed results under `internal/reports/latest/`.
+The summary command below selects counts and statuses and writes
+`internal/reports/validation-summary.json`. Keep comparison records and logs
+under the same `internal/reports/` directory; they are not bundled with the library.
+Results from one environment or dependency version do not qualify other platforms
+or the current Inventor state.
 
 ## Comparison methods
 
@@ -92,15 +68,14 @@ It checks four repaired FTC10 (2021) faces, including face 1387's three paired
 source edges, and six oblique CTC02 (2021) sections. The gate retains all source
 vertices through STEP, checks edge counts and mesh coverage, and requires
 whole-part conversion and automatic 3D preview to reject the still unsupported
-curves/surfaces. The local implementation has 198/223 valid FTC10 faces and
-411/443 valid CTC02 faces; neither file is counted as a complete solid.
-This gate requires cq-acis>=0.3.8,<0.4; whole-part success counts remain unchanged.
+curves/surfaces. This gate requires cq-acis>=0.3.8,<0.4. Per-face results do not
+establish complete-part support. The generated report records measured counts.
 
 See the [development guide](development.md) for standard reproduction steps and
 the [benchmark guide](../benchmarks/README.md) for performance measurement.
 
 ```sh
-python scripts/summarize_validation.py --input internal/reports/latest --output reports/validation-summary.json
+python scripts/summarize_validation.py --input internal/reports/latest --output internal/reports/validation-summary.json
 ```
 
 Summary generation fails if required detailed results are missing. CI publishes
@@ -114,4 +89,4 @@ input hashes and capture evidence match. Synthetic oracles test the comparison
 pipeline and do not count as validation against an actual Autodesk installation.
 Explicitly choose an output location under `internal/` for captures.
 
-Drawing corpus and native comparison acquisition are tracked separately: [IDW validation](drawing-validation.md).
+See the [IDW guide](drawing.md) for drawing behavior and support limitations.

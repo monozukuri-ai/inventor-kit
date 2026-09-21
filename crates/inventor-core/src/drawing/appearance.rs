@@ -106,7 +106,7 @@ pub(super) fn apply(
                 }
             }
             "layer_binding_candidate" => {
-                let (target, layer, sources, same_context) = resolve(
+                let (target, layer, sources, identity_verified) = resolve(
                     doc,
                     segment,
                     word(attr, "layer_reference")?,
@@ -118,7 +118,7 @@ pub(super) fn apply(
                 {
                     return Err(error("invalid layer reference"));
                 }
-                if !same_context {
+                if !identity_verified {
                     style.unresolved.push("layer_revision_binding_unverified");
                 }
                 if word(attr, "layer_binding_mask")? != 1 {
@@ -180,9 +180,10 @@ pub(super) fn apply(
             }
             "display_color_candidate" => {
                 if word(attr, "color_mask")? != 1 {
-                    return Err(error("unsupported display color mask"));
+                    style.unresolved.push("display_color_mask_not_interpreted");
+                } else {
+                    style.rgba = Some(color(&floats(attr, "color_rgba_parameters", 21)?[..4])?);
                 }
-                style.rgba = Some(color(&floats(attr, "color_rgba_parameters", 21)?[..4])?);
             }
             _ => style.unresolved.push("attribute_semantics_not_decoded"),
         }

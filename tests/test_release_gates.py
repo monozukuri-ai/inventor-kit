@@ -83,6 +83,10 @@ class ReleaseGates(unittest.TestCase):
                         name: dict(displayed_instances=parts, occurrences=occurrences, omissions=omissions,
                                    mesh_buffers_fetched=4, shutdown='passed')
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
+        for report in reports:
+            for case, status, count in [('drawing', 'unavailable', 0), ('partial_drawing', 'experimental_partial', 3)]:
+                report['cases'][case] = dict(status=status, sheet_count=1, resources_fetched=count, qualified=False,
+                    source_sha256='c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e', shutdown='passed')
         with tempfile.TemporaryDirectory() as temporary:
             paths = [Path(temporary) / f'{i}.json' for i in range(len(reports))]
             for path, report in zip(paths, reports):

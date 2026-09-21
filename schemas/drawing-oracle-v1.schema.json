@@ -662,6 +662,18 @@
         },
         "font_size": {
           "$ref": "#/$defs/number"
+        },
+        "range_min": {
+          "$ref": "#/$defs/point"
+        },
+        "range_max": {
+          "$ref": "#/$defs/point"
+        },
+        "horizontal_justification": {
+          "$ref": "#/$defs/integer"
+        },
+        "vertical_justification": {
+          "$ref": "#/$defs/integer"
         }
       },
       "required": [

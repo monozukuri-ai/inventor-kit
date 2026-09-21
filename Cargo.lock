@@ -221,6 +221,7 @@ dependencies = [
  "acis-py-bridge",
  "inventor-core",
  "pyo3",
+ "serde",
  "serde_json",
 ]
 

@@ -5,7 +5,7 @@ import 'three-cad-viewer/css';
 import './style.css';
 
 type Scene = {
-  schema_version: number; job_status: string; source: { name: string; kind: string; sha256: string | null };
+  schema_version: number; scene_kind?: string; job_status: string; source: { name: string; kind: string; sha256: string | null };
   units: string; drawing?: DrawingScene | null;
   stages: Record<string, string>; nodes: Node[]; meshes: Mesh[];
   selection: { selected_id: string | null; status: string; basis: string | null } | null;
@@ -221,6 +221,8 @@ async function poll() {
     scene = await response.json() as Scene;
     if (stopped) return;
     if (scene.schema_version !== 1) throw new Error('Unsupported scene version');
+    if (scene.scene_kind !== undefined && scene.scene_kind !== 'drawing') throw new Error('Unsupported scene kind');
+    if ((scene.source.kind === 'drawing') !== (scene.scene_kind === 'drawing')) throw new Error('Scene kind does not match document identity');
     information(scene);
     if (scene.job_status === 'queued' || scene.job_status === 'running') {
       const stage = scene.stages.conversion === 'available' ? 'Preparing display meshes…' : 'Reading saved geometry…';

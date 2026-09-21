@@ -83,9 +83,7 @@ versions are restricted by `Requires-Python: >=3.11`.
 
 The FTC07 volume gate uses adaptive integration at three tolerances, checks its
 reported error and convergence, and retains the relative comparison tolerance of
-`1e-10`. Default integration values remain in the diagnostic log: their macOS
-arm64 difference caused the v0.3.0 gate failure. This changes the measurement
-method, not source geometry or the conversion acceptance criteria. Partial FTC06
+`1e-10`. Default integration values remain in the diagnostic log. Partial FTC06
 body export must also preserve both omitted bodies in its checked STEP sidecar.
 
 ```sh

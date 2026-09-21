@@ -4,7 +4,9 @@ mod fields;
 mod geometry;
 mod images;
 mod inventory;
+mod limits;
 mod profile;
+mod revisions;
 mod scene;
 mod sheet;
 mod sheets;
@@ -13,14 +15,16 @@ mod text;
 
 use crate::document::{Diagnostic, DocumentInfo, SegmentInfo, SourceSpan};
 pub use appearance::DisplayStyle;
-pub use images::{read_embedded_images, EmbeddedImage};
+pub use images::{read_embedded_images, read_embedded_images_with_limits, EmbeddedImage};
 pub use inventory::inspect;
+pub use limits::{DrawingLimits, DrawingOutputBuffer};
+pub use revisions::{Revision, RevisionTable};
 pub use scene::{
-    experimental_scene, DisplayBinding, DisplayFont, DisplayGeometry, DisplayItem, DisplaySpace,
-    ExperimentalScene, Omission,
+    experimental_scene, experimental_scene_with_limits, DisplayBinding, DisplayFont,
+    DisplayGeometry, DisplayItem, DisplaySpace, ExperimentalScene, Omission, StoredView,
 };
 use serde::Serialize;
-pub use sheets::{stored_sheets, StoredSheet, StoredSheets};
+pub use sheets::{stored_sheets, stored_sheets_with_limits, StoredSheet, StoredSheets};
 
 #[derive(Debug, Serialize)]
 pub struct DrawingInventory {
@@ -36,6 +40,7 @@ pub struct DrawingInventory {
     pub unclaimed_streams: Vec<OpaqueRegion>,
     pub usage: Usage,
     pub diagnostics: Vec<Diagnostic>,
+    pub revisions: Option<RevisionTable>,
 }
 
 #[derive(Debug, Serialize, Default)]

@@ -40,6 +40,7 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<DrawingI
         unclaimed_streams: vec![],
         usage: Usage::default(),
         diagnostics: vec![],
+        revisions: None,
     };
     if out.metadata.identification.kind != "drawing"
         || out.metadata.identification.status == "conflicting"
@@ -132,6 +133,20 @@ fn scan(
         return Ok(());
     }
     let registry_path = "/RSeStorage/RSeSegInfo";
+    let revision_path = "/RSeStorage/RSeDbRevisionInfo";
+    if let Some(s) = streams.iter().find(|s| s.path == revision_path) {
+        let source = span(&id, revision_path, 0, s.bytes as usize, false);
+        match stream(file, revision_path, limits.max_stream_bytes)
+            .and_then(|b| super::revisions::decode(&b, source.clone(), work))
+        {
+            Ok(table) => out.revisions = Some(table),
+            Err(e) => out.diagnostics.push(diagnostic(
+                "drawing.revisions_unavailable",
+                e.to_string(),
+                Some(source),
+            )),
+        }
+    }
     let registry =
         rse::registry_budgeted(&stream(file, registry_path, limits.max_stream_bytes)?, work)?;
     let mut registry_ids = BTreeMap::<[u8; 16], Vec<usize>>::new();

@@ -3,12 +3,41 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 
 const root = resolve(import.meta.dirname, '../..');
 const python = process.env.VIEWER_PYTHON || resolve(root, '.venv/bin/python');
 const corpus = process.env.VIEWER_CORPUS || resolve(root, 'fixtures/public');
 let process_: ChildProcess | undefined;
 let errors: string[] = [];
+
+async function storedSheet(page: Page, url: string, descriptor: any) {
+  return { ...descriptor, ...await (await page.request.get(url + descriptor.resource)).json() };
+}
+
+async function mockDrawingSheets(page: Page, state: any, sheets: any[]) {
+  const descriptors = [];
+  for (const sheet of sheets) {
+    const id = sheet.id.startsWith(state.source.sha256 + '/') ? sheet.id : `${state.source.sha256}/sheet-${sheet.id}`;
+    const { items, omissions, sources, views, ...rest } = sheet;
+    const descriptor = { ...rest, id, item_count: items.length, omission_count: omissions.length };
+    // Keep only descriptor fields in the snapshot, just as the real server does.
+    for (const key of ['schema_version', 'scene_kind', 'source_sha256', 'sheet_id', 'units']) delete descriptor[key];
+    if (sheet.status === 'unavailable') Object.assign(descriptor, { resource: null, bytes: null, sha256: null });
+    else {
+      const payload = { schema_version: 1, scene_kind: 'drawing_sheet', source_sha256: state.source.sha256,
+        sheet_id: id, units: 'source_units_unverified', items: items.map((item: any, i: number) => ({ ...item, id: `${id}/test-${i}` })), omissions, sources,
+        views: views?.map((v: any) => ({ ...v, id: `${id}/view-${v.placement_record}`,
+          item_ids: items.flatMap((item: any, i: number) => item.placement_record === v.placement_record ? [`${id}/test-${i}`] : []) })) };
+      const body = JSON.stringify(payload), hash = createHash('sha256').update(body).digest('hex');
+      Object.assign(descriptor, { resource: `drawing-sheet-${hash}.json`, bytes: Buffer.byteLength(body), sha256: hash });
+      await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
+    }
+    descriptors.push(descriptor);
+  }
+  state.drawing.sheets = descriptors;
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+}
 
 async function open(page: Page, file: string, args: string[] = []) {
   errors = [];
@@ -300,19 +329,19 @@ test('IDW unsupported profile retains previews and a clear unavailable state', a
 test('IDW synthetic sheet switches clear stale selection and preserve literal multiline text', async ({ page }) => {
   const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
   const state = await (await page.request.get(url + 'state.json')).json();
-  const first = state.drawing.sheets[0];
+  const first = await storedSheet(page, url, state.drawing.sheets[0]);
   const second = structuredClone(first); second.id = 'synthetic-second'; second.name = 'Second';
   second.items = [structuredClone(first.items.find((i: any) => i.geometry.kind === 'text'))];
   second.items[0].id = 'synthetic-literal';
   second.items[0].geometry.text = '<script>window.injected=true</script>\n日本語';
   const third = { ...second, id: 'synthetic-unavailable', name: 'Unavailable', status: 'unavailable', items: [], size_in_source_units: null };
-  state.drawing.sheets.push(second, third);
-  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  await mockDrawingSheets(page, state, [first, second, third]);
   await page.reload();
   await expect(page.locator('#sheet-buttons button')).toHaveCount(3);
   await page.locator('#sheet-buttons button').nth(1).click();
   await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(1);
   await expect(page.locator('#drawing-svg text tspan')).toHaveCount(2);
+  await expect(page.locator('#drawing-svg text')).toHaveAttribute('data-font-sizing', 'unverified-em-fallback');
   expect(await page.evaluate(() => (window as any).injected)).toBeUndefined();
   await page.locator('#drawing-search').fill('script');
   await page.locator('#drawing-search-results button').click();
@@ -325,4 +354,182 @@ test('IDW synthetic sheet switches clear stale selection and preserve literal mu
     await page.locator('#sheet-buttons button').nth(i % 2).click();
   }
   await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(1);
+});
+
+test('IDW capital-height candidates render at the stored height and preserve spaces', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  const original = sheet.items.find((i: any) => i.geometry.kind === 'text');
+  sheet.size_in_source_units = [200, 120];
+  sheet.items = [
+    ['Arial', 10, 80, 'H', 1, 9], ['Tahoma', 70, 80, 'H', 1, 9],
+    ['Arial', 130, 80, 'H', .5, 9], ['Arial', 10, 30, ' H ', 1, 9],
+    ['Arial', 110, 30, 'H', 1, 10],
+  ].map(([family, x, y, text, width, flags], index) => {
+    const item = structuredClone(original); item.id = `synthetic-font-${index}`;
+    Object.assign(item.geometry, { text, position: [x, y, 0], direction: [1, 0, 0], up: [0, 1, 0], raw_flags: flags });
+    Object.assign(item.geometry.font, { family, height_candidate: 20, weight_candidate: 400, flags: 0, width_factor: width });
+    return item;
+  });
+  await mockDrawingSheets(page, state, [sheet]);
+  await page.reload();
+  await expect(page.locator('#drawing-svg text')).toHaveCount(5);
+  await expect(page.locator('#drawing-font-note')).toContainText('approximate');
+  const result = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const texts = Array.from(document.querySelectorAll<SVGTextElement>('#drawing-svg text'));
+    const spaced = texts[3];
+    const spaceAdvance = spaced.getStartPositionOfChar(1).x - spaced.getStartPositionOfChar(0).x;
+    const trailingAdvance = spaced.getComputedTextLength() - spaced.getEndPositionOfChar(1).x;
+    // Rasterize the actual Viewer SVG at 5 pixels/source unit. Measure ink,
+    // independently of the browser's line-box bounds or font-size declaration.
+    const copy = document.querySelector('#drawing-svg')!.cloneNode(true) as SVGSVGElement;
+    copy.setAttribute('viewBox', '0 0 200 120'); copy.setAttribute('width', '1000'); copy.setAttribute('height', '600');
+    const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
+    await img.decode();
+    const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 600;
+    const ctx = canvas.getContext('2d')!; ctx.drawImage(img, 0, 0);
+    const pixels = ctx.getImageData(0, 0, 1000, 600).data;
+    const bounds = [0, 300, 600].map(start => {
+      let x0 = 1000, y0 = 600, x1 = -1, y1 = -1;
+      for (let y = 10; y < 300; y++) for (let x = start + 10; x < start + 290; x++) {
+        const p = (y * 1000 + x) * 4;
+        if (pixels[p + 3] && Math.max(pixels[p], pixels[p + 1], pixels[p + 2]) < 100) {
+          x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+        }
+      }
+      return { width: x1 - x0 + 1, height: y1 - y0 + 1 };
+    });
+    return { bounds, spaceAdvance, trailingAdvance, unknownSizing: texts[4].dataset.fontSizing };
+  });
+  for (const box of result.bounds) expect(Math.abs(box.height - 100)).toBeLessThanOrEqual(2);
+  expect(Math.abs(result.bounds[0].width / 2 - result.bounds[2].width)).toBeLessThanOrEqual(2);
+  expect(result.spaceAdvance).toBeGreaterThan(0);
+  expect(result.trailingAdvance).toBeGreaterThan(0);
+  expect(result.unknownSizing).toBe('unverified-em-fallback');
+
+  // An older browser keeps the explicit fallback and explains the limitation.
+  await page.addInitScript(() => {
+    const supports = CSS.supports.bind(CSS);
+    CSS.supports = ((property: string, value?: string) => property === 'font-size-adjust' ? false : supports(property, value!)) as typeof CSS.supports;
+  });
+  await page.reload();
+  await expect(page.locator('#drawing-font-note')).toContainText('cannot adjust text height');
+  await expect(page.locator('#drawing-svg text').first()).toHaveAttribute('data-font-sizing', 'unverified-em-fallback');
+});
+
+test('IDW Tahoma bold and italic retain capital height and change the rendered ink', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  const original = sheet.items.find((i: any) => i.geometry.kind === 'text');
+  sheet.size_in_source_units = [160, 60];
+  sheet.items = [[400, 0], [700, 0], [400, 1]].map(([weight, flags], index) => {
+    const item = structuredClone(original); item.id = `synthetic-style-${index}`;
+    Object.assign(item.geometry, { text: 'H', position: [10 + index * 50, 30, 0], direction: [1, 0, 0], up: [0, 1, 0], raw_flags: 9 });
+    Object.assign(item.geometry.font, { family: 'Tahoma', height_candidate: 20, weight_candidate: weight, flags, width_factor: 1 });
+    return item;
+  });
+  await mockDrawingSheets(page, state, [sheet]); await page.reload();
+  await expect(page.locator('#drawing-svg text')).toHaveCount(3);
+  const boxes = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const copy = document.querySelector('#drawing-svg')!.cloneNode(true) as SVGSVGElement;
+    copy.setAttribute('viewBox', '0 0 160 60'); copy.setAttribute('width', '800'); copy.setAttribute('height', '300');
+    const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
+    await img.decode();
+    const canvas = document.createElement('canvas'); canvas.width = 800; canvas.height = 300;
+    const ctx = canvas.getContext('2d')!; ctx.drawImage(img, 0, 0);
+    const pixels = ctx.getImageData(0, 0, 800, 300).data;
+    return [0, 250, 500].map(start => {
+      let x0 = 800, x1 = -1, y0 = 300, y1 = -1, ink = 0;
+      for (let y = 10; y < 250; y++) for (let x = start + 10; x < start + 240; x++) {
+        const p = (y * 800 + x) * 4;
+        if (pixels[p + 3] && Math.max(pixels[p], pixels[p + 1], pixels[p + 2]) < 100) {
+          x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); ink++;
+        }
+      }
+      return { width: x1 - x0 + 1, height: y1 - y0 + 1, ink };
+    });
+  });
+  for (const box of boxes) expect(Math.abs(box.height - 100)).toBeLessThanOrEqual(2);
+  expect(boxes[1].ink).toBeGreaterThan(boxes[0].ink);
+  expect(boxes[2].width).toBeGreaterThan(boxes[0].width);
+});
+
+test('IDW loads only the selected sheet and rejects stale responses after switching', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const first = await storedSheet(page, url, state.drawing.sheets[0]);
+  const second = structuredClone(first); second.id = 'race-second'; second.name = 'Second';
+  second.items = first.items.filter((i: any) => i.geometry.kind === 'text').slice(0, 1);
+  await mockDrawingSheets(page, state, [first, second]);
+  let release!: () => void, entered!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { entered = resolve; });
+  const requests: string[] = [];
+  page.on('request', request => { if (request.url().includes('drawing-sheet-')) requests.push(request.url()); });
+  await page.route(`**/${state.drawing.sheets[0].resource}`, async route => {
+    entered(); await held;
+    // Switching cancels this request. A late response must never replace Second.
+    try { await route.fallback(); } catch { /* Aborted by the sheet switch. */ }
+  });
+  await page.reload(); await requested;
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).toContain(state.drawing.sheets[0].resource);
+  await page.locator('#sheet-buttons button').nth(1).click();
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(1);
+  release();
+  await expect(page.locator('#cad')).toHaveAttribute('data-sheet-id', state.drawing.sheets[1].id);
+  await expect(page.locator('#render-status')).toContainText('Second');
+  expect(requests.some(url => url.endsWith(state.drawing.sheets[1].resource))).toBe(true);
+});
+
+test('IDW damaged sheet resources fail closed and retain sheet diagnostics', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  await page.route(`**/${state.drawing.sheets[0].resource}`, route => route.fulfill({ body: '{}', contentType: 'application/json' }));
+  await page.reload();
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  await expect(page.locator('#drawing-omissions')).toContainText('Sheet resource');
+});
+
+
+test('IDW diameter glyph fallback keeps source text and supports symbol search', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  const item = structuredClone(sheet.items.find((i: any) => i.geometry.kind === 'text'));
+  Object.assign(item.geometry, { text: 'n', raw_flags: 9,
+    font: { ...item.geometry.font, family: 'AIGDT', height_candidate: .45, flags: 0, weight_candidate: 400 } });
+  sheet.items = [item];
+  await mockDrawingSheets(page, state, [sheet]);
+  await page.reload();
+  await expect(page.locator('#drawing-svg text')).toHaveText('⌀');
+  await expect(page.locator('#drawing-svg text')).toHaveAttribute('data-raw-text', 'n');
+  await expect(page.locator('#drawing-symbol-note')).toContainText('Unicode substitute');
+  await page.locator('#drawing-search').fill('⌀');
+  await page.locator('#drawing-search-results button').click();
+  await expect(page.locator('#selected')).toHaveText('⌀');
+  await expect(page.locator('#selection-info')).toContainText('"text": "n"');
+  await page.locator('#drawing-search').fill('n');
+  await expect(page.locator('#drawing-search-results button')).toHaveCount(1);
+});
+
+test('IDW saved view selection highlights members and retains unknown rotation', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  sheet.views = [{ name: 'Synthetic view', placement_record: sheet.items[0].placement_record,
+    rotation: null, view_type: null, parent_view_id: null, image_reference: null }];
+  await mockDrawingSheets(page, state, [sheet]);
+  await page.reload();
+  await page.locator('#drawing-views button').click();
+  await expect(page.locator('#selected')).toHaveText('Synthetic view');
+  await expect(page.locator('#selection-info')).toContainText('"rotation": null');
+  expect(await page.locator('#drawing-svg .drawing-selected').count()).toBeGreaterThan(0);
+  await page.locator('#drawing-search').fill('does not exist');
+  await expect(page.locator('#drawing-views button')).toHaveCount(1);
 });

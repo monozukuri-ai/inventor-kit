@@ -1,0 +1,984 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inventor saved drawing scene v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "job_status",
+    "source",
+    "units",
+    "current_state",
+    "complete",
+    "stages",
+    "selection",
+    "candidates",
+    "nodes",
+    "meshes",
+    "properties",
+    "thumbnails",
+    "diagnostics",
+    "tessellation",
+    "assembly",
+    "omissions",
+    "reference_issues",
+    "scene_kind"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "job_status": {
+      "enum": [
+        "queued",
+        "running",
+        "finished",
+        "failed"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "name",
+        "sha256",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "kind": {
+          "const": "drawing"
+        }
+      }
+    },
+    "units": {
+      "const": "source_units_unverified"
+    },
+    "current_state": {
+      "const": "unverified"
+    },
+    "complete": {
+      "const": false
+    },
+    "stages": {
+      "type": "object",
+      "required": [
+        "metadata",
+        "geometry",
+        "conversion",
+        "tessellation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "type": "string"
+        },
+        "geometry": {
+          "type": "string"
+        },
+        "conversion": {
+          "type": "string"
+        },
+        "tessellation": {
+          "type": "string"
+        }
+      }
+    },
+    "drawing": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "api_version",
+        "status",
+        "sheet_status",
+        "units",
+        "length_unit",
+        "millimeters_per_unit",
+        "qualified",
+        "complete",
+        "current_state",
+        "sheets",
+        "images",
+        "source_sha256",
+        "snapshot_kind",
+        "reference_freshness",
+        "experimental",
+        "allow_partial"
+      ],
+      "properties": {
+        "api_version": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "experimental_partial",
+            "unavailable"
+          ]
+        },
+        "sheet_status": {
+          "type": "string"
+        },
+        "units": {
+          "const": "source_units_unverified"
+        },
+        "length_unit": {
+          "type": "null"
+        },
+        "millimeters_per_unit": {
+          "type": "null"
+        },
+        "qualified": {
+          "const": false
+        },
+        "complete": {
+          "const": false
+        },
+        "current_state": {
+          "const": "unverified"
+        },
+        "sheets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "index",
+              "name",
+              "status",
+              "size_in_source_units",
+              "diagnostics",
+              "content_coverage",
+              "appearance",
+              "item_count",
+              "omission_count",
+              "resource",
+              "bytes",
+              "sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}/sheet-"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "experimental_partial",
+                  "unavailable"
+                ]
+              },
+              "size_in_source_units": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "diagnostics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "content_coverage": {
+                "const": "unknown"
+              },
+              "appearance": {
+                "const": "unverified"
+              },
+              "item_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "omission_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "resource": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^drawing-sheet-[0-9a-f]{64}\\.json$"
+              },
+              "bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 16777216
+              },
+              "sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unavailable"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "resource": {
+                      "type": "null"
+                    },
+                    "bytes": {
+                      "type": "null"
+                    },
+                    "sha256": {
+                      "type": "null"
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "resource": {
+                      "type": "string"
+                    },
+                    "bytes": {
+                      "type": "integer"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reference",
+              "resource",
+              "status",
+              "width",
+              "height",
+              "sha256",
+              "source",
+              "diagnostic"
+            ],
+            "properties": {
+              "reference": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "resource": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^drawing-image-[0-9]+\\.(png|jpg)$"
+              },
+              "status": {
+                "type": "string"
+              },
+              "width": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "height": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source": {
+                "type": "object"
+              },
+              "diagnostic": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "snapshot_kind": {
+          "const": "saved"
+        },
+        "reference_freshness": {
+          "const": "unverified"
+        },
+        "experimental": {
+          "type": "boolean"
+        },
+        "allow_partial": {
+          "type": "boolean"
+        }
+      }
+    },
+    "selection": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "table_status",
+          "profile_status",
+          "state_binding",
+          "source"
+        ]
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "parent",
+          "name",
+          "body_index",
+          "source_sha256",
+          "candidate_id",
+          "mesh_id",
+          "kind",
+          "status",
+          "reason",
+          "local_transform_mm",
+          "world_transform_mm"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "body_index": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "body_id": {
+            "type": "string",
+            "pattern": "^body-[a-f0-9]{64}$"
+          },
+          "source_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "candidate_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mesh_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "definition_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "occurrence_path": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1
+          },
+          "local_transform_mm": {
+            "$ref": "#/$defs/matrix"
+          },
+          "world_transform_mm": {
+            "$ref": "#/$defs/matrix"
+          },
+          "suppressed": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "visible": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "substitute": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "meshes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "buffers",
+          "bounds",
+          "face_count",
+          "triangle_count"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bounds": {
+            "$ref": "#/$defs/bounds"
+          },
+          "face_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "triangle_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "buffers": {
+            "type": "object",
+            "required": [
+              "vertices",
+              "triangles",
+              "normals",
+              "edges",
+              "triangles_per_face",
+              "segments_per_edge",
+              "face_types",
+              "edge_types",
+              "obj_vertices"
+            ],
+            "additionalProperties": {
+              "$ref": "#/$defs/buffer"
+            }
+          }
+        }
+      }
+    },
+    "properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "value",
+          "value_kind",
+          "source",
+          "storage_scope",
+          "state_binding",
+          "fmtid",
+          "pid",
+          "status"
+        ]
+      }
+    },
+    "thumbnails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "resource",
+          "width",
+          "height",
+          "source",
+          "state_binding",
+          "validation"
+        ],
+        "properties": {
+          "resource": {
+            "$ref": "#/$defs/resource"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message",
+          "source"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "sheet_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tessellation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "quality",
+        "linear_deflection_mm",
+        "angular_deflection_radians",
+        "mode",
+        "triangle_count",
+        "buffer_bytes",
+        "packages"
+      ]
+    },
+    "part": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "schema_version",
+        "kind",
+        "status",
+        "bodies",
+        "omissions",
+        "geometry_complete",
+        "selection_complete",
+        "current_state_verified"
+      ],
+      "properties": {
+        "kind": {
+          "const": "part"
+        },
+        "current_state_verified": {
+          "const": false
+        }
+      }
+    },
+    "assembly": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "structure_status",
+        "current_state",
+        "complete",
+        "allow_unverified_state",
+        "allow_partial",
+        "converted_instances",
+        "converted_definitions",
+        "displayed_instances",
+        "displayed_definitions",
+        "source_documents"
+      ],
+      "properties": {
+        "current_state": {
+          "const": "unverified"
+        },
+        "complete": {
+          "const": false
+        }
+      }
+    },
+    "omissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "instance",
+          "path",
+          "reason",
+          "detail"
+        ]
+      }
+    },
+    "reference_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "owner",
+          "status"
+        ]
+      }
+    },
+    "scene_kind": {
+      "const": "drawing"
+    }
+  },
+  "$defs": {
+    "matrix": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "array",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "resource": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+\\.(bin|png)$"
+    },
+    "buffer": {
+      "type": "object",
+      "required": [
+        "resource",
+        "dtype",
+        "count",
+        "bytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "dtype": {
+          "enum": [
+            "float32",
+            "uint32"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "required": [
+        "xmin",
+        "xmax",
+        "ymin",
+        "ymax",
+        "zmin",
+        "zmax"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "xmin": {
+          "type": "number"
+        },
+        "xmax": {
+          "type": "number"
+        },
+        "ymin": {
+          "type": "number"
+        },
+        "ymax": {
+          "type": "number"
+        },
+        "zmin": {
+          "type": "number"
+        },
+        "zmax": {
+          "type": "number"
+        }
+      }
+    },
+    "sheet_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "geometry",
+              "style",
+              "source",
+              "segment_id",
+              "record_ordinal",
+              "placement_record",
+              "group_path"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "geometry": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "polyline",
+                      "curve",
+                      "text",
+                      "image"
+                    ]
+                  }
+                }
+              },
+              "style": {
+                "type": "object"
+              },
+              "source": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "omissions": {
+          "type": "array"
+        },
+        "sources": {
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "scene_kind": {
+          "const": "drawing_sheet"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sheet_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}/sheet-"
+        },
+        "units": {
+          "const": "source_units_unverified"
+        },
+        "views": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "placement_record",
+              "placement_transform",
+              "cache_bounds",
+              "image_reference",
+              "item_ids",
+              "source",
+              "diagnostics",
+              "view_type",
+              "parent_view_id",
+              "rotation"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}/sheet-.+/view-[0-9]+$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "item_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "view_type": {
+                "type": "null"
+              },
+              "parent_view_id": {
+                "type": "null"
+              },
+              "rotation": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "items",
+        "omissions",
+        "sources",
+        "schema_version",
+        "scene_kind",
+        "source_sha256",
+        "sheet_id",
+        "units"
+      ]
+    },
+    "drawing_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_sheets": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256,
+          "default": 256
+        },
+        "max_display_items": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "default": 100000
+        },
+        "max_polyline_points": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000,
+          "default": 1000000
+        },
+        "max_text_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216,
+          "default": 16777216
+        },
+        "max_reference_visits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500000,
+          "default": 500000
+        },
+        "max_nesting_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128,
+          "default": 128
+        },
+        "max_image_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216,
+          "default": 16777216
+        },
+        "max_image_pixels": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216,
+          "default": 16777216
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864,
+          "default": 67108864
+        },
+        "max_views": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096,
+          "default": 4096
+        }
+      }
+    }
+  }
+}

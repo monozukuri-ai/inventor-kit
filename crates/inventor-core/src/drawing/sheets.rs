@@ -36,9 +36,17 @@ fn text<'a>(o: &'a PayloadObservation, name: &str) -> Result<&'a str> {
 }
 
 /// Follow the document's tagged local sheet list in wire order, then require
-/// exactly one same-context SM definition reference to the full object key.
+/// exactly one revision-bound SM definition reference to the full object key.
 /// Names, registry order, paper-size guesses and thumbnails never select owners.
 pub fn stored_sheets(doc: &DrawingInventory, limits: &Limits) -> StoredSheets {
+    stored_sheets_with_limits(doc, limits, &DrawingLimits::default())
+}
+
+pub fn stored_sheets_with_limits(
+    doc: &DrawingInventory,
+    limits: &Limits,
+    drawing: &DrawingLimits,
+) -> StoredSheets {
     let mut result = StoredSheets {
         status: "unavailable",
         qualified: false,
@@ -47,8 +55,11 @@ pub fn stored_sheets(doc: &DrawingInventory, limits: &Limits) -> StoredSheets {
         sheets: vec![],
         diagnostics: vec!["physical_units_and_active_state_unverified".into()],
     };
-    let mut work = limits.max_records;
-    match collect(doc, &mut work) {
+    let mut work = limits.max_records.min(drawing.max_reference_visits);
+    match drawing
+        .validate()
+        .and_then(|_| collect(doc, &mut work, drawing.max_sheets))
+    {
         Ok(sheets) => {
             result.status = "stored_order_unverified_state";
             result.sheets = sheets;
@@ -58,7 +69,11 @@ pub fn stored_sheets(doc: &DrawingInventory, limits: &Limits) -> StoredSheets {
     result
 }
 
-fn collect(doc: &DrawingInventory, work: &mut usize) -> Result<Vec<StoredSheet>> {
+fn collect(
+    doc: &DrawingInventory,
+    work: &mut usize,
+    max_sheets: usize,
+) -> Result<Vec<StoredSheet>> {
     rse::charge(work, doc.segments.len())?;
     let mut candidates = vec![];
     for segment in &doc.segments {
@@ -80,6 +95,9 @@ fn collect(doc: &DrawingInventory, work: &mut usize) -> Result<Vec<StoredSheet>>
     }
     let (segment, root) = candidates[0];
     let refs = scene::references(root, "sheet_references_candidate")?;
+    if refs.len() > max_sheets {
+        return Err(Error("drawing sheet limit exceeded".into()));
+    }
     rse::charge(work, refs.len())?;
     let mut seen = BTreeSet::new();
     let mut sheets = Vec::with_capacity(refs.len());

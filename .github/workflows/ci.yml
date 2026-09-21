@@ -67,6 +67,7 @@ jobs:
           .venv/bin/python scripts/run_tests.py
           # Inventory succeeds on input integrity; native acquisition remains incomplete.
           .venv/bin/python scripts/validate_drawing_oracle.py --inventory
+          .venv/bin/python scripts/validate_drawing_samples.py --inventory --output internal/reports/latest/drawing-acceptance.json
           .venv/bin/python scripts/validate_drawing_inventory.py
           .venv/bin/python scripts/validate_public_samples.py
           .venv/bin/python scripts/validate_document_samples.py

@@ -83,7 +83,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         license_prefix = prefix
         package_prefix = prefix+'python/inventor_kit/'
         viewer_sources = prefix+'viewer/'
-        for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json', 'schemas/drawing-oracle-v1.schema.json'):
+        for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json', 'schemas/drawing-oracle-v1.schema.json', 'schemas/drawing-scene-v1.schema.json'):
             if prefix + name not in contents:
                 raise ValueError(f'Missing sdist build input: {name}')
         for name in ('mod.rs', 'inventory.rs', 'profile.rs', 'fields.rs', 'sheet.rs', 'sheets.rs', 'geometry.rs', 'text.rs', 'style.rs', 'scene.rs', 'scene_tests.rs', 'appearance.rs', 'images.rs', 'tests.rs'):

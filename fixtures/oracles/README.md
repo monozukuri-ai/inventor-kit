@@ -43,6 +43,7 @@ Collector implementation references:
 [database units](https://help.autodesk.com/cloudhelp/2021/ENU/Inventor-API/files/UOM_Overview.htm),
 [Model State limitations](https://help.autodesk.com/cloudhelp/2025/ENU/Inventor-API/files/ModelStates_Overview.htm).
 
-IDW drawings use a separate [drawing capture contract](../../docs/drawing-validation.md).
-Native drawing captures are not yet collected; synthetic drawing JSON is kept under
-`tests/data/` and cannot satisfy acquisition gates.
+IDW drawings use a separate [drawing capture schema](../../schemas/drawing-oracle-v1.schema.json).
+See the [IDW guide](../../docs/drawing.md) for support limitations. Keep acquisition
+reports under `internal/reports/`. Synthetic drawing JSON is kept under `tests/data/`
+and cannot satisfy acquisition gates.

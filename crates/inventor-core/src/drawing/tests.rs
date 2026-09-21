@@ -485,7 +485,7 @@ fn named_reference_repetitions_spend_work_without_following_cycles() {
     assert_eq!(table.records[0].references.len(), 2);
 }
 
-fn dc_metadata(types: usize, entry_size: usize, count: usize) -> Vec<u8> {
+fn dc_metadata(types: usize, entries: &[u8], count: usize) -> Vec<u8> {
     let name = "DlDocDCSegment";
     let sample = metadata(name, [1; 16], &[TYPE_A]);
     let offset = rse::meta(&sample, &Limits::default())
@@ -495,9 +495,9 @@ fn dc_metadata(types: usize, entry_size: usize, count: usize) -> Vec<u8> {
     let mut body = rse::inflate(&encoded[offset..], 1024 * 1024).unwrap().0;
     let payload = body.len() - 104;
     body[payload - 4..payload].copy_from_slice(&(count as u32).to_le_bytes());
-    body.splice(payload..payload, vec![0; entry_size * count]);
-    let next = payload + entry_size * count;
-    body[next..next + 4].copy_from_slice(&(4 + entry_size as u32 * count as u32).to_le_bytes());
+    body.splice(payload..payload, entries.iter().copied());
+    let next = payload + entries.len();
+    body[next..next + 4].copy_from_slice(&(4 + entries.len() as u32).to_le_bytes());
     let mut out = encoded[..offset].to_vec();
     out.extend(zstd(&body));
     out
@@ -506,7 +506,13 @@ fn dc_metadata(types: usize, entry_size: usize, count: usize) -> Vec<u8> {
 #[test]
 fn drawing_dc_meta_keeps_extra_descriptors_and_requires_exact_section_chain() {
     let limits = Limits::default();
-    let bytes = dc_metadata(303, 15, 2);
+    let entry = |tag, size| {
+        let mut bytes = vec![1, 0, tag];
+        bytes.extend(vec![0; size]);
+        bytes
+    };
+    let mixed = [entry(3, 8), entry(2, 16)].concat();
+    let bytes = dc_metadata(303, &mixed, 2);
     let parse = |bytes: &[u8], layout| {
         rse::meta_layout_budgeted(
             bytes,
@@ -523,14 +529,42 @@ fn drawing_dc_meta_keeps_extra_descriptors_and_requires_exact_section_chain() {
     assert_eq!(table.records[0].kind, TYPE_A);
     assert!(parse(&bytes, rse::MetaLayout::STANDARD).is_err());
     assert!(parse(&bytes, rse::MetaLayout::DRAWING_SHEET_DC).is_err());
-    for (types, size) in [(4097, 15), (303, 19), (303, 14), (303, 16)] {
+    assert!(parse(
+        &dc_metadata(4097, &mixed, 2),
+        rse::MetaLayout::DRAWING_DOC_DC
+    )
+    .is_err());
+    for entries in [
+        entry(3, 8),
+        entry(1, 16),
+        entry(2, 16),
+        [entry(3, 8), entry(3, 8), entry(2, 16)].concat(),
+    ] {
+        let count = if entries.len() == 41 { 3 } else { 1 };
         assert!(parse(
-            &dc_metadata(types, size, 2),
-            rse::MetaLayout::DRAWING_DOC_DC
+            &dc_metadata(75, &entries, count),
+            rse::MetaLayout::DRAWING_SHEET_DC
+        )
+        .is_ok());
+    }
+    // Reject arbitrary 15-byte entries, unknown tags, count mismatches, truncation
+    // and extra bytes; a valid backwards span alone must not admit a payload.
+    for (entries, count) in [
+        (vec![0; 30], 2),
+        (entry(4, 8), 1),
+        (entry(3, 7), 1),
+        (entry(3, 9), 1),
+        (entry(1, 15), 1),
+        (mixed.clone(), 1),
+        (mixed.clone(), 3),
+        (mixed.clone(), limits.max_records + 1),
+    ] {
+        assert!(parse(
+            &dc_metadata(75, &entries, count),
+            rse::MetaLayout::DRAWING_SHEET_DC
         )
         .is_err());
     }
-    assert!(parse(&dc_metadata(75, 15, 4), rse::MetaLayout::DRAWING_SHEET_DC).is_ok());
     let mut broken = bytes.clone();
     broken.pop();
     assert!(parse(&broken, rse::MetaLayout::DRAWING_DOC_DC).is_err());
@@ -572,6 +606,14 @@ fn typed_text_preserves_unicode_nul_z_and_unqualified_source_fields() {
     assert_eq!(o.fields[4].source.end_offset, 140);
     assert!(matches!(&o.fields[4].value, FieldValue::Utf16(s) if s=="図面\0𝄞"));
     assert!(matches!(&o.fields[5].value, FieldValue::F64(v) if v==&[-2.5,4.,9.,0.,-1.,0.]));
+    let sm = observed("DlSheetSmSegmentType", TEXT_TYPE, &b, &mut 100)
+        .unwrap()
+        .unwrap();
+    assert_eq!(sm.proposed_role, "stored_text_candidate");
+    assert_eq!(
+        serde_json::to_value(&sm.fields).unwrap(),
+        serde_json::to_value(&o.fields).unwrap()
+    );
     // Same type in DocDC can be a definition; it must not become displayed text.
     assert!(observed("DlDocDcSegmentType", TEXT_TYPE, &b, &mut 100)
         .unwrap()
@@ -586,6 +628,7 @@ fn typed_text_preserves_unicode_nul_z_and_unqualified_source_fields() {
     .is_none());
     for i in 0..b.len() {
         assert!(observed("DlSheetDlSegmentType", TEXT_TYPE, &b[..i], &mut 100).is_err());
+        assert!(observed("DlSheetSmSegmentType", TEXT_TYPE, &b[..i], &mut 100).is_err());
     }
     let mut invalid = b.clone();
     invalid[30..32].copy_from_slice(&0xd800u16.to_le_bytes());
@@ -683,7 +726,18 @@ fn sheet_name_and_links_use_counted_fields_not_file_offsets_or_segment_name_scan
     ] {
         wide(&mut b, s);
     }
-    b.extend([0; 180]);
+    b.extend([0; 28]);
+    word(&mut b, 0x30000002);
+    word(&mut b, 0);
+    b.extend([0; 8]);
+    word(&mut b, 0x30000002);
+    word(&mut b, 0);
+    word(&mut b, 0x30000006);
+    word(&mut b, 0);
+    b.extend([0; 8]);
+    word(&mut b, 0x30000002);
+    word(&mut b, 0);
+    b.extend([0; 92]);
     wide(&mut b, "別シート");
     b.extend([0; 8]);
     let o = observed(
@@ -694,12 +748,44 @@ fn sheet_name_and_links_use_counted_fields_not_file_offsets_or_segment_name_scan
     )
     .unwrap()
     .unwrap();
-    assert_eq!(o.fields.len(), 7);
+    assert_eq!(o.fields.len(), 10);
     assert_eq!(o.fields[0].name, "header_flags");
     assert_eq!(o.fields[1].name, "object_id");
     assert!(matches!(&o.fields[4].value,FieldValue::Utf16(s) if s=="DLSheet999DLSegment"));
+    assert!(matches!(&o.fields[9].value,FieldValue::Utf16(s) if s=="別シート"));
+    for index in [6, 7, 8] {
+        let list_start = o.fields[index].source.start_offset - 100 - 8;
+        for refs in [vec![0x80000002], vec![0x80000003, 0x80000005]] {
+            let mut list = vec![];
+            for n in [0x30000002, refs.len() as u32, refs.len() as u32, 0x10] {
+                word(&mut list, n);
+            }
+            for n in refs {
+                word(&mut list, n);
+            }
+            let mut variable = b.clone();
+            variable.splice(list_start..list_start + 8, list);
+            let o = observed(
+                "DlDocDcSegmentType",
+                "a200fb76-11d1-6107-0008-70bdec18db09",
+                &variable,
+                &mut 1000,
+            )
+            .unwrap()
+            .unwrap();
+            assert!(matches!(&o.fields[9].value,FieldValue::Utf16(s) if s=="別シート"));
+            for end in 0..variable.len() {
+                assert!(observed(
+                    "DlDocDcSegmentType",
+                    "a200fb76-11d1-6107-0008-70bdec18db09",
+                    &variable[..end],
+                    &mut 1000
+                )
+                .is_err());
+            }
+        }
+    }
 }
-
 #[test]
 fn typed_fields_require_framed_unique_owners_and_fail_without_partial_observations() {
     let kind = [
@@ -799,6 +885,42 @@ fn sheet_space_preserves_raw_extent_and_rejects_unknown_branch() {
 }
 
 #[test]
+fn sketch_and_local_note_placements_require_complete_known_layouts() {
+    let mut sketch = vec![0; 15];
+    word(&mut sketch, 0x30000002);
+    word(&mut sketch, 0);
+    word(&mut sketch, 1);
+    sketch.push(1);
+    word(&mut sketch, 2);
+    sketch.extend(0x8421u16.to_le_bytes());
+    sketch.extend(0x7bdeu16.to_le_bytes());
+    sketch.push(1);
+    word(&mut sketch, 0x80000007);
+    let mut local = vec![0; 15];
+    for value in [0x30000002, 0, 0x80000004, 2] {
+        word(&mut local, value);
+    }
+    local.push(1);
+    for (typ, bytes, branch) in [
+        ("576520b3-11d1-a496-6000-1b8aeb49cdb0", sketch, 36),
+        ("5eb510c2-11d2-7068-6000-f191790357b0", local, 31),
+    ] {
+        assert!(observed("DlSheetSmSegmentType", typ, &bytes, &mut 100)
+            .unwrap()
+            .is_some());
+        for n in 0..bytes.len() {
+            assert!(observed("DlSheetSmSegmentType", typ, &bytes[..n], &mut 100).is_err());
+        }
+        let mut extra = bytes.clone();
+        extra.push(0);
+        assert!(observed("DlSheetSmSegmentType", typ, &extra, &mut 100).is_err());
+        let mut unknown = bytes;
+        unknown[branch] = 2;
+        assert!(observed("DlSheetSmSegmentType", typ, &unknown, &mut 100).is_err());
+    }
+}
+
+#[test]
 fn style_and_image_wire_layouts_preserve_values_and_reject_incomplete_records() {
     let mut list = vec![];
     for n in [0x30000002, 1, 1, 0x10000000, 77] {
@@ -859,5 +981,35 @@ fn style_and_image_wire_layouts_preserve_values_and_reject_incomplete_records() 
         extra.push(0);
         assert!(observed(kind, typ, &extra, &mut 1000).is_err());
         assert!(observed(kind, typ, &data, &mut 0).is_err());
+    }
+}
+
+#[test]
+fn annotation_local_wire_variants_are_exact_and_bounded() {
+    for (kind, extra) in [
+        ("5e4e86c7-11d0-fe3f-6000-0dbd351c3cb0", false),
+        ("028c9254-11d1-e176-6000-2bb209e1b5b0", false),
+        ("b86459e3-11d4-f88c-1000-cdab7dd247b5", true),
+    ] {
+        let mut b = vec![0; 15];
+        for n in [0x30000002, 0, 0x80000004, 72] {
+            word(&mut b, n);
+        }
+        b.push(1);
+        if extra {
+            word(&mut b, 72);
+        }
+        let o = observed("DlSheetSmSegmentType", kind, &b, &mut 100)
+            .unwrap()
+            .unwrap();
+        assert_eq!(o.proposed_role, "sheet_local_display_candidate");
+        for end in 0..b.len() {
+            assert!(observed("DlSheetSmSegmentType", kind, &b[..end], &mut 100).is_err());
+        }
+        b[31] = 2;
+        assert!(observed("DlSheetSmSegmentType", kind, &b, &mut 100).is_err());
+        b[31] = 1;
+        b.push(0);
+        assert!(observed("DlSheetSmSegmentType", kind, &b, &mut 100).is_err());
     }
 }

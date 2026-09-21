@@ -1,0 +1,154 @@
+{
+  "scope": "native_controlled_regression_not_qualified_oracle",
+  "family": "inventor-2027-jis-controls-20260921",
+  "split": "regression",
+  "provider": "2027.1 (Build 311270010, 270A)",
+  "archive": {
+    "file_name": "InventorKitAnnotations_20260921_223618.zip",
+    "bytes": 3992447,
+    "sha256": "b05c0a6b9084b0c689c1ae884dac2cf1a97dfbe748fd1efdbc1c119dc159f3f6"
+  },
+  "script": {
+    "sha256": "8670e3d047f543f5c2163ea9aec32dbdda25e6898b2055538c338377cad1c122",
+    "file": "InventorKitAnnotations_20260921_223618.ps1",
+    "bytes": 11672
+  },
+  "distribution": "User-supplied local controls; binary files excluded from Git and packages. No download URL.",
+  "files": [
+    {
+      "file_name": "annotations.native.json",
+      "bytes": 193240,
+      "sha256": "b5a9c89ba445d47d0252b60435df381aa434ade51fc7ef320810ca6b510e0fed"
+    },
+    {
+      "file_name": "dimension-diameter.idw",
+      "bytes": 341504,
+      "sha256": "92e095b9a13a5d09b1c0dc9c1da11a19357469bb2c5a41a77b0dc0548c537970"
+    },
+    {
+      "file_name": "dimension-diameter.pdf",
+      "bytes": 56490,
+      "sha256": "abdcf752c2a30699536b13f166ebfde677e0e3b2cf273a92a833aa74c7685c8b"
+    },
+    {
+      "file_name": "dimension-linear.idw",
+      "bytes": 340992,
+      "sha256": "cc8d3dddc3d7081f0687272767b8955e4b5d4bd7dac9554fa6aae8e0eb4c331b"
+    },
+    {
+      "file_name": "dimension-linear.pdf",
+      "bytes": 53459,
+      "sha256": "dcf8286fc324bf7c19779a2700be355a7335f045de4ec22af2398b431cd018dd"
+    },
+    {
+      "file_name": "frame.idw",
+      "bytes": 344064,
+      "sha256": "a45e992370326537599e92969f573abeadc51dcb7d5ba5fe9aa5ad25c3247ee4"
+    },
+    {
+      "file_name": "frame.pdf",
+      "bytes": 84715,
+      "sha256": "b8e9ee5652e2a8b252e1f1e8401d7ee25d48e8c5b0f6afc6a24295e68385a57c"
+    },
+    {
+      "file_name": "leader.idw",
+      "bytes": 342528,
+      "sha256": "d4964fd8fcf489dccf9f63c8ef72755a5a075fe031ecae934748b9339b3010f4"
+    },
+    {
+      "file_name": "leader.pdf",
+      "bytes": 55840,
+      "sha256": "7ee138f85ad8ef61cc873db6ac95ab69d68c785c43b17f7f183ed55491d12fcf"
+    },
+    {
+      "file_name": "observations.native.json",
+      "bytes": 165199,
+      "sha256": "0dae828d63cfdab72a21ce511ae31bc1a96d5ddc6ceb75edaa3d7f1ac1dfd406"
+    },
+    {
+      "file_name": "pair.iam",
+      "bytes": 80384,
+      "sha256": "b6d9ff027018ec707d829b605a81ee2d517ff48c31be2d9b6ab31c120c984d34"
+    },
+    {
+      "file_name": "parts-list.idw",
+      "bytes": 356352,
+      "sha256": "98486ebf0e8a1ec0dd2948d23b586d86ea351c2022e328508f9140d06816e022"
+    },
+    {
+      "file_name": "parts-list.pdf",
+      "bytes": 124025,
+      "sha256": "a744bbc0bd3be3efba4a7ee262a0c27d4356806c14ffe2ca08dfaa94f528d41a"
+    },
+    {
+      "file_name": "pin.ipt",
+      "bytes": 81408,
+      "sha256": "f8e721c395a999ed4a6049cd1098b869227463a2d5553340ec56afb309ea8cc9"
+    },
+    {
+      "file_name": "plate.ipt",
+      "bytes": 78336,
+      "sha256": "23be388b742a6bfda1ccca2cef82698fae333d946f7cae7f5c9bfc258bc70ac3"
+    },
+    {
+      "file_name": "view-base.idw",
+      "bytes": 345088,
+      "sha256": "d8eb568e366ca009d65da39ad16acc4cdec4ae39cd20652416ba1a42edb6ec15"
+    },
+    {
+      "file_name": "view-base.pdf",
+      "bytes": 1137,
+      "sha256": "0ac3fdb57bf6d698a463f2216a8a90ea59e41b1960bf61bd3c75f48dcddfa517"
+    },
+    {
+      "file_name": "view-cropped.idw",
+      "bytes": 347648,
+      "sha256": "858a9358928cc13902d563a3add9d20dbdc7b15370c1cba779e269c18d4a9211"
+    },
+    {
+      "file_name": "view-cropped.pdf",
+      "bytes": 1254,
+      "sha256": "5f5398a01a3c8d8a769118434149b24edf89ae954ff368adc35122a4165f437c"
+    },
+    {
+      "file_name": "view-hidden.idw",
+      "bytes": 345600,
+      "sha256": "e9b93cca645f751a63a0b140883dc2b017f1e1d0f7f0b2a860908d919f1e93b4"
+    },
+    {
+      "file_name": "view-hidden.pdf",
+      "bytes": 1341,
+      "sha256": "b2f32f4fac466d871172e7d6cdc4aab6476777390efabc2c93a0babac2da04b2"
+    },
+    {
+      "file_name": "view-projected.idw",
+      "bytes": 346624,
+      "sha256": "ae73cd3f70c46fe43269360b2bd08fdd88907b51a01fbd6b64778b10ac1e4335"
+    },
+    {
+      "file_name": "view-projected.pdf",
+      "bytes": 1159,
+      "sha256": "03f29b034addc4002ff5bef9bcd39ef79890015bd507a37276f0ae3c40bfe50d"
+    },
+    {
+      "file_name": "view-rotated.idw",
+      "bytes": 346624,
+      "sha256": "af1ba4c8dceefa805f687524b9f576d582e3290d9e720886e8d3d1bcec59d257"
+    },
+    {
+      "file_name": "view-rotated.pdf",
+      "bytes": 1150,
+      "sha256": "77478344cdea3128c9fad7d6f4b2d3ad713338ed6d27527890c080f8257ad0ca"
+    },
+    {
+      "file_name": "view-scale.idw",
+      "bytes": 344576,
+      "sha256": "83e6c8d7da2b6ef3e3f17f8442428bab08dc91fd45bee98bfbb9eff9cd53cc75"
+    },
+    {
+      "file_name": "view-scale.pdf",
+      "bytes": 1129,
+      "sha256": "3fcbe2c3f81b11f5857ea94d7fb7bf5ef19fbd12ad17881fc4a43cb276a574b1"
+    }
+  ]
+}

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def check_links(root):
     root = root.resolve()
     documents = list(root.glob('*.md'))
-    for directory in ('docs', 'scripts', 'reports', 'benchmarks', 'fixtures/oracles'):
+    for directory in ('docs', 'scripts', 'benchmarks', 'fixtures/oracles'):
         documents.extend((root / directory).rglob('*.md'))
     for path in documents:
         text = path.read_text(encoding='utf-8')

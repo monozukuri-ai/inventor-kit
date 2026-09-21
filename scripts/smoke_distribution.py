@@ -13,7 +13,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurrences=1, omissions=0):
+def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurrences=1, omissions=0, drawing=False):
     import queue
     import signal
     import threading
@@ -48,9 +48,19 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                 if time.monotonic() >= deadline:
                     raise AssertionError('Installed viewer conversion timed out')
                 time.sleep(.1)
-            assert scene['stages']['tessellation'] in ('available', 'partial') and len(scene['nodes']) == occurrences
-            assert sum(n['mesh_id'] is not None for n in scene['nodes']) == parts
-            assert len(scene['part']['omissions'] if scene.get('part') else scene['omissions']) == omissions
+            if drawing:
+                display = scene['drawing']
+                expected = 'experimental_partial' if '--experimental-drawing' in options else 'unavailable'
+                assert scene['source']['kind'] == scene['scene_kind'] == 'drawing'
+                assert scene['stages']['tessellation'] == 'not_applicable' and not scene['meshes']
+                assert display['status'] == expected and not display['qualified']
+                assert display['source_sha256'] == hashlib.sha256((corpus/file).read_bytes()).hexdigest()
+                assert len(display['sheets']) == 1 and display['sheets'][0]['name'] == 'Blatt'
+                assert display['sheets'][0]['item_count'] == 157 and display['millimeters_per_unit'] is None
+            else:
+                assert scene['stages']['tessellation'] in ('available', 'partial') and len(scene['nodes']) == occurrences
+                assert sum(n['mesh_id'] is not None for n in scene['nodes']) == parts
+                assert len(scene['part']['omissions'] if scene.get('part') else scene['omissions']) == omissions
             if scene['assembly'] is not None:
                 assert scene['assembly']['displayed_instances'] == parts
                 assert scene['assembly']['allow_unverified_state'] is True
@@ -61,6 +71,24 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                     with urlopen(url+buffer['resource'], timeout=5) as response:
                         assert len(response.read()) == buffer['bytes']
                     resources += 1
+            if drawing:
+                for descriptor in display['sheets']:
+                    if descriptor['resource'] is None:
+                        assert expected == 'unavailable'
+                        continue
+                    with urlopen(url+descriptor['resource'], timeout=5) as response:
+                        body = response.read()
+                    assert len(body) == descriptor['bytes'] and hashlib.sha256(body).hexdigest() == descriptor['sha256']
+                    payload = json.loads(body)
+                    assert payload['source_sha256'] == display['source_sha256'] and payload['sheet_id'] == descriptor['id']
+                    assert len(payload['items']) == descriptor['item_count']
+                    resources += 1
+                for image in display['images']:
+                    if image['resource']:
+                        with urlopen(url+image['resource'], timeout=5) as response:
+                            assert hashlib.sha256(response.read()).hexdigest() == image['sha256']
+                        resources += 1
+                assert resources == (3 if expected == 'experimental_partial' else 0)
         except Exception as error:
             failure = error
         finally:
@@ -86,8 +114,10 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
             raise AssertionError(f'Installed viewer shutdown failed: {process.returncode}: {stderr}')
         if list(Path(sessions).iterdir()):
             raise AssertionError('Installed viewer left temporary session data after shutdown')
-    result = {'displayed_instances': parts, 'occurrences': occurrences, 'omissions': omissions,
-              'mesh_buffers_fetched': resources, 'shutdown': 'passed'}
+    result = ({'status': expected, 'source_sha256': display['source_sha256'], 'sheet_count': 1,
+               'resources_fetched': resources, 'qualified': False, 'shutdown': 'passed'} if drawing else
+              {'displayed_instances': parts, 'occurrences': occurrences, 'omissions': omissions,
+               'mesh_buffers_fetched': resources, 'shutdown': 'passed'})
     print(json.dumps({'installed_viewer': 'passed', **result}))
     return result
 
@@ -322,6 +352,8 @@ def main():
                     parts=5, occurrences=7, omissions=2),
                 'partial_part': installed_viewer(args.corpus, 'INV_nist_ftc_06_asme1_2021.ipt',
                     ('--allow-partial',), parts=1, occurrences=3, omissions=2),
+                'drawing': installed_viewer(args.corpus, 'SampleBg.idw', drawing=True),
+                'partial_drawing': installed_viewer(args.corpus, 'SampleBg.idw', ('--experimental-drawing',), drawing=True),
             }
             if args.report:
                 from importlib.metadata import version

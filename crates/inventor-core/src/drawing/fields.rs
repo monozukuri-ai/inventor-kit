@@ -180,22 +180,56 @@ pub(super) fn decode(
         }
         (
             "DlSheetSmSegmentType",
-            "d2d8dc28-11d1-ae0f-6000-108a806bceb0"
-            | "82303d42-11d1-c02b-6000-188a806bceb0"
-            | "8a6d1381-11d1-6b56-6000-38bd861c3cb0",
+            "d2d8dc28-11d1-ae0f-6000-108a806bceb0" | "82303d42-11d1-c02b-6000-188a806bceb0",
         ) => {
             decoder = super::sheet::placement;
             "sheet_placement_candidate"
+        }
+        ("DlSheetSmSegmentType", "8a6d1381-11d1-6b56-6000-38bd861c3cb0") => {
+            decoder = super::sheet::view_placement;
+            "sheet_placement_candidate"
+        }
+        ("DlSheetSmSegmentType", "02f8872d-11d6-938b-1000-4d979f8d7ab5") => {
+            decoder = super::sheet::view_bitmap;
+            "stored_view_bitmap_candidate"
+        }
+        ("DlSheetSmSegmentType", "41305114-11d2-6450-6000-b4856c2387b0") => {
+            decoder = super::sheet::point_marker;
+            "stored_point_marker_candidate"
         }
         ("DlSheetSmSegmentType", "5741c02f-4467-1e22-0ba3-53bd0da0bc81") => {
             decoder = super::sheet::image;
             "stored_image_candidate"
         }
+        ("DlSheetSmSegmentType", "576520b3-11d1-a496-6000-1b8aeb49cdb0") => {
+            decoder = super::sheet::sketch_placement;
+            "sheet_placement_candidate"
+        }
+        (
+            "DlSheetSmSegmentType",
+            "5eb510c2-11d2-7068-6000-f191790357b0"
+            | "5e4e86c7-11d0-fe3f-6000-0dbd351c3cb0"
+            | "028c9254-11d1-e176-6000-2bb209e1b5b0",
+        ) => {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "b86459e3-11d4-f88c-1000-cdab7dd247b5") => {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "d0eee1ba-11d2-1cd5-0008-84ba1088db09") => {
+            decoder = super::sheet::table_display;
+            "sheet_local_transformed_display_candidate"
+        }
         ("DlDirectorySegmentType", "3e9f410e-11d2-6481-6000-708a806bceb0") => {
             decoder = super::style::fonts;
             "font_table_candidate"
         }
-        ("DlSheetDlSegmentType", "48eb8607-11d2-070c-6000-f99ac5361ab0") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "48eb8607-11d2-070c-6000-f99ac5361ab0",
+        ) => {
             decoder = super::style::attributes;
             "display_attributes_candidate"
         }
@@ -203,7 +237,10 @@ pub(super) fn decode(
             decoder = super::style::boolean;
             "display_boolean_candidate"
         }
-        ("DlSheetDlSegmentType", "f2fb355d-42d4-07c8-a07b-e085474d8be7") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "f2fb355d-42d4-07c8-a07b-e085474d8be7",
+        ) => {
             decoder = super::style::layer_binding;
             "layer_binding_candidate"
         }
@@ -219,23 +256,38 @@ pub(super) fn decode(
             decoder = super::style::layer;
             "layer_definition_candidate"
         }
-        ("DlSheetDlSegmentType", "a79eacd5-11d1-c281-6000-a38ab46bceb0") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "a79eacd5-11d1-c281-6000-a38ab46bceb0",
+        ) => {
             decoder = super::text::fields;
             "stored_text_candidate"
         }
-        ("DlSheetDlSegmentType", "a79eaccb-11d1-c281-6000-a38ab46bceb0") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "a79eaccb-11d1-c281-6000-a38ab46bceb0",
+        ) => {
             decoder = super::geometry::points;
             "stored_polyline_candidate"
         }
-        ("DlSheetDlSegmentType", "a79eacc7-11d1-c281-6000-a38ab46bceb0") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "a79eacc7-11d1-c281-6000-a38ab46bceb0",
+        ) => {
             decoder = super::geometry::line;
             "stored_line_candidate"
         }
-        ("DlSheetDlSegmentType", "a79eaccd-11d1-c281-6000-a38ab46bceb0") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "a79eaccd-11d1-c281-6000-a38ab46bceb0",
+        ) => {
             decoder = super::geometry::circle;
             "stored_circle_candidate"
         }
-        ("DlSheetDlSegmentType", "a79eaccc-11d1-c281-6000-a38ab46bceb0") => {
+        (
+            "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
+            "a79eaccc-11d1-c281-6000-a38ab46bceb0",
+        ) => {
             decoder = super::geometry::arc;
             "stored_arc_candidate"
         }
@@ -271,6 +323,12 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::sheet::links,
         super::sheet::space,
         super::sheet::placement,
+        super::sheet::local_display,
+        super::sheet::leader_display,
+        super::sheet::table_display,
+        super::sheet::view_placement,
+        super::sheet::view_bitmap,
+        super::sheet::point_marker,
         super::style::fonts,
         super::style::attributes,
         super::style::boolean,
@@ -295,5 +353,42 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
     }
     if bytes.len() <= limits.max_property_bytes {
         super::images::fuzz(bytes);
+    }
+}
+
+#[cfg(test)]
+mod marker_tests {
+    use super::*;
+    #[test]
+    fn marker_is_bounded_and_does_not_claim_printed_geometry() {
+        let mut bytes = vec![0u8; 26];
+        for value in [3.0f64, 11., 0.] {
+            bytes.extend(value.to_le_bytes());
+        }
+        for value in [1.0f32, 0., 0.] {
+            bytes.extend(value.to_le_bytes());
+        }
+        bytes.extend(0u16.to_le_bytes());
+        let parse = |data: &[u8]| {
+            decode(
+                "DlSheetSmSegmentType",
+                "41305114-11d2-6450-6000-b4856c2387b0",
+                0,
+                data,
+                SourceSpan::stream("synthetic", "/B", 0, data.len()),
+                &mut 100,
+            )
+        };
+        let observation = parse(&bytes).unwrap().unwrap();
+        assert_eq!(observation.proposed_role, "stored_point_marker_candidate");
+        assert!(matches!(&observation.fields[5].value, FieldValue::F64(v) if v == &[3., 11., 0.]));
+        for n in 0..bytes.len() {
+            assert!(parse(&bytes[..n]).is_err());
+        }
+        let mut extra = bytes.clone();
+        extra.push(0);
+        assert!(parse(&extra).is_err());
+        bytes[26..34].copy_from_slice(&f64::NAN.to_le_bytes());
+        assert!(parse(&bytes).is_err());
     }
 }

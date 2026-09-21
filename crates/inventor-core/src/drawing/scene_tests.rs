@@ -159,6 +159,135 @@ fn add_matrix(o: &mut PayloadObservation, m: Matrix) {
     });
 }
 
+fn revised_placement_doc() -> DrawingInventory {
+    let mut d = placement_doc();
+    let mut bytes = [3u32.to_le_bytes(), 2u32.to_le_bytes()].concat();
+    for id in [4u8, 5] {
+        bytes.extend([id; 16]);
+        bytes.extend([0; 6]);
+    }
+    d.revisions = Some(
+        super::super::revisions::decode(
+            &bytes,
+            SourceSpan::stream("synthetic", "/R", 0, bytes.len()),
+            &mut 100,
+        )
+        .unwrap(),
+    );
+    let tables = &mut d.segments[0].meta.as_mut().unwrap().reference_tables;
+    tables[0].bytes[16..32].fill(5); // Current revision; object namespace remains 4.
+    tables[2].bytes[2..6].copy_from_slice(&0x12u32.to_le_bytes());
+    d.segments[1].observations[0].fields[0].value = w(0x12);
+    let key = (0x12u64 << 16) | 77;
+    let ranges: Vec<_> = [(0u32, key), (1, key + 1)]
+        .into_iter()
+        .flat_map(|(r, k)| [r.to_le_bytes().as_slice(), &k.to_le_bytes()[..6]].concat())
+        .collect();
+    let mut meta = placement_doc().segments.remove(0).meta.unwrap();
+    meta.reference_tables = vec![table(2, ranges, 10)];
+    d.segments[1].meta = Some(meta);
+    d
+}
+
+#[test]
+fn saved_revision_binding_requires_both_exact_id_interval_and_current_revision() {
+    let d = revised_placement_doc();
+    let (target, object, spans, verified) =
+        resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).unwrap();
+    assert!(verified);
+    assert_eq!(target.registry.kind, "DlSheetDlSegmentType");
+    assert_eq!(object.record_ordinal, 0);
+    assert_eq!(spans.len(), 8);
+    assert_eq!(spans[3].end_offset - spans[3].start_offset, 10);
+    assert_eq!(
+        experimental_scene(&d, &Limits::default()).spaces[0]
+            .items
+            .len(),
+        1
+    );
+    // SampleBg repeats a revision index (sometimes with a larger bound). This
+    // retains one namespace identity and is not an ambiguous object key.
+    let mut repeated = revised_placement_doc();
+    let range = &mut repeated.segments[1].meta.as_mut().unwrap().reference_tables[0];
+    let prefix = range.bytes[..10].to_vec();
+    range.bytes.splice(0..0, prefix);
+    range.count += 1;
+    range.source.end_offset += 10;
+    assert!(resolve(
+        &repeated,
+        &repeated.segments[0],
+        1,
+        "DlSheetDlSegmentType",
+        &mut 100
+    )
+    .is_ok());
+    for mutation in 0..10 {
+        let mut d = revised_placement_doc();
+        match mutation {
+            0 => d.revisions = None,
+            1 => d.segments[1].meta = None,
+            2 => d.segments[0].meta.as_mut().unwrap().reference_tables[0].bytes[16] ^= 1,
+            3 => d.segments[0].meta.as_mut().unwrap().reference_tables[1].bytes[0] ^= 1,
+            4 => d.segments[1].meta.as_mut().unwrap().reference_tables[0].bytes[4] -= 1, // Inclusive boundary: key now belongs to another namespace.
+            5 => d.segments[1].meta.as_mut().unwrap().reference_tables[0].bytes[10] = 0, // Wrong current revision.
+            6 => d.segments[1].meta.as_mut().unwrap().reference_tables[0].bytes[14] = 0, // Decreasing bound.
+            7 => d.segments[1].meta.as_mut().unwrap().reference_tables[0].bytes[10] = 2, // Missing revision.
+            8 => d.segments[1].observations[0].fields[0].value = w(0), // Same short ID, different upper key.
+            9 => d.segments[1].meta.as_mut().unwrap().reference_tables[0].count = 3,
+            _ => unreachable!(),
+        }
+        let scene = experimental_scene(&d, &Limits::default());
+        assert!(scene.spaces.is_empty(), "mutation {mutation}");
+        assert!(!scene.diagnostics.is_empty());
+    }
+    assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 2).is_err());
+}
+
+#[test]
+fn local_sm_display_uses_tagged_slots_and_validates_ownership() {
+    let make = || {
+        let mut d = placement_doc();
+        d.segments[0].observations[0].fields[1].value = FieldValue::U32(vec![0x80000002]);
+        d.segments[0].observations.extend([
+            observation(
+                1,
+                "sheet_local_display_candidate",
+                vec![
+                    ("display_reference", w(0x80000003)),
+                    ("references_unresolved", FieldValue::U32(vec![])),
+                ],
+            ),
+            group(2, 0, &[0x80000004]),
+            line(3, 0x80000003),
+        ]);
+        d
+    };
+    let d = make();
+    let scene = experimental_scene(&d, &Limits::default());
+    assert_eq!(scene.spaces[0].items.len(), 2);
+    assert_eq!(
+        scene.spaces[0].bindings[1].target_segment,
+        d.segments[0].registry.id
+    );
+    for mutation in 0..6 {
+        let mut d = make();
+        let nodes = &mut d.segments[0].observations;
+        match mutation {
+            0 => nodes[1].fields[0].value = w(3), // Untagged cross-segment reference.
+            1 => nodes[1].fields[0].value = w(0x80000008),
+            2 => nodes.push(group(2, 0, &[])),
+            3 => nodes[2].fields[2].value = w(0x80000004),
+            4 => nodes[3].fields[0].value = w(0),
+            5 => nodes[0].fields[1].value = FieldValue::U32(vec![0x80000002, 0x80000002]),
+            _ => unreachable!(),
+        }
+        assert!(
+            experimental_scene(&d, &Limits::default()).spaces.is_empty(),
+            "mutation {mutation}"
+        );
+    }
+}
+
 #[test]
 fn binding_uses_context_segment_guid_and_object_key_and_keeps_evidence() {
     let d = placement_doc();
@@ -675,4 +804,201 @@ fn sheets_reject_corrupt_lists_and_keep_ambiguous_backlinks_unavailable() {
         ..Limits::default()
     };
     assert!(stored_sheets(&d, &small).sheets.is_empty());
+}
+
+// Test conveniences use the public default ceilings, while production expansion
+// shares one budget across all placements and sheets.
+fn geometry(
+    o: &PayloadObservation,
+    m: &Matrix,
+    fonts: &BTreeMap<u32, DisplayFont>,
+    work: &mut usize,
+) -> Result<Option<DisplayGeometry>> {
+    geometry_budgeted(
+        o,
+        m,
+        fonts,
+        work,
+        &mut DisplayBudget::new(&DrawingLimits::default()),
+    )
+}
+fn owners<'a>(
+    s: &'a SegmentInventory,
+    work: &mut usize,
+) -> Result<BTreeMap<usize, &'a PayloadObservation>> {
+    owners_with_depth(s, work, DrawingLimits::default().max_nesting_depth)
+}
+
+#[test]
+fn expansion_budget_is_aggregate_and_output_writer_checks_before_append() {
+    use std::io::Write;
+    let drawing = DrawingLimits {
+        max_display_items: 1,
+        max_polyline_points: 2,
+        max_output_bytes: 3,
+        ..DrawingLimits::default()
+    };
+    let mut budget = DisplayBudget::new(&drawing);
+    geometry_budgeted(
+        &line(1, 0),
+        &IDENTITY,
+        &BTreeMap::new(),
+        &mut 100,
+        &mut budget,
+    )
+    .unwrap();
+    assert!(geometry_budgeted(
+        &line(1, 0),
+        &IDENTITY,
+        &BTreeMap::new(),
+        &mut 100,
+        &mut budget
+    )
+    .is_err());
+    assert!(budget.exhausted);
+    let mut out = drawing.output_buffer().unwrap();
+    out.write_all(b"abc").unwrap();
+    assert!(out.write_all(b"d").is_err());
+    assert_eq!(out.into_string().unwrap(), "abc");
+    assert!(DrawingLimits {
+        max_sheets: usize::MAX,
+        ..DrawingLimits::default()
+    }
+    .validate()
+    .is_err());
+}
+
+#[test]
+fn unknown_color_omits_only_its_subtree_without_guessing_a_visible_style() {
+    let mut d = placement_doc();
+    d.segments[1].observations[0].fields[3].value = FieldValue::U32(vec![0x80000002, 0x80000003]);
+    d.segments[1].observations.push(line(2, 0x80000001));
+    attach_attribute(
+        &mut d,
+        1,
+        observation(
+            101,
+            "display_color_candidate",
+            vec![
+                ("color_mask", w(4)),
+                ("color_rgba_parameters", FieldValue::F32(vec![0.; 21])),
+            ],
+        ),
+    );
+    let s = experimental_scene(&d, &Limits::default());
+    assert_eq!(s.spaces[0].items.len(), 1);
+    assert_eq!(s.spaces[0].items[0].record_ordinal, 2);
+    assert!(s.spaces[0]
+        .omitted
+        .iter()
+        .any(|o| o.record_ordinal == 1 && o.reason == "display_color_mask_not_interpreted"));
+}
+
+#[test]
+fn local_transformed_table_uses_local_slots_and_applies_matrix_once() {
+    let mut d = placement_doc();
+    d.segments[0].observations[0].fields[1].value = FieldValue::U32(vec![0x80000002]);
+    let mut table = observation(
+        1,
+        "sheet_local_transformed_display_candidate",
+        vec![
+            ("display_reference", w(0x80000003)),
+            ("references_unresolved", FieldValue::U32(vec![])),
+        ],
+    );
+    let mut m = IDENTITY;
+    m[0][3] = 12.;
+    m[1][3] = -3.;
+    add_matrix(&mut table, m);
+    d.segments[0]
+        .observations
+        .extend([table, group(2, 0, &[0x80000004]), line(3, 0x80000003)]);
+    let s = experimental_scene(&d, &Limits::default());
+    let DisplayGeometry::Polyline { points } = &s.spaces[0].items[1].geometry else {
+        panic!()
+    };
+    assert_eq!(points[0], [13., -1., 3.]);
+    d.segments[0].observations[1].fields[0].value = w(3);
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+}
+
+#[test]
+fn bitmap_placement_requires_a_local_typed_target_and_valid_bounds() {
+    let make = || {
+        let mut d = placement_doc();
+        d.segments[0].observations[0].fields.extend([
+            FieldObservation {
+                name: "view_bitmap_reference",
+                value: w(0x80000002),
+                source: source(),
+            },
+            FieldObservation {
+                name: "view_bitmap_bounds",
+                value: FieldValue::F64(vec![-2., -1., -20., 2., 1., -10.]),
+                source: source(),
+            },
+            FieldObservation {
+                name: "view_name_unresolved",
+                value: FieldValue::Utf16("View A".into()),
+                source: source(),
+            },
+        ]);
+        d.segments[0]
+            .observations
+            .push(observation(1, "stored_view_bitmap_candidate", vec![]));
+        d
+    };
+    let d = make();
+    let s = experimental_scene(&d, &Limits::default());
+    let DisplayGeometry::Image {
+        origin,
+        u,
+        v,
+        format,
+        reference,
+    } = &s.spaces[0].items[1].geometry
+    else {
+        panic!()
+    };
+    assert_eq!(
+        (*origin, *u, *v, *format, *reference),
+        ([-2., 1., 0.], [4., 0., 0.], [0., -2., 0.], 3, 0x80000000)
+    );
+    assert_eq!(s.spaces[0].items[1].placement_record, 0);
+    assert_eq!(s.spaces[0].views.len(), 1);
+    assert_eq!(s.spaces[0].views[0].name, "View A");
+    assert_eq!(s.spaces[0].views[0].image_reference, Some(0x80000000));
+    let mut absent = make();
+    absent.segments[0].observations[0].fields[4].value = w(0);
+    absent.segments[0].observations[0].fields[5].value = FieldValue::F64(vec![f64::MAX; 6]);
+    let no_cache = experimental_scene(&absent, &Limits::default());
+    assert!(no_cache.spaces[0].views[0].cache_bounds.is_none());
+    assert!(no_cache.spaces[0].views[0].image_reference.is_none());
+    let limited = experimental_scene_with_limits(
+        &d,
+        &Limits::default(),
+        &DrawingLimits {
+            max_views: 0,
+            ..DrawingLimits::default()
+        },
+    );
+    assert!(limited.spaces.is_empty());
+    assert!(limited.diagnostics.iter().any(|d| d.contains("view limit")));
+    for mutation in 0..4 {
+        let mut d = make();
+        match mutation {
+            0 => d.segments[0].observations[0].fields[4].value = w(2),
+            1 => d.segments[0].observations[0].fields[4].value = w(0x80000009),
+            2 => d.segments[0].observations[1].proposed_role = "stored_text_candidate",
+            3 => {
+                d.segments[0].observations[0].fields[5].value =
+                    FieldValue::F64(vec![2., -1., 0., -2., 1., 0.])
+            }
+            _ => unreachable!(),
+        }
+        assert!(
+            experimental_scene(&d, &Limits::default()).spaces.is_empty(),
+            "mutation {mutation}"
+        );
+    }
 }

@@ -51,7 +51,7 @@ def summarize(directory, *, recorded_on, environment):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', type=Path, default=ROOT / 'internal/reports/latest')
-    parser.add_argument('--output', type=Path, default=ROOT / 'reports/validation-summary.json')
+    parser.add_argument('--output', type=Path, default=ROOT / 'internal/reports/validation-summary.json')
     parser.add_argument('--date', default=date.today().isoformat())
     parser.add_argument('--environment', choices=('local', 'github-actions'), default='local')
     args = parser.parse_args()

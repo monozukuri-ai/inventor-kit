@@ -139,11 +139,7 @@ turns, intrinsic shape locations, unknown placements, source changes, partial
 tessellation failure and independent selection. The held-out IAM remains rejected
 by its unsupported native profile.
 
-The internal scene uses row-major 4×4 matrices acting on column vectors in mm.
-Definition meshes keep their local geometry; each hierarchy edge applies its local
-placement once. Composed transforms are checked against the saved world matrices
-and the converter's actual placement chain. The frontend converts local rotations
-to renderer quaternions. Bounds frame the camera and are not exact CAD dimensions.
+Viewer bounds frame the camera and are not exact CAD dimensions.
 
 ```sh
 python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.4.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser

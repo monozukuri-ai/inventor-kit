@@ -84,6 +84,8 @@ class Collector:
     def geometry(self, value, kind):
         # Transient LineSegment2d/Circle2d/Arc2d objects have no Type property.
         # The owner supplies Curve2dTypeEnum, or a documented sketch type map.
+        if value is None:
+            raise Unavailable('Provider returned Nothing for geometry; absence semantics are unverified')
         kind = scalar(kind, int)
         if kind == 5251:  # kLineSegmentCurve2d
             return dict(kind='line_segment', start=point(value.StartPoint), end=point(value.EndPoint))
@@ -104,7 +106,11 @@ class Collector:
         return dict(text=prop(value, 'Text'), formatted_text=prop(value, 'FormattedText'), position=prop(value, position, point),
                     rotation=prop(value, 'Rotation', float), height=prop(value, 'Height', float), width=prop(value, 'Width', float),
                     font=observe(lambda: scalar(getattr(value, style).Font, str)),
-                    font_size=observe(lambda: scalar(getattr(value, style).FontSize, float)))
+                    font_size=observe(lambda: scalar(getattr(value, style).FontSize, float)),
+                    range_min=observe(lambda: point(value.RangeBox.MinPoint)),
+                    range_max=observe(lambda: point(value.RangeBox.MaxPoint)),
+                    horizontal_justification=prop(value, 'HorizontalJustification', int),
+                    vertical_justification=prop(value, 'VerticalJustification', int))
 
     def sketch(self, value):
         def basis():
@@ -139,7 +145,10 @@ class Collector:
     def block(self, value):
         if value is None:
             return None
-        return dict(name=prop(value, 'Name'), texts=self.collection(lambda: value.Definition.Sketch.TextBoxes,
+        def text_boxes():
+            sketch = value.Definition.Sketch
+            return None if sketch is None else sketch.TextBoxes
+        return dict(name=prop(value, 'Name'), texts=self.collection(text_boxes,
                     lambda box: scalar(value.GetResultText(box), str)))
 
     def parts_list(self, value):
@@ -168,7 +177,8 @@ class Collector:
 
 def document_state(doc):
     return dict(document_type=prop(doc, 'DocumentType', int), dirty=prop(doc, 'Dirty', bool),
-                requires_update=prop(doc, 'RequiresUpdate', bool), defer_updates=prop(doc, 'DeferUpdates', bool))
+                requires_update=prop(doc, 'RequiresUpdate', bool),
+                defer_updates=observe(lambda: scalar(doc.DrawingSettings.DeferUpdates, bool)))
 
 
 def stage_project(source, project_root, destination):

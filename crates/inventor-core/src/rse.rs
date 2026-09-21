@@ -184,20 +184,20 @@ pub(crate) struct MetaSection {
 #[derive(Clone, Copy)]
 pub(crate) struct MetaLayout {
     pub type_limit: usize,
-    pub section9_entry_bytes: usize,
+    pub tagged_section9: bool,
 }
 impl MetaLayout {
     pub const STANDARD: Self = Self {
         type_limit: 256,
-        section9_entry_bytes: 19,
+        tagged_section9: false,
     };
     pub const DRAWING_DOC_DC: Self = Self {
         type_limit: 4096,
-        section9_entry_bytes: 15,
+        tagged_section9: true,
     };
     pub const DRAWING_SHEET_DC: Self = Self {
         type_limit: 256,
-        section9_entry_bytes: 15,
+        tagged_section9: true,
     };
 }
 pub(crate) fn meta_identity(bytes: &[u8]) -> Result<([u8; 16], String)> {
@@ -251,6 +251,7 @@ pub(crate) fn meta_layout_budgeted(
     let mut type_footer = 0;
     let mut block_table_offset = 0;
     let mut type_table_offset = 0;
+    let mut reference_sections = Vec::new();
     for (section, size) in [(1, 4), (2, 10), (3, 28), (4, 28)] {
         let n = r.count(limits.max_records)?;
         charge(work, n)?;
@@ -262,6 +263,14 @@ pub(crate) fn meta_layout_budgeted(
         }
         let offset = r.pos;
         let payload = r.take(n * size)?;
+        if section == 2 {
+            reference_sections.push(MetaSection {
+                number: 2,
+                count: n,
+                offset,
+                bytes: payload.to_vec(),
+            });
+        }
         if section == 1 {
             block_table_offset = offset;
             blocks = payload
@@ -286,7 +295,6 @@ pub(crate) fn meta_layout_budgeted(
         .checked_sub(16)
         .ok_or_else(|| Error("truncated meta terminal id".into()))?;
     let mut payload_len = 72;
-    let mut reference_sections = Vec::new();
     for number in (5..=11).rev() {
         let start = end
             .checked_sub(payload_len + 8)
@@ -305,7 +313,7 @@ pub(crate) fn meta_layout_budgeted(
         }
         let size = match number {
             8 => Some(20),
-            9 => Some(layout.section9_entry_bytes),
+            9 if !layout.tagged_section9 => Some(19),
             10 => Some(8),
             11 => Some(4),
             _ => None,
@@ -314,6 +322,21 @@ pub(crate) fn meta_layout_budgeted(
             if count.checked_mul(size) != Some(payload_len) {
                 return Err(Error("meta backward section length mismatch".into()));
             }
+        }
+        if number == 9 && layout.tagged_section9 {
+            // DC section 9 is a tagged sequence, not a fixed-width table.
+            // The original SampleBg's 30 bytes are 11 + 19, not 2 * 15.
+            // Native 2027.1 controls also exercise 11, 19 and 11 + 11 + 19.
+            let mut entries = Reader::new(&body[start + 8..end]);
+            for _ in 0..count {
+                entries.u16()?; // reference category, retained in the opaque span
+                match entries.u8()? {
+                    1 | 2 => entries.skip(16)?,
+                    3 => entries.skip(8)?,
+                    _ => return Err(Error("unsupported DC meta section 9 tag".into())),
+                }
+            }
+            entries.finish()?;
         }
         if matches!(number, 7 | 8 | 10) {
             reference_sections.push(MetaSection {

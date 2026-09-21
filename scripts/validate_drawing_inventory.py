@@ -91,6 +91,32 @@ def verify_sources(doc, source):
                 raise ValueError('Source span escapes its byte domain')
             return data[a:b]
 
+        revisions = doc.get('revisions')
+        if revisions:
+            data = take(revisions['source'])
+            if struct.unpack_from('<II', data) != (3, len(revisions['entries'])):
+                raise ValueError('Revision table header mismatch')
+            offset, ids = 8, set()
+            for entry in revisions['entries']:
+                value = take(entry['source'])
+                identity = str(uuid.UUID(bytes_le=value[:16]))
+                flags, kind = struct.unpack_from('<IH', value, 16)
+                length = 22
+                if kind == 65535:
+                    if value[22] not in (0, 1):
+                        raise ValueError('Unknown revision payload')
+                    length += 1 + (16 if value[22] == 0 else 8)
+                if (identity in ids or identity != entry['id'] or flags != entry['flags']
+                    or kind != entry['kind'] or len(value) != length
+                    or value != data[offset:offset+length]
+                    or entry['source']['stream'] != revisions['source']['stream']
+                    or entry['source']['start_offset'] != revisions['source']['start_offset'] + offset):
+                    raise ValueError('Revision identity source mismatch')
+                ids.add(identity)
+                offset += length
+            if offset != len(data):
+                raise ValueError('Revision source has trailing data')
+
         count = 0
         for segment in doc['segments']:
             take(segment['registry']['source'])
@@ -101,7 +127,7 @@ def verify_sources(doc, source):
                 if blocks != meta['block_words']:
                     raise ValueError('Meta block table source mismatch')
                 for table in meta['reference_tables']:
-                    size = {7: 32, 8: 20, 10: 8}[table['section']]
+                    size = {2: 10, 7: 32, 8: 20, 10: 8}[table['section']]
                     if (bytes(table['bytes']) != take(table['source'])
                         or len(table['bytes']) != size * table['count']):
                         raise ValueError('Meta reference table source mismatch')

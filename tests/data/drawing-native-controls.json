@@ -1,0 +1,139 @@
+{
+  "scope": "native_controlled_regression_not_qualified_oracle",
+  "family": "inventor-2027-jis-controls-20260921",
+  "split": "regression",
+  "provider": "Autodesk Inventor 2027.1 (Build 311270010, 270A)",
+  "archive": {
+    "file": "InventorKitValidation_20260921_172116.zip",
+    "bytes": 2996118,
+    "sha256": "275c3ff5e1d9cec51a3485ac6f835510194e82581f04debf2554508eb8138ffb"
+  },
+  "distribution": "User-supplied local controls; binary files excluded from Git and packages. No download URL.",
+  "files": [
+    {
+      "file": "blank.idw",
+      "bytes": 335872,
+      "sha256": "536c596fb2c3f8ab7ec4579f27fe0e56d85c6064a1d419cbd1bf3d1bf6334d96"
+    },
+    {
+      "file": "blank.pdf",
+      "bytes": 893,
+      "sha256": "d994d00598e0e96d18536169328d72d908a0c9dc3bb9cd374b854312dadc94f2"
+    },
+    {
+      "file": "exports.native.json",
+      "bytes": 6170,
+      "sha256": "9fe6172433e1bcc15681bc42204d219933ad4e22a74b841eecbb6a32ee1f6409"
+    },
+    {
+      "file": "line.idw",
+      "bytes": 337920,
+      "sha256": "5786f7aefec154da20c9adec417ae99b436d878f625105997d8d42c54d40ca88"
+    },
+    {
+      "file": "line.native.json",
+      "bytes": 766,
+      "sha256": "c92cc576b581fbb88c9997170186c9789e54cdd6f7fc3074102a345c6b0ed8f4"
+    },
+    {
+      "file": "line.pdf",
+      "bytes": 1125,
+      "sha256": "04fee137ddcd461f36009854559e34b4de87b45b5eb9932ebbcb65fd1d149199"
+    },
+    {
+      "file": "open-mode.native.json",
+      "bytes": 184,
+      "sha256": "0ae13c07a074a3a85d91e3ca85458ba5d2ed54ee6de24681a77cb197f51f8120"
+    },
+    {
+      "file": "resave.idw",
+      "bytes": 335872,
+      "sha256": "3df3fca1a2c655cbe73828c5eac6d82d9c30f40f4720e2eb6bfc3f3b3e262ff0"
+    },
+    {
+      "file": "resave.pdf",
+      "bytes": 893,
+      "sha256": "d994d00598e0e96d18536169328d72d908a0c9dc3bb9cd374b854312dadc94f2"
+    },
+    {
+      "file": "session.native.json",
+      "bytes": 1725,
+      "sha256": "22ce0fe2f749e23f3f2d78eb30d87e808ca00f246d1f12b8e759789a2abe53a9"
+    },
+    {
+      "file": "sheet-a3.idw",
+      "bytes": 335872,
+      "sha256": "823091e4f81f47c4bc1e72365e94710a7508d5be44f010b685ecdcc7d12de3ac"
+    },
+    {
+      "file": "sheet-a3.pdf",
+      "bytes": 898,
+      "sha256": "348e1e18722906d423c6874d0926ea6ff910be167808db622b7524812b4d0862"
+    },
+    {
+      "file": "sheet-portrait.idw",
+      "bytes": 339456,
+      "sha256": "cdb10902f78cd0c437396f3ab5c402708a53148ebbd626f3c69abae7e0b20185"
+    },
+    {
+      "file": "sheet-portrait.pdf",
+      "bytes": 893,
+      "sha256": "95a5fa90a519abc99757a4fd092ef17429ebe62cb4a2cb57a33d53bdbb1ec9a6"
+    },
+    {
+      "file": "sheets.native.json",
+      "bytes": 7908,
+      "sha256": "d25900e0e82ed7778dacdc205c2481c09e800a1f8fbcc27780163e1451bcb460"
+    },
+    {
+      "file": "text-ascii.idw",
+      "bytes": 338432,
+      "sha256": "41f60151c93823d0817cb103a243d60bd282996009c198905084db595d4916da"
+    },
+    {
+      "file": "text-ascii.native.json",
+      "bytes": 707,
+      "sha256": "d0f1a968963d022eb4fb184d7bdb1f0155d655a9df0ec1e3d8e05a3492b9f7e3"
+    },
+    {
+      "file": "text-ascii.pdf",
+      "bytes": 55016,
+      "sha256": "0df752e5d7d713141b0b7a457f1f5b30864ac77f2b1e0d9e03f8a3c89b5e1a09"
+    },
+    {
+      "file": "text-japanese.idw",
+      "bytes": 342528,
+      "sha256": "a64c6f369e479260acd2e55c0dc86ad077117e3b31be2b8ff3ea73ebb5de703c"
+    },
+    {
+      "file": "text-japanese.native.json",
+      "bytes": 973,
+      "sha256": "3a40c79c8f9fade8218ff7e827a06c58654d03599d45a0a4525915c9e9690187"
+    },
+    {
+      "file": "text-japanese.pdf",
+      "bytes": 183102,
+      "sha256": "e7c2c35a543e09cc9f4792d8e8ee67ec6b59432b007ec559e42c7d3973e65534"
+    },
+    {
+      "file": "two-sheets.idw",
+      "bytes": 340480,
+      "sha256": "aa32417adae070fc37987a4317e49f9fe00e6e69cb83e5c6f357e5b944336114"
+    },
+    {
+      "file": "two-sheets.pdf",
+      "bytes": 1250,
+      "sha256": "052a357f95c3010f88936fdcf56c10fe0d1d800c8e6c2b2f1062e74135ff4835"
+    },
+    {
+      "file": "units-inch.idw",
+      "bytes": 338432,
+      "sha256": "83054af5019c89df2d2d7651a53a259773772c2437b8b5d2a33aa343aa11e31f"
+    },
+    {
+      "file": "units-inch.pdf",
+      "bytes": 893,
+      "sha256": "d994d00598e0e96d18536169328d72d908a0c9dc3bb9cd374b854312dadc94f2"
+    }
+  ]
+}

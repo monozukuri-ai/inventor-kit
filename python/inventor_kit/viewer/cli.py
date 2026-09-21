@@ -1,8 +1,6 @@
 """Entry point for the local saved-part viewer."""
 import argparse
 from contextlib import contextmanager
-from importlib.util import find_spec
-from pathlib import Path
 import signal
 import tempfile
 from types import SimpleNamespace
@@ -46,7 +44,7 @@ def main(argv=None):
     parser.add_argument("--require-current-state", action="store_true")
     parser.add_argument("--search-root", action="append", default=[], help="IAM reference search directory (repeatable)")
     parser.add_argument("--allow-unverified-state", action="store_true", help="Allow saved IAM placements with unverified current state")
-    parser.add_argument("--allow-partial", action="store_true", help="Allow partial IPT/IAM geometry and retain every omission")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow partial geometry; IDW still requires verified units and placement")
     parser.add_argument("--body-id", action="append", default=[], help="Select an IPT body ID (repeatable)")
     parser.add_argument("--timeout", type=float, default=120, help="Conversion time limit in seconds (default: 120)")
     args = parser.parse_args(argv)
@@ -60,16 +58,8 @@ def main(argv=None):
                           timeout=args.timeout, experimental_drawing=args.experimental_drawing)
     except ValueError as error:
         parser.error(str(error))
-    suffix = Path(args.path).suffix.lower()
-    if suffix in (".iam", ".idw", ".ipn") and (args.candidate_id or args.require_current_state or args.body_id):
-        parser.error("Candidate and current-state options apply to IPT parts only")
-    if suffix in (".ipt", ".idw", ".ipn") and (args.search_root or args.allow_unverified_state):
-        parser.error("Assembly options apply to IAM assemblies only")
-    if suffix == ".iam" and args.allow_partial and not args.allow_unverified_state:
-        parser.error("IAM --allow-partial requires --allow-unverified-state")
-    if (not args.metadata_only and not args.experimental_drawing and suffix not in (".idw", ".ipn")
-            and (suffix != ".iam" or args.allow_unverified_state) and find_spec("ocp_tessellate") is None):
-        parser.error("Install viewer dependencies: python -m pip install 'inventor-kit[viewer]'")
+    # The worker identifies the immutable input snapshot before dispatching.
+    # File extensions cannot select dependency requirements or document options.
     from .server import create_server
     from .worker import Job
     with shutdown_signals() as stopping, tempfile.TemporaryDirectory(prefix="inventor-viewer-") as temporary:

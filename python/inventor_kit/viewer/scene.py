@@ -1,12 +1,13 @@
 """Build display snapshots without changing parser or saved-state semantics."""
 from dataclasses import asdict, dataclass, fields, is_dataclass
+from importlib.util import find_spec
 import hashlib
 import json
 import math
 from pathlib import Path
 import time
 
-from .. import Limits, _file_bytes, inspect, read
+from .. import DrawingLimits, Limits, _file_bytes, inspect, read
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,7 @@ class Options:
     candidate_id: str | None = None
     require_current_state: bool = False
     limits: Limits = Limits()
+    drawing_limits: DrawingLimits = DrawingLimits()
     timeout: float = 120.0
     max_triangles: int = 2_000_000
     max_buffer_bytes: int = 128 * 1024 * 1024
@@ -126,6 +128,7 @@ def build_scene(path, directory, options, publish=lambda scene: None):
         scene["source"]["kind"] = doc.metadata.identification.kind
         if doc.metadata.identification.kind == "drawing":
             scene["units"] = "source_units_unverified"
+            scene["scene_kind"] = "drawing"
         scene["stages"]["metadata"] = "available"
         for prop_set in doc.metadata.property_sets:
             for p in prop_set.properties:
@@ -175,6 +178,8 @@ def build_scene(path, directory, options, publish=lambda scene: None):
                 diagnostic(scene, "viewer.selection_kind", "Candidate and current-state options apply to IPT parts only.")
             scene["job_status"] = "finished"
             return scene
+        if find_spec('ocp_tessellate') is None:
+            raise ValueError("Install viewer dependencies: python -m pip install 'inventor-kit[viewer]'")
         doc = read(data, source_id=path.name, candidate_id=options.candidate_id,
                    require_current_state=options.require_current_state, limits=options.limits)
         scene["selection"] = asdict(doc.geometry.selection)

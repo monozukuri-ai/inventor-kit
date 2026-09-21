@@ -1,5 +1,6 @@
 //! Opt-in interpretation of the observed major31 stored-display layout.
 //! This is not a qualified active drawing state or a model reprojection API.
+use super::limits::DisplayBudget;
 use super::*;
 use crate::{
     assembly::{compose, Matrix, IDENTITY},
@@ -26,8 +27,21 @@ pub struct DisplaySpace {
     pub segment_id: String,
     pub extent_candidate: [f64; 2],
     pub bindings: Vec<DisplayBinding>,
+    pub views: Vec<StoredView>,
     pub items: Vec<DisplayItem>,
     pub omitted: Vec<Omission>,
+}
+/// A reachable saved view placement. Its matrix positions the cache; rotation
+/// may already be baked into pixels, so this is not a model projection matrix.
+#[derive(Debug, Serialize)]
+pub struct StoredView {
+    pub placement_record: usize,
+    pub name: String,
+    pub placement_transform: Matrix,
+    pub cache_bounds: Option<[f64; 6]>,
+    pub image_reference: Option<u32>,
+    pub source: SourceSpan,
+    pub diagnostics: Vec<&'static str>,
 }
 #[derive(Debug, Serialize)]
 pub struct DisplayBinding {
@@ -226,11 +240,6 @@ pub(super) fn resolve<'a>(
     let (namespace, namespace_source) = table_entry(meta, 8, short(object) as usize, 20)?;
     let (segment, segment_source) = table_entry(meta, 7, short(&namespace[16..]) as usize, 32)?;
     let same_context = namespace[..16] == segment[16..32];
-    // Layer caches can name an older revision. Retain that uncertainty; geometry
-    // bindings still require the matching context and never use this exception.
-    if !same_context && kind != "AppSegmentType" {
-        return Err(error("external display context is not admitted"));
-    }
     let id = guid(&segment[..16]);
     rse::charge(work, doc.segments.len())?;
     let mut targets = doc.segments.iter().filter(|s| s.registry.id == id);
@@ -244,6 +253,22 @@ pub(super) fn resolve<'a>(
     {
         return Err(error("ambiguous or unsupported display segment"));
     }
+    let mut sources = vec![object_source, namespace_source, segment_source];
+    // A namespace is the object's identity revision, not necessarily the segment's
+    // latest save. Require the target's exact ID interval and document revision
+    // table before accepting an older namespace. Missing/malformed data is never
+    // replaced by a GUID-presence scan or a name match.
+    let mut identity_verified = same_context;
+    if !same_context || doc.revisions.is_some() {
+        match super::revisions::binding(doc, target, object, namespace, segment, work) {
+            Ok(evidence) => {
+                sources.extend(evidence);
+                identity_verified = true;
+            }
+            Err(e) if kind != "AppSegmentType" => return Err(e),
+            Err(_) => identity_verified = false, // Existing unqualified layer-cache fallback only.
+        }
+    }
     rse::charge(work, target.observations.len())?;
     let mut objects = target.observations.iter().filter(|o| {
         word(o, "header_flags").ok() == Some(long(&object[2..6]))
@@ -255,26 +280,38 @@ pub(super) fn resolve<'a>(
     if objects.next().is_some() {
         return Err(error("ambiguous display object key"));
     }
-    Ok((
-        target,
-        root,
-        vec![
-            object_source,
-            namespace_source,
-            segment_source,
-            root.source.clone(),
-        ],
-        same_context,
-    ))
+    sources.push(root.source.clone());
+    Ok((target, root, sources, identity_verified))
 }
 fn bind<'a>(
     doc: &'a DrawingInventory,
-    sm: &SegmentInventory,
+    sm: &'a SegmentInventory,
     placement: &PayloadObservation,
     work: &mut usize,
 ) -> Result<(&'a SegmentInventory, usize, DisplayBinding)> {
     let raw = word(placement, "display_reference")?;
-    let (target, root, mut sources, _) = resolve(doc, sm, raw, "DlSheetDlSegmentType", work)?;
+    let (target, root, mut sources) = if matches!(
+        placement.proposed_role,
+        "sheet_local_display_candidate" | "sheet_local_transformed_display_candidate"
+    ) {
+        let ordinal = slot(raw)?;
+        rse::charge(work, sm.observations.len())?;
+        // Local tagged references address record slots in this SM, not object IDs.
+        let mut roots = sm
+            .observations
+            .iter()
+            .filter(|o| o.record_ordinal == ordinal);
+        let root = roots
+            .next()
+            .ok_or_else(|| error("missing local display root"))?;
+        if roots.next().is_some() {
+            return Err(error("ambiguous local display root"));
+        }
+        (sm, root, vec![root.source.clone()])
+    } else {
+        let (target, root, sources, _) = resolve(doc, sm, raw, "DlSheetDlSegmentType", work)?;
+        (target, root, sources)
+    };
     if root.proposed_role != "display_group_candidate" || word(root, "owner_reference")? != 0 {
         return Err(error("display object key/root is ambiguous"));
     }
@@ -392,14 +429,25 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
     Ok(result)
 }
 
-fn geometry(
+fn geometry_budgeted(
     o: &PayloadObservation,
     m: &Matrix,
     fonts: &BTreeMap<u32, DisplayFont>,
     work: &mut usize,
+    budget: &mut DisplayBudget,
 ) -> Result<Option<DisplayGeometry>> {
     match o.proposed_role {
         "stored_polyline_candidate" | "stored_line_candidate" => {
+            budget.item()?;
+            let count = if o.proposed_role == "stored_line_candidate" {
+                2
+            } else {
+                match field(o, "xyz_points_candidate")? {
+                    FieldValue::F32(v) if v.len() % 3 == 0 => v.len() / 3,
+                    _ => return Err(error("invalid display polyline")),
+                }
+            };
+            budget.points(count)?;
             let values: Vec<f64> = if o.proposed_role == "stored_line_candidate" {
                 doubles(o, "line_endpoints", 6)?.to_vec()
             } else {
@@ -419,6 +467,8 @@ fn geometry(
             let FieldValue::Utf16(text) = field(o, "text")? else {
                 return Err(error("invalid display text"));
             };
+            budget.item()?;
+            budget.text(text.len())?;
             rse::charge(work, text.len() + 6)?;
             let v = doubles(o, "position_and_direction_candidate", 6)?;
             let position = transform(m, &v[..3], 1.)?;
@@ -432,6 +482,7 @@ fn geometry(
             };
             let font = fonts.get(&word(o, "style_index_candidate")?);
             if let Some(f) = font {
+                budget.text(f.family.len())?;
                 rse::charge(work, f.family.len())?;
             }
             let font = font.cloned();
@@ -445,6 +496,7 @@ fn geometry(
             }))
         }
         "stored_circle_candidate" | "stored_arc_candidate" => {
+            budget.item()?;
             rse::charge(work, 12)?;
             let is_arc = o.proposed_role == "stored_arc_candidate";
             let v = if is_arc {
@@ -504,9 +556,10 @@ fn geometry(
 }
 
 // Bidirectional, unique ownership is required before a branch is interpreted.
-fn owners<'a>(
+fn owners_with_depth<'a>(
     s: &'a SegmentInventory,
     work: &mut usize,
+    max_depth: usize,
 ) -> Result<BTreeMap<usize, &'a PayloadObservation>> {
     let map = by_ordinal(s, work)?;
     rse::charge(work, s.records.len())?;
@@ -546,7 +599,7 @@ fn owners<'a>(
         let mut seen = BTreeSet::new();
         while let Some(parent) = incoming.get(&at) {
             rse::charge(work, 1)?;
-            if !seen.insert(at) || seen.len() > 128 {
+            if !seen.insert(at) || seen.len() > max_depth {
                 return Err(error("cyclic/deep display ownership"));
             }
             at = *parent;
@@ -555,6 +608,7 @@ fn owners<'a>(
     Ok(map)
 }
 
+#[allow(clippy::too_many_arguments)] // Container work and expanded display budgets are independent.
 fn display_branch(
     space: &mut DisplaySpace,
     doc: &DrawingInventory,
@@ -563,15 +617,16 @@ fn display_branch(
     parent: Matrix,
     fonts: &BTreeMap<u32, DisplayFont>,
     work: &mut usize,
+    budget: &mut DisplayBudget,
 ) -> Result<()> {
     let root = binding.target_record;
     let placement = binding.placement_record;
-    let nodes = owners(target, work)?;
+    let nodes = owners_with_depth(target, work, budget.limits.max_nesting_depth)?;
     let mut stack = vec![(root, parent, Vec::new(), DisplayStyle::default())];
     let mut visited = BTreeSet::new();
     while let Some((id, mut m, mut path, inherited)) = stack.pop() {
         rse::charge(work, 1)?;
-        if !visited.insert(id) || path.len() > 128 {
+        if !visited.insert(id) || path.len() > budget.limits.max_nesting_depth {
             return Err(error("repeated/deep display branch"));
         }
         let Some(o) = nodes.get(&id) else {
@@ -583,11 +638,18 @@ fn display_branch(
             continue;
         };
         let style = super::appearance::apply(doc, target, o, &nodes, &inherited, work)?;
-        if !style.visible {
+        let unknown_color = style
+            .unresolved
+            .contains(&"display_color_mask_not_interpreted");
+        if !style.visible || unknown_color {
             space.omitted.push(Omission {
                 segment_id: target.registry.id.clone(),
                 record_ordinal: id,
-                reason: "hidden_by_stored_attribute",
+                reason: if unknown_color {
+                    "display_color_mask_not_interpreted"
+                } else {
+                    "hidden_by_stored_attribute"
+                },
             });
             if o.proposed_role == "display_group_candidate" {
                 path.push(id);
@@ -616,7 +678,7 @@ fn display_branch(
                     stack.push((slot(raw)?, m, path.clone(), style.clone()));
                 }
             }
-        } else if let Some(geometry) = geometry(o, &m, fonts, work)? {
+        } else if let Some(geometry) = geometry_budgeted(o, &m, fonts, work, budget)? {
             space.items.push(DisplayItem {
                 segment_id: target.registry.id.clone(),
                 record_ordinal: id,
@@ -631,7 +693,11 @@ fn display_branch(
             space.omitted.push(Omission {
                 segment_id: target.registry.id.clone(),
                 record_ordinal: id,
-                reason: "unsupported_display_role",
+                reason: if o.proposed_role == "stored_point_marker_candidate" {
+                    "point_marker_visibility_unverified"
+                } else {
+                    "unsupported_display_role"
+                },
             });
         }
     }
@@ -641,6 +707,14 @@ fn display_branch(
 /// Experimental major31 scene. Stored display coordinates/transforms only;
 /// no external model loading, no active-state claim and no fitted placement.
 pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> ExperimentalScene {
+    experimental_scene_with_limits(doc, limits, &DrawingLimits::default())
+}
+
+pub fn experimental_scene_with_limits(
+    doc: &DrawingInventory,
+    limits: &Limits,
+    drawing: &DrawingLimits,
+) -> ExperimentalScene {
     let mut out = ExperimentalScene {
         status: "unavailable",
         qualified: false,
@@ -649,7 +723,15 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
         spaces: vec![],
         diagnostics: vec![],
     };
-    let mut work = limits.max_records;
+    if let Err(e) = drawing.validate() {
+        out.diagnostics.push(e.to_string());
+        return out;
+    }
+    let mut budget = DisplayBudget::new(drawing);
+    // Synthetic resource IDs occupy a separate namespace from RefdFile images.
+    // A collision is rejected by the asset reader rather than aliasing sources.
+    let mut bitmap_ids = BTreeMap::new();
+    let mut work = limits.max_records.min(drawing.max_reference_visits);
     let fonts = match fonts(doc, &mut work) {
         Ok(f) => f,
         Err(e) => {
@@ -660,6 +742,11 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
     for sm in doc.segments.iter().filter(|s| {
         s.status == "framed" && s.registry.major == 31 && s.registry.kind == "DlSheetSmSegmentType"
     }) {
+        if out.spaces.len() >= drawing.max_sheets {
+            out.spaces.clear();
+            out.diagnostics.push("drawing sheet limit exceeded".into());
+            return out;
+        }
         let result = (|| -> Result<DisplaySpace> {
             let nodes = by_ordinal(sm, &mut work)?;
             rse::charge(&mut work, sm.records.len())?;
@@ -680,6 +767,7 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
                 segment_id: sm.registry.id.clone(),
                 extent_candidate: [rect[2], rect[3]],
                 bindings: vec![],
+                views: vec![],
                 items: vec![],
                 omitted: vec![],
             };
@@ -688,7 +776,7 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
             let mut bound = BTreeSet::new();
             while let Some((id, parent, depth)) = stack.pop() {
                 rse::charge(&mut work, 1)?;
-                if depth > 128 || !visited.insert(id) {
+                if depth > drawing.max_nesting_depth || !visited.insert(id) {
                     return Err(error("repeated/cyclic sheet placement"));
                 }
                 let Some(node) = nodes.get(&id) else {
@@ -713,6 +801,7 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
                     }
                     rse::charge(&mut work, 32)?;
                     let world = compose(&parent, &matrix(node)?)?;
+                    budget.item()?;
                     space.items.push(DisplayItem {
                         segment_id: sm.registry.id.clone(),
                         record_ordinal: id,
@@ -733,19 +822,98 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
                 }
                 if !matches!(
                     node.proposed_role,
-                    "sheet_space_candidate" | "sheet_placement_candidate"
+                    "sheet_space_candidate"
+                        | "sheet_placement_candidate"
+                        | "sheet_local_display_candidate"
+                        | "sheet_local_transformed_display_candidate"
                 ) {
                     return Err(error("unsupported sheet placement role"));
                 }
-                let world = compose(&parent, &matrix(node)?)?;
+                let world = if node.proposed_role == "sheet_local_display_candidate" {
+                    parent // These bounded annotation layouts store paper-space positions.
+                } else {
+                    compose(&parent, &matrix(node)?)?
+                };
                 let (target, root, binding) = bind(doc, sm, node, &mut work)?;
                 if !bound.insert((target.registry.id.clone(), root)) {
                     return Err(error(
                         "repeated display-root instance needs explicit semantics",
                     ));
                 }
-                display_branch(&mut space, doc, target, &binding, world, &fonts, &mut work)?;
+                display_branch(
+                    &mut space,
+                    doc,
+                    target,
+                    &binding,
+                    world,
+                    &fonts,
+                    &mut work,
+                    &mut budget,
+                )?;
                 space.bindings.push(binding);
+                if node
+                    .fields
+                    .iter()
+                    .any(|f| f.name == "view_bitmap_reference")
+                {
+                    budget.view()?;
+                    let FieldValue::Utf16(name) = field(node, "view_name_unresolved")? else {
+                        return Err(error("invalid saved view name"));
+                    };
+                    budget.text(name.len())?;
+                    let mut view = StoredView {
+                        placement_record: node.record_ordinal,
+                        name: name.clone(),
+                        placement_transform: world,
+                        cache_bounds: None,
+                        image_reference: None,
+                        source: node.source.clone(),
+                        diagnostics: vec!["view_type_parent_rotation_and_clip_unverified"],
+                    };
+                    let raw = word(node, "view_bitmap_reference")?;
+                    if raw != 0 {
+                        let id = slot(raw)?;
+                        let bitmap = nodes
+                            .get(&id)
+                            .ok_or_else(|| error("view bitmap not decoded"))?;
+                        if bitmap.proposed_role != "stored_view_bitmap_candidate" {
+                            return Err(error("invalid view bitmap target"));
+                        }
+                        let b = doubles(node, "view_bitmap_bounds", 6)?;
+                        if b[3] <= b[0] || b[4] <= b[1] {
+                            return Err(error("invalid view bitmap bounds"));
+                        }
+                        view.cache_bounds = Some(b.try_into().unwrap());
+                        let next = 0x80000000u32
+                            .checked_add(bitmap_ids.len() as u32)
+                            .ok_or_else(|| error("view bitmap identifier overflow"))?;
+                        let reference = *bitmap_ids
+                            .entry((sm.registry.id.clone(), id))
+                            .or_insert(next);
+                        view.image_reference = Some(reference);
+                        budget.item()?;
+                        space.items.push(DisplayItem {
+                            segment_id: sm.registry.id.clone(),
+                            record_ordinal: id,
+                            source: bitmap.source.clone(),
+                            placement_record: node.record_ordinal,
+                            group_path: vec![],
+                            transform: world,
+                            style: DisplayStyle::default(),
+                            geometry: DisplayGeometry::Image {
+                                reference,
+                                format: 3,
+                                origin: transform(&world, &[b[0], b[4], 0.], 1.)?,
+                                u: transform(&world, &[b[3] - b[0], 0., 0.], 0.)?,
+                                v: transform(&world, &[0., b[1] - b[4], 0.], 0.)?,
+                            },
+                        });
+                    }
+                    if raw == 0 {
+                        view.diagnostics.push("view_cache_absent");
+                    }
+                    space.views.push(view);
+                }
                 for &raw in references(node, "references_unresolved")?.iter().rev() {
                     rse::charge(&mut work, 1)?;
                     if raw != 0 {
@@ -794,6 +962,13 @@ pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> Experiment
             }
             Ok(space)
         })();
+        if budget.exhausted {
+            out.spaces.clear();
+            if let Err(e) = result {
+                out.diagnostics.push(e.to_string());
+            }
+            return out;
+        }
         match result {
             Ok(space) => out.spaces.push(space),
             Err(e) => out.diagnostics.push(format!("{}: {}", sm.registry.id, e)),

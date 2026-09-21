@@ -35,14 +35,27 @@ class Job:
         else:
             self.process.join()
         pending = self.directory / "pending.json"
+        resource_error = None
         if not timeout and self.process.exitcode == 0 and pending.exists():
+            try:
+                from .drawing import validate_drawing_resources
+                with pending.open('rb') as stream:
+                    payload = stream.read(16 * 1024 * 1024 + 1)
+                if len(payload) > 16 * 1024 * 1024:
+                    raise ValueError('Viewer metadata exceeds 16 MiB')
+                validate_drawing_resources(self.directory, json.loads(payload), self.options.max_buffer_bytes)
+            except Exception as error:
+                resource_error = str(error)
+        if not timeout and self.process.exitcode == 0 and pending.exists() and resource_error is None:
             replace_scene(pending, self.directory / "state.json")
         else:
             scene = json.loads((self.directory / "state.json").read_text(encoding="utf-8"))
             scene["job_status"] = "failed"
             discard_geometry(scene, "worker_failed", "Conversion process did not complete")
             diagnostic(scene, "viewer.timeout" if timeout else "viewer.worker_failed",
-                       "Conversion exceeded its time limit." if timeout else f"Conversion process exited with code {self.process.exitcode}.")
+                       "Conversion exceeded its time limit." if timeout else
+                       f"Drawing resources were not published: {resource_error}" if resource_error else
+                       f"Conversion process exited with code {self.process.exitcode}.")
             write_scene(self.directory, scene)
         self.done = True
 

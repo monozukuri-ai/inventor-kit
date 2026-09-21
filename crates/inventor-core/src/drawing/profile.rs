@@ -1,7 +1,7 @@
 //! Observed framing profile, not a qualified drawing semantic profile.
 use crate::{Error, Result};
 
-pub(super) const NAME: &str = "idw-rse31-meta8-major31-zstd-framing-v2";
+pub(super) const NAME: &str = "idw-rse31-meta8-major31-zstd-framing-v3";
 pub(super) fn meta_layout(kind: &str) -> crate::rse::MetaLayout {
     match kind {
         "DlDocDcSegmentType" => crate::rse::MetaLayout::DRAWING_DOC_DC,

@@ -72,8 +72,13 @@ streams. A short smoke run does not establish exhaustive coverage.
 | `scripts/` | Reproducible build, validation, and distribution tools |
 | `tests/`, `schemas/`, `fixtures/*.json` | Tests, public contracts, and pinned input sources and hashes |
 | `benchmarks/` | Fixed inputs and measurement methods |
-| `reports/` | Public summaries containing verified aggregates only |
+| `internal/reports/` | All validation summaries, detailed results and execution logs |
 | `internal/` | Work logs, old plans, exploratory code, host details, and detailed results |
+
+Keep stable contributor instructions in `docs/`; put decoder investigations and
+control-drawing acquisition procedures in `internal/docs/`. Store summaries and
+session-specific results together in `internal/reports/`. Do not append development
+progress or dated test counts to usage guides.
 
 `internal/` is excluded from Git and wheel/sdist packages. External CAD files,
 fuzz corpora/artifacts, and local Cargo configuration are also excluded from

@@ -35,7 +35,7 @@ class WheelRecords(unittest.TestCase):
         for path in (ROOT/'python/inventor_kit/viewer').rglob('*'):
             if path.is_file() and (path.suffix == '.py' or 'static' in path.parts):
                 self.contents['inventor_kit/viewer/'+path.relative_to(ROOT/'python/inventor_kit/viewer').as_posix()] = path.read_bytes()
-        for name in ('assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
+        for name in ('drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
             self.contents['inventor_kit/' + name] = b'{}'
         for name in license_paths():
             self.contents[info + '/licenses/' + name] = (ROOT/name).read_bytes()

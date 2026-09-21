@@ -126,10 +126,7 @@ IAM は実データの Subassembly と、SampleBg の表示できる 5 部品・
 元ファイル変更、一部のメッシュ生成失敗、選択の独立性を確認します。
 holdout の IAM は未対応の native プロファイルとして拒否されることを維持します。
 
-内部シーンの行列は行優先の 4×4、列ベクトルへの作用、単位 mm です。
-定義メッシュはローカル形状を保持し、階層の各辺で local 配置を一度だけ適用します。
-合成結果を保存済み world 行列と変換器の実際の配置に照合し、フロントエンドで local 回転を
-renderer の quaternion に変換します。境界箱はカメラの表示範囲に使い、正確な CAD 寸法とは扱いません。
+Viewerの境界箱はカメラの表示範囲に使い、正確なCAD寸法とは扱いません。
 
 ```sh
 python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.4.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser

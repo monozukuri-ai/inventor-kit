@@ -71,8 +71,12 @@ python scripts/run_fuzz.py --seconds 30
 | `scripts/` | 再現可能なビルド・検証・配布ツール |
 | `tests/`, `schemas/`, `fixtures/*.json` | テスト、公開契約、固定した入力の出典と hash |
 | `benchmarks/` | 固定入力と計測方法 |
-| `reports/` | 確認済みの集計だけを含む公開サマリー |
+| `internal/reports/` | すべての検証サマリー・詳細結果・実行ログ |
 | `internal/` | 作業日誌、旧計画、調査用コード、ホスト情報、詳細結果 |
+
+継続して使う貢献者向け手順は`docs/`、デコーダーの調査・制御図面の取得手順は`internal/docs/`に置きます。
+個別実行の詳細結果と結果の要約は、すべて`internal/reports/`へ保存してください。
+利用ガイドには開発の進捗や日付付きのテスト件数を追記しません。
 
 `internal/` は Git と wheel/sdist の対象外です。外部 CAD の実ファイル、fuzz の
 corpus/artifacts、ローカル Cargo 設定も公開パッケージに含めません。

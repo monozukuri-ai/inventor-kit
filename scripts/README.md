@@ -19,8 +19,8 @@ for standard reproduction steps. Detailed results default to
 | `validate_assembly.py` | Regression and holdout checks for IAM references, placements, omissions, and STEP |
 | `benchmark_parser.py`, `seed_fuzz_corpus.py`, `run_fuzz.py` | Measure fixed inputs and run bounded ASan fuzzing |
 | `capture_vendor_oracle.py`, `capture_model_states.py` | Optional Windows / Autodesk oracle capture |
-| `drawing_corpus.py`, `capture_drawing_oracle.py`, `drawing_oracle_contract.py`, `validate_drawing_oracle.py` | [IDW corpus and offline capture contract](../docs/drawing-validation.md) |
-| `validate_drawing_inventory.py` | [Regression-only IDW framing, provisional fields and source ranges](../docs/drawing-inventory.md) |
+| `drawing_corpus.py`, `capture_drawing_oracle.py`, `drawing_oracle_contract.py`, `validate_drawing_oracle.py` | IDW corpus and [offline capture schema](../schemas/drawing-oracle-v1.schema.json); use each command's `--help` for options |
+| `validate_drawing_inventory.py` | Regression-only IDW framing, provisional fields and source ranges; does not qualify [drawing display](../docs/drawing.md) |
 | `oracle_contract.py`, `compare_state_candidates.py`, `ezdxf_oracle.py` | Oracle contracts and comparisons |
 | `check_dependencies.py`, `check_distribution.py`, `smoke_distribution.py`, `check_release.py` | Dependency, distribution, isolated installation, and release gates |
 | `check_public_tree.py`, `summarize_validation.py` | Check public links and generate public aggregates |
