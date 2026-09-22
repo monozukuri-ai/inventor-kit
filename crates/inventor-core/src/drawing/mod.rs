@@ -10,6 +10,7 @@ mod revisions;
 mod scene;
 mod sheet;
 mod sheets;
+mod spline;
 mod style;
 mod text;
 
@@ -52,6 +53,9 @@ pub struct Usage {
     pub expanded_bytes: usize,
     /// Registry, identity, Meta-table, record and trailer collection work.
     pub work_items: usize,
+    /// Typed payload values have a separate per-document max_records allowance;
+    /// dense display fields cannot starve subsequent segment framing.
+    pub field_work_items: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -219,9 +223,10 @@ pub(crate) fn fuzz_pair(meta_bytes: &[u8], bulk_bytes: &[u8], limits: &crate::Li
             profile::meta_layout(kind),
         )?;
         let compressed = profile::bulk(bulk_bytes)?;
+        let major = if bulk_bytes[17] == 1 { 23 } else { 31 };
         let (body, _) =
             crate::rse::inflate_budgeted(compressed, limits.max_inflated_bytes, &mut expanded)?;
-        crate::rse::record_table(&body, &meta, 31, &mut work, true)?;
+        crate::rse::record_table(&body, &meta, major, &mut work, true)?;
         Ok(())
     })();
 }

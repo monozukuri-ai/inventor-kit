@@ -15,6 +15,57 @@ SAMPLE = ROOT / 'fixtures/public/SampleBg.idw'
 
 
 class DrawingAPI(unittest.TestCase):
+    def test_major23_saved_sheets_views_colors_and_explicit_missing_assets(self):
+        from collections import Counter
+        from io import BytesIO
+        from PIL import Image
+        doc = read_drawing_file(ROOT/'fixtures/public/_Fishing Rod Assembly.idw')
+        self.assertEqual(doc.source_sha256, 'e50760e2969eae8bb47565026fa52697d8698ec744b902bdc59fff508b1d8cdc')
+        self.assertEqual(doc.status, 'experimental_partial')
+        self.assertEqual([s.index for s in doc.sheets], [0, 1, 2, 3])
+        self.assertEqual([len(s.views) for s in doc.sheets], [4, 9, 8, 6])
+        self.assertEqual([len(s.items) for s in doc.sheets], [4257, 2296, 4464, 6922])
+        self.assertEqual(len({s.id for s in doc.sheets}), 4)
+        for s in doc.sheets:
+            self.assertEqual(s.name, 'Sheet')
+            self.assertEqual(s.size_in_source_units, (86.36, 55.88))
+            self.assertEqual(s.status, 'experimental_partial')
+            self.assertTrue(s.omissions)
+            self.assertEqual(set(Counter(i.geometry['kind'] for i in s.items)), {'polyline', 'curve', 'text', 'image'})
+            # Shaded caches precede the vector edges in their own view.
+            for v in s.views:
+                items = [i for i in s.items if i.placement_record == v.placement_record]
+                if v.image_reference is not None:
+                    self.assertEqual(items[0].geometry['kind'], 'image')
+        self.assertFalse(doc.qualified or doc.complete)
+        self.assertIsNone(doc.millimeters_per_unit)
+        images = [i for i in doc.images if i.status == 'decoded_rgba_view_cache_unqualified']
+        self.assertEqual(len(images), 22)
+        for i in images:
+            with Image.open(BytesIO(i.data)) as png:
+                png.load()
+                self.assertEqual(png.size, (i.width, i.height))
+                self.assertEqual(png.mode, 'RGBA')
+        missing, = [i for i in doc.images if i.data is None]
+        self.assertEqual(missing.reference, 9)
+        self.assertIn('No such stream', missing.diagnostic)
+        # The five uncached views now include their stored spline/ellipse
+        # outlines. They remain independent views even with duplicate names.
+        uncached = [v for v in doc.sheets[2].views if v.image_reference is None]
+        self.assertEqual([(v.placement_record, len(v.item_ids)) for v in uncached],
+                         [(5, 307), (6, 414), (7, 471), (9, 706), (19, 130)])
+        detail = uncached[-1]
+        members = [i for i in doc.sheets[2].items if i.id in detail.item_ids]
+        spline = next(i for i in members if i.record_ordinal == 12087)
+        self.assertEqual(spline.geometry['kind'], 'polyline')
+        self.assertGreater(len(spline.geometry['points']), 16)
+        ellipse = next(i for i in members if i.record_ordinal == 12067)
+        self.assertEqual(ellipse.geometry['kind'], 'curve')
+        self.assertLess(ellipse.geometry['start'], ellipse.geometry['end'])
+        omitted = {o['record_ordinal'] for o in doc.sheets[2].omissions}
+        self.assertNotIn(spline.record_ordinal, omitted)
+        self.assertNotIn(ellipse.record_ordinal, omitted)
+
     def test_saved_view_ids_members_and_unknowns_survive_python_decode(self):
         import json
         from inventor_kit import _inventor, DrawingView

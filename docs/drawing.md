@@ -4,7 +4,7 @@ English | [日本語](drawing.ja.md)
 
 The opt-in IDW path reads stored 2D elements without Inventor, model reprojection,
 or Python CAD imports. It is **experimental partial support**, currently observed
-on the major31 / schema31 / Meta8 / zstd profile. Drawing correctness, physical
+on schema31 / Meta8 with major31 (zstd) or major23 (zlib). Drawing correctness, physical
 units, complete sheet membership and current state are not qualified.
 The reader uses saved display data and does not load related IPT/IAM files or
 regenerate drawing views.
@@ -25,7 +25,11 @@ for sheet in drawing.sheets:
 `read_drawing_file(path, limits=..., drawing_limits=...)` bounds the file read. Both return a frozen
 `DrawingDocument`; sheets, views, items, image metadata and nested geometry/style mappings
 are immutable. Geometry is tagged `polyline`, `curve`, `text` or `image`. Image
-assets retain original PNG/JPEG bytes. Observed monochrome view caches are converted
+assets retain original PNG/JPEG bytes. Supported major23 splines use the stored
+degree, knots, control points, weights and parameter range, sampled into a `polyline`
+with 16 segments per nonempty knot span. This approximation has no general geometric
+error bound. Elliptical arcs retain their center, two axes and angle range as `curve`.
+Supported major31 monochrome and major23 color RGBA view caches are converted
 from stored pixels to PNG, retaining the generated asset hash and original record source. Source spans and omission
 reasons are retained. `drawing.sheet(id)` selects by input-bound ID; duplicate
 sheet names are allowed. IDs include the input SHA-256 and stored record/placement identity. Foreign-input IDs are rejected. They are stable across path changes, not guaranteed across
@@ -56,6 +60,8 @@ Incompatible document options appear as worker diagnostics. IPT/IAM selection fl
 with experimental drawing mode. The existing process timeout and 16 MiB scene
 limit apply; images also obey native byte/pixel limits and the Viewer buffer limit.
 Only final successful worker output publishes the drawing and its image resources.
+Each selected sheet resource is limited to 32 MiB; all sheet and image resources
+are limited to 128 MiB in total.
 
 Unsupported majors preserve metadata/diagnostics and saved thumbnails. Invalid
 containers, non-IDW inputs and invalid limits raise `ValueError`. Each native stage
@@ -78,18 +84,19 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 | `max_display_items` | 100,000 | Expanded items across the drawing |
 | `max_polyline_points` | 1,000,000 | Expanded polyline points across the drawing |
 | `max_text_bytes` | 16 MiB | Expanded UTF-8 text, view names and copied font-family bytes |
-| `max_reference_visits` | 500,000 | Work budget per native drawing stage, also bounded by `Limits.max_records` |
+| `max_reference_visits` | 3,000,000 | Aggregate reference and copy work across the document, independently for sheet binding, display expansion and image retrieval |
 | `max_nesting_depth` | 128 | Display traversal / ancestor depth |
-| `max_image_bytes` | 16 MiB | Aggregate embedded image bytes; view caches charge raw record bytes and generated PNG |
+| `max_image_bytes` | 16 MiB | Aggregate delivered image bytes; view caches charge generated PNG bytes |
 | `max_image_pixels` | 16,777,216 | Aggregate embedded image pixels |
-| `max_output_bytes` | 64 MiB | Encoded native drawing JSON, including metadata and image data |
+| `max_output_bytes` | 96 MiB | Encoded native drawing JSON, including metadata and image data |
 
 Expansion is charged before copying items, points or text, including repeated
 placements. Exhausting an expansion budget discards the display rather than
 returning a successful prefix; metadata and diagnostics remain available.
 Image limits produce unavailable image descriptors. The JSON writer checks its
 remaining budget before appending; exceeding it raises `ValueError`. Container
-parsing still uses `Limits`. Unknown view layouts remain omissions; the view budget counts decoded placements,
+and typed-field parsing each use their own `Limits.max_records` allowance.
+Raw cache pixels are bounded by expanded-stream bytes and `max_image_pixels`; each source stream is expanded once. Unknown view layouts remain omissions; the view budget counts decoded placements,
 not all possible model projections. These budgets do not bound process RSS or elapsed time. The Viewer uses the defaults; programmatic `Options`
 also accepts `drawing_limits`.
 
@@ -109,9 +116,9 @@ Dimensions, leaders, frames, title blocks and simple parts lists can be displaye
 when represented by supported saved elements; the API does not expose their
 full dimension or table semantics.
 
-Supported monochrome view caches display base, projected, scaled, rotated,
+Supported monochrome and color RGBA view caches display base, projected, scaled, rotated,
 hidden-line and cropped views at their saved raster resolution. Zooming cannot
-recover vector detail. Unsupported color/alpha layouts produce unavailable assets;
+recover vector detail. Unsupported pixel/alpha layouts produce unavailable assets;
 uninterpreted appearance data can omit a branch with a diagnostic reason.
 
 For supported Arial/Tahoma text, the Viewer adjusts saved height using browser
@@ -125,7 +132,10 @@ symbols are not mapped.
 
 General clipping, draw order, text alignment and annotation coverage remain
 unverified. Curves are sampled for display; the API retains their original
-parameters. Major23/24/26/28/29 are outside this drawing profile.
+parameters. Major24/26/28/29 are outside this drawing profile.
+For major23, supported saved vector edges and annotations overlay the color cache.
+Historical target contexts require matching object identity; this does not reconstruct historical state.
+Unknown sketch states, cross-segment display children and missing images remain explicit omissions.
 
 ## Display requests and sheet resources
 
@@ -133,7 +143,7 @@ parameters. Major23/24/26/28/29 are outside this drawing profile.
 `SheetDisplay`. An invalid or foreign sheet ID raises `DrawingDisplayError` with
 code `drawing.invalid_sheet_id`. Unknown units or placement raise `DrawingDisplayError` even when
 `allow_partial=True`; inspect its `sheet_id`, `diagnostics` and `omissions`.
-Current major31 profiles still have unverified physical units, so this entrypoint
+Current major23/31 profiles still have unverified physical units, so this entrypoint
 refuses them. `sheet.items` and `--experimental-drawing` retain the explicit
 source-coordinate investigation path. Content coverage stays `unknown`, with
 `snapshot_kind=saved` and `reference_freshness=unverified`.

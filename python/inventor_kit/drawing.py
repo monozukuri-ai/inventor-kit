@@ -46,11 +46,11 @@ class DrawingLimits:
     max_display_items: int = 100_000
     max_polyline_points: int = 1_000_000
     max_text_bytes: int = 16 * 1024 * 1024
-    max_reference_visits: int = 500_000
+    max_reference_visits: int = 3_000_000
     max_nesting_depth: int = 128
     max_image_bytes: int = 16 * 1024 * 1024
     max_image_pixels: int = 16_777_216
-    max_output_bytes: int = 64 * 1024 * 1024
+    max_output_bytes: int = 96 * 1024 * 1024
 
     def __post_init__(self):
         for field in fields(self):

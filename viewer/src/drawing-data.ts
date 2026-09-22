@@ -1,5 +1,5 @@
 /** Immutable, bounded, input-bound sheet resource loading. */
-export const MAX_SHEET_BYTES = 16 * 1024 * 1024;
+export const MAX_SHEET_BYTES = 32 * 1024 * 1024;
 export type SheetResource = { id: string; resource: string | null; bytes: number | null; sha256: string | null };
 
 export async function loadSheet(source: string, sheet: SheetResource, signal: AbortSignal): Promise<any> {

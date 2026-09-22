@@ -44,7 +44,7 @@ pub fn read_embedded_images_with_limits(
             "image scene/source identity mismatch or file limit".into(),
         ));
     }
-    let mut work = limits.max_records.min(drawing.max_reference_visits);
+    let mut work = drawing.max_reference_visits;
     let mut refs = BTreeMap::new();
     for s in &scene.spaces {
         for item in &s.items {
@@ -86,6 +86,7 @@ pub fn read_embedded_images_with_limits(
     let mut pixels_left = drawing.max_image_pixels as u64;
     let mut out = vec![];
     let mut expanded = limits.max_total_inflated_bytes;
+    let mut bodies = BTreeMap::new();
     for (reference, (format, source)) in refs {
         let path = format!("/RSeStorage/RefdFiles/RefdFile_{reference}");
         let mut image = EmbeddedImage {
@@ -113,32 +114,39 @@ pub fn read_embedded_images_with_limits(
                 {
                     return Err(Error("invalid view bitmap source".into()));
                 }
-                let n = source
+                source
                     .end_offset
                     .checked_sub(source.start_offset)
                     .ok_or_else(|| Error("invalid view bitmap span".into()))?;
-                if n > bytes_left {
-                    return Err(Error("embedded image byte limit".into()));
+                if !bodies.contains_key(&source.stream) {
+                    let encoded =
+                        crate::stream(&mut file, &source.stream, limits.max_stream_bytes)?;
+                    let compressed = super::profile::bulk(&encoded)?;
+                    let major = if encoded[17] == 1 { 23 } else { 31 };
+                    let (body, _) = rse::inflate_budgeted(
+                        compressed,
+                        limits.max_inflated_bytes,
+                        &mut expanded,
+                    )?;
+                    bodies.insert(source.stream.clone(), (major, body));
                 }
-                bytes_left -= n;
-                let encoded = crate::stream(&mut file, &source.stream, limits.max_stream_bytes)?;
-                let (body, _) = rse::inflate_budgeted(
-                    super::profile::bulk(&encoded)?,
-                    limits.max_inflated_bytes,
-                    &mut expanded,
-                )?;
+                let (major, body) = &bodies[&source.stream];
                 let record = body
                     .get(source.start_offset..source.end_offset)
                     .ok_or_else(|| Error("view bitmap span out of bounds".into()))?;
                 let (w, h, png) =
-                    monochrome_bitmap_png(record, bytes_left, &mut pixels_left, &mut work)?;
+                    view_bitmap_png(record, *major, bytes_left, &mut pixels_left, &mut work)?;
                 bytes_left -= png.len();
                 image.mime_type = Some("image/png");
                 image.width = Some(w);
                 image.height = Some(h);
                 image.sha256 = Some(format!("{:x}", Sha256::digest(&png)));
                 image.data = Some(Binary(png));
-                image.status = "decoded_monochrome_view_cache_unqualified";
+                image.status = if *major == 23 {
+                    "decoded_rgba_view_cache_unqualified"
+                } else {
+                    "decoded_monochrome_view_cache_unqualified"
+                };
                 return Ok(());
             }
             let mut stream = file.open_stream(&path).map_err(|e| Error(e.to_string()))?;
@@ -184,17 +192,21 @@ pub fn read_embedded_images_with_limits(
     Ok(out)
 }
 
-// Observed major31 monochrome cache only: height/width, five zero layout bytes,
-// then bottom-up RGBA pixels. Other colors/alpha layouts remain unavailable.
-fn monochrome_bitmap_png(
+// Exact saved-cache variants: major31 monochrome; major23 RGBA with 01/01
+// prefix and 01 suffix. Pixels are bottom-up. Colorimetry remains unqualified.
+fn view_bitmap_png(
     b: &[u8],
+    major: u8,
     output_limit: usize,
     pixels_left: &mut u64,
     work: &mut usize,
 ) -> Result<(u32, u32, Vec<u8>)> {
-    let bad = || Error("unsupported monochrome view bitmap".into());
+    let bad = || Error("unsupported saved view bitmap".into());
     let mut r = crate::read::Reader::new(b);
     r.skip(6)?;
+    if !matches!(major, 23 | 31) || (major == 23 && r.take(2)? != [1, 1]) {
+        return Err(bad());
+    }
     let h = r.u32()?;
     let w = r.u32()?;
     if r.take(5)? != [0; 5] {
@@ -206,15 +218,19 @@ fn monochrome_bitmap_png(
     }
     *pixels_left -= pixels;
     let rgba = r.take(pixels as usize * 4)?;
+    if major == 23 && r.u8()? != 1 {
+        return Err(bad());
+    }
     r.finish()?;
     rse::charge(work, (pixels as usize).div_ceil(1024) + 1)?;
     if rgba
         .chunks_exact(4)
-        .any(|p| p[..3] != [0; 3] || !matches!(p[3], 0 | 255))
+        .any(|p| (major == 31 && p[..3] != [0; 3]) || !matches!(p[3], 0 | 255))
     {
         return Err(bad());
     }
-    // Bound zlib output before allocation; raw and PNG bytes share the asset budget.
+    // Raw cache bytes are bounded by expanded-stream and aggregate pixel limits.
+    // The image byte allowance covers the encoded assets delivered to consumers.
     let cap = DrawingLimits {
         max_output_bytes: output_limit.min(64 * 1024 * 1024),
         ..DrawingLimits::default()
@@ -333,11 +349,47 @@ fn jpeg(b: &[u8]) -> Result<(u32, u32)> {
 pub(super) fn fuzz(bytes: &[u8]) {
     let _ = jpeg(bytes);
     let _ = crate::thumbnail::validate_png(bytes);
+    for major in [23, 31] {
+        let _ = view_bitmap_png(bytes, major, 65536, &mut 65536, &mut 1000);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn major23_color_cache_preserves_channels_flips_rows_and_checks_suffix() {
+        let mut b = vec![0; 6];
+        b.extend([1, 1]);
+        b.extend(2u32.to_le_bytes());
+        b.extend(1u32.to_le_bytes());
+        b.extend([0; 5]);
+        b.extend([11, 22, 33, 255, 44, 55, 66, 0]);
+        b.push(1);
+        let (_, _, png) = view_bitmap_png(&b, 23, 1024, &mut 2, &mut 100).unwrap();
+        let n = u32::from_be_bytes(png[33..37].try_into().unwrap()) as usize;
+        let mut raw = vec![];
+        flate2::read::ZlibDecoder::new(&png[41..41 + n])
+            .read_to_end(&mut raw)
+            .unwrap();
+        assert_eq!(raw, [0, 44, 55, 66, 0, 0, 11, 22, 33, 255]);
+        assert!(view_bitmap_png(&b, 31, 1024, &mut 2, &mut 100).is_err());
+        for n in 0..b.len() {
+            assert!(view_bitmap_png(&b[..n], 23, 1024, &mut 2, &mut 100).is_err());
+        }
+        for index in [6, 7, 16, 20, 24, 29] {
+            let mut bad = b.clone();
+            bad[index] = 2;
+            assert!(
+                view_bitmap_png(&bad, 23, 1024, &mut 2, &mut 100).is_err(),
+                "byte {index}"
+            );
+        }
+        assert!(view_bitmap_png(&b, 23, 1, &mut 2, &mut 100).is_err());
+        assert!(view_bitmap_png(&b, 23, 1024, &mut 1, &mut 100).is_err());
+        b.push(0);
+        assert!(view_bitmap_png(&b, 23, 1024, &mut 2, &mut 100).is_err());
+    }
     #[test]
     fn monochrome_cache_flips_rows_and_rejects_unobserved_layouts_and_budget_overruns() {
         let mut b = vec![0; 6];
@@ -345,7 +397,7 @@ mod tests {
         b.extend(1u32.to_le_bytes());
         b.extend([0; 5]);
         b.extend([0, 0, 0, 255, 0, 0, 0, 0]); // Bottom opaque, top transparent.
-        let (w, h, png) = monochrome_bitmap_png(&b, 1024, &mut 2, &mut 10).unwrap();
+        let (w, h, png) = view_bitmap_png(&b, 31, 1024, &mut 2, &mut 10).unwrap();
         assert_eq!((w, h), (1, 2));
         assert_eq!(crate::thumbnail::validate_png(&png).unwrap(), (1, 2));
         let n = u32::from_be_bytes(png[33..37].try_into().unwrap()) as usize;
@@ -355,22 +407,22 @@ mod tests {
             .unwrap();
         assert_eq!(raw, [0, 0, 0, 0, 0, 0, 0, 0, 0, 255]);
         for end in 0..b.len() {
-            assert!(monochrome_bitmap_png(&b[..end], 1024, &mut 2, &mut 10).is_err());
+            assert!(view_bitmap_png(&b[..end], 31, 1024, &mut 2, &mut 10).is_err());
         }
-        assert!(monochrome_bitmap_png(&b, 1024, &mut 1, &mut 10).is_err());
-        assert!(monochrome_bitmap_png(&b, 1, &mut 2, &mut 10).is_err());
-        assert!(monochrome_bitmap_png(&b, 1024, &mut 2, &mut 0).is_err());
+        assert!(view_bitmap_png(&b, 31, 1024, &mut 1, &mut 10).is_err());
+        assert!(view_bitmap_png(&b, 31, 1, &mut 2, &mut 10).is_err());
+        assert!(view_bitmap_png(&b, 31, 1024, &mut 2, &mut 0).is_err());
         for index in [14, 18, 19, 20, 21, 22] {
             let mut bad = b.clone();
             bad[index] = 1;
-            assert!(monochrome_bitmap_png(&bad, 1024, &mut 2, &mut 10).is_err());
+            assert!(view_bitmap_png(&bad, 31, 1024, &mut 2, &mut 10).is_err());
         }
         let mut bad = b.clone();
         bad.extend([0; 4]);
-        assert!(monochrome_bitmap_png(&bad, 1024, &mut 2, &mut 10).is_err());
+        assert!(view_bitmap_png(&bad, 31, 1024, &mut 2, &mut 10).is_err());
         b[6..14].fill(255);
         let mut pixels = u64::MAX;
-        assert!(monochrome_bitmap_png(&b, 1024, &mut pixels, &mut 10).is_err());
+        assert!(view_bitmap_png(&b, 31, 1024, &mut pixels, &mut 10).is_err());
     }
 
     #[test]

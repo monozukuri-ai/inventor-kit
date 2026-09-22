@@ -25,11 +25,11 @@ impl Default for DrawingLimits {
             max_display_items: 100_000,
             max_polyline_points: 1_000_000,
             max_text_bytes: 16 * 1024 * 1024,
-            max_reference_visits: 500_000,
+            max_reference_visits: 3_000_000,
             max_nesting_depth: 128,
             max_image_bytes: 16 * 1024 * 1024,
             max_image_pixels: 16_777_216,
-            max_output_bytes: 64 * 1024 * 1024,
+            max_output_bytes: 96 * 1024 * 1024,
         }
     }
 }

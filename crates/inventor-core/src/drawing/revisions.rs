@@ -1,4 +1,4 @@
-//! Bounded v3 revision identities and observed major31 object-ID intervals.
+//! Bounded v3 revision identities and observed major23/31 object-ID intervals.
 //! Revision membership establishes stored identity, never current drawing state.
 use super::*;
 use crate::{property::guid, read::Reader, rse, Error, Result};
@@ -102,6 +102,8 @@ pub(super) fn binding(
     let mut previous = None;
     let mut identity = None;
     let mut last = None;
+    let mut requested_context = None;
+    let requested_id = guid(&segment[16..32]);
     for (i, entry) in table.bytes.chunks_exact(10).enumerate() {
         let revision = scene::long(entry) as usize;
         let mut raw = [0u8; 8];
@@ -115,12 +117,25 @@ pub(super) fn binding(
         if identity.is_none() && key <= upper {
             identity = Some((revision, i));
         }
+        if revisions.entries[revision].id == requested_id {
+            requested_context = Some((revision, i));
+        }
         previous = Some((revision, upper));
         last = Some((revision, i));
     }
     let (identity, slot) =
         identity.ok_or_else(|| Error("object key outside revision ranges".into()))?;
-    let (current, last_slot) = last.unwrap();
+    let (latest, latest_slot) = last.unwrap();
+    // Major23 saves may retain a historical target context. Admit it only if
+    // the target's own ordered ranges contain it after this object's creation.
+    // This binds the stored object key; it does not reconstruct that old state.
+    let (current, last_slot) = if target.registry.major == 23 {
+        requested_context
+            .filter(|(r, _)| *r >= identity)
+            .ok_or_else(|| Error("missing or pre-creation target context".into()))?
+    } else {
+        (latest, latest_slot)
+    };
     if revisions.entries[identity].id != guid(&namespace[..16])
         || revisions.entries[current].id != guid(&segment[16..32])
     {
@@ -132,12 +147,16 @@ pub(super) fn binding(
         s.end_offset = s.start_offset + 10;
         s
     };
-    Ok(vec![
+    let mut evidence = vec![
         span(slot),
         revisions.entries[identity].source.clone(),
         span(last_slot),
         revisions.entries[current].source.clone(),
-    ])
+    ];
+    if last_slot != latest_slot {
+        evidence.extend([span(latest_slot), revisions.entries[latest].source.clone()]);
+    }
+    Ok(evidence)
 }
 
 #[cfg(test)]

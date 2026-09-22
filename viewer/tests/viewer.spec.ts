@@ -326,6 +326,25 @@ test('IDW unsupported profile retains previews and a clear unavailable state', a
   await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
 });
 
+test('IDW major23 switches all four saved sheets and colored views', async ({ page }, info) => {
+  const url = await open(page, '_Fishing Rod Assembly.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  expect(state.drawing.status).toBe('experimental_partial');
+  expect(state.drawing.qualified).toBe(false);
+  await expect(page.locator('#sheet-buttons button')).toHaveCount(4);
+  for (const [i, count] of [4, 9, 8, 6].entries()) {
+    await page.locator('#sheet-buttons button').nth(i).click();
+    await expect(page.locator('#cad')).toHaveAttribute('data-sheet-id', state.drawing.sheets[i].id);
+    await expect(page.locator('#drawing-views button')).toHaveCount(count);
+    expect(await page.locator('#drawing-svg [data-kind="text"]').count()).toBeGreaterThan(50);
+    expect(await page.locator('#drawing-svg image').count()).toBeGreaterThan(2);
+    await expect(page.locator('#drawing-omissions')).toContainText('saved raster images');
+    await page.locator('#drawing-svg').screenshot({ path: info.outputPath(`major23-sheet-${i + 1}.png`) });
+  }
+  expect(state.drawing.images.filter((i: any) => i.status === 'decoded_rgba_view_cache_unqualified')).toHaveLength(22);
+  expect(errors).toEqual([]);
+});
+
 test('IDW synthetic sheet switches clear stale selection and preserve literal multiline text', async ({ page }) => {
   const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
   const state = await (await page.request.get(url + 'state.json')).json();
@@ -494,6 +513,20 @@ test('IDW damaged sheet resources fail closed and retain sheet diagnostics', asy
   await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
   await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
   await expect(page.locator('#drawing-omissions')).toContainText('Sheet resource');
+});
+
+test('IDW rejects sheets above the byte ceiling before fetching the payload', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  state.drawing.sheets[0].bytes = 32 * 1024 * 1024 + 1;
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  const requests: string[] = [];
+  page.on('request', request => { if (request.url().includes('drawing-sheet-')) requests.push(request.url()); });
+  await page.reload();
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  await expect(page.locator('#drawing-omissions')).toContainText('Invalid drawing sheet resource descriptor');
+  expect(requests).toEqual([]);
 });
 
 

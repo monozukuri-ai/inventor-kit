@@ -18,7 +18,7 @@ pub(super) fn point_marker(f: &mut Fields<'_, '_>) -> Result<()> {
 }
 
 pub(super) fn document(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(34)?;
+    f.r.skip(if f.major == 23 { 30 } else { 34 })?;
     f.text("document_name")?;
     f.references("preceding_references_unresolved")?;
     f.r.skip(36)?;
@@ -29,7 +29,7 @@ pub(super) fn document(f: &mut Fields<'_, '_>) -> Result<()> {
 }
 
 pub(super) fn name(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(34)?;
+    f.r.skip(if f.major == 23 { 30 } else { 34 })?;
     f.text("name")?;
     // Prefix observation, like the document name. The following collections
     // vary with sheet contents and remain covered by the opaque payload span.
@@ -40,7 +40,7 @@ pub(super) fn links(f: &mut Fields<'_, '_>) -> Result<()> {
     // Full object key used by the SM definition reference, not a record ordinal.
     f.word("header_flags")?;
     f.short("object_id")?;
-    f.r.skip(28)?;
+    f.r.skip(if f.major == 23 { 24 } else { 28 })?;
     f.references("references_unresolved")?;
     f.r.skip(11)?;
     for name in ["dc_segment_name", "dl_segment_name", "sm_segment_name"] {
@@ -59,7 +59,7 @@ pub(super) fn links(f: &mut Fields<'_, '_>) -> Result<()> {
     f.references("sheet_content_references_unresolved")?;
     f.r.skip(92)?;
     f.text("name")?;
-    f.r.skip(8)?;
+    f.r.skip(if f.major == 23 { 4 } else { 8 })?;
     f.r.finish()
 }
 
@@ -147,18 +147,25 @@ pub(super) fn view_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     f.word("view_flags_unresolved")?;
     f.references("view_references_unresolved")?;
     f.references("view_auxiliary_references_unresolved")?;
-    f.references("view_other_references_unresolved")?;
+    if f.major != 23 {
+        f.references("view_other_references_unresolved")?;
+    }
     f.text("view_name_unresolved")?;
     f.word("view_bitmap_reference")?;
     f.word("view_style_unresolved")?;
     f.doubles("view_bitmap_bounds", 6)?;
-    f.r.skip(16)?; // Uninterpreted suffix GUID, retained in the payload source.
+    if f.major != 23 {
+        f.r.skip(16)?; // Uninterpreted suffix GUID, retained in the payload source.
+    }
     f.r.finish()
 }
 
 pub(super) fn view_bitmap(f: &mut Fields<'_, '_>) -> Result<()> {
     f.word("header_flags")?;
     f.short("object_id")?;
+    if f.major == 23 && f.r.take(2)? != [1, 1] {
+        return Err(Error("unknown major23 view bitmap layout".into()));
+    }
     let start = f.r.pos;
     let height = f.r.u32()?;
     let width = f.r.u32()?;
@@ -178,5 +185,8 @@ pub(super) fn view_bitmap(f: &mut Fields<'_, '_>) -> Result<()> {
     crate::rse::charge(f.work, (pixels as usize).div_ceil(1024))?;
     // Pixels are read only for a reachable placement and under image budgets.
     f.r.skip(pixels as usize * 4)?;
+    if f.major == 23 && f.r.u8()? != 1 {
+        return Err(Error("unknown major23 view bitmap suffix".into()));
+    }
     f.r.finish()
 }

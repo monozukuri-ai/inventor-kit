@@ -3,14 +3,16 @@ use super::{FieldObservation, FieldValue, PayloadObservation};
 use crate::{document::SourceSpan, read::Reader, rse, Error, Result};
 
 pub(super) struct Fields<'a, 'b> {
+    pub major: u8,
     pub r: Reader<'a>,
     pub work: &'b mut usize,
     source: SourceSpan,
     pub fields: Vec<FieldObservation>,
 }
 impl<'a, 'b> Fields<'a, 'b> {
-    fn new(bytes: &'a [u8], source: SourceSpan, work: &'b mut usize) -> Self {
+    fn new(bytes: &'a [u8], source: SourceSpan, work: &'b mut usize, major: u8) -> Self {
         Self {
+            major,
             r: Reader::new(bytes),
             work,
             source,
@@ -99,14 +101,17 @@ impl<'a, 'b> Fields<'a, 'b> {
         Ok(())
     }
     pub fn references(&mut self, name: &'static str) -> Result<()> {
-        self.require(0x30000002)?;
+        let tag = self.r.u32()?;
+        if tag != 0x30000002 && !(self.major == 23 && tag == 0x30000003) {
+            return Err(Error("unqualified drawing reference list".into()));
+        }
         let count = self.r.count(65536)?;
         rse::charge(self.work, count)?;
         if count != 0 {
-            if self.r.u32()? < count as u32 {
+            if tag == 0x30000002 && self.r.u32()? < count as u32 {
                 return Err(Error("drawing list capacity below count".into()));
             }
-            self.require(0x10)?;
+            self.require(if self.major == 23 { 0 } else { 0x10 })?;
         }
         let start = self.r.pos;
         let mut values = Vec::with_capacity(count);
@@ -154,6 +159,7 @@ impl<'a, 'b> Fields<'a, 'b> {
 
 pub(super) fn decode(
     kind: &str,
+    major: u8,
     type_id: &str,
     ordinal: usize,
     bytes: &[u8],
@@ -218,6 +224,29 @@ pub(super) fn decode(
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
+        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07") if major == 23 => {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "9b3499d1-11d1-8626-6000-27bd351c3cb0") if major == 23 => {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86") if major == 23 => {
+            decoder = super::sheet::leader_display;
+            "sheet_external_display_candidate"
+        }
+        (
+            "DlSheetSmSegmentType",
+            "69c12b31-11d2-1c34-6000-1c9feb49cdb0" | "6589a70e-11d1-a4a7-6000-2fa5602d6bb0",
+        ) if major == 23 => {
+            decoder = super::sheet::sketch_placement;
+            "sheet_placement_candidate"
+        }
+        ("DlSheetSmSegmentType", "4e52b139-11d1-d3ba-6000-46bead9287b0") if major == 23 => {
+            decoder = super::sheet::table_display;
+            "sheet_local_transformed_display_candidate"
+        }
         ("DlSheetSmSegmentType", "d0eee1ba-11d2-1cd5-0008-84ba1088db09") => {
             decoder = super::sheet::table_display;
             "sheet_local_transformed_display_candidate"
@@ -270,6 +299,14 @@ pub(super) fn decode(
             decoder = super::geometry::points;
             "stored_polyline_candidate"
         }
+        ("DlSheetDlSegmentType", "d3a55702-11d1-ebbb-62ae-0297584063da") if major == 23 => {
+            decoder = super::spline::fields;
+            "stored_bspline_candidate"
+        }
+        ("DlSheetDlSegmentType", "afd5ceeb-11d1-e071-0008-87a406e5dc09") if major == 23 => {
+            decoder = super::geometry::ellipse;
+            "stored_ellipse_candidate"
+        }
         (
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
             "a79eacc7-11d1-c281-6000-a38ab46bceb0",
@@ -301,13 +338,16 @@ pub(super) fn decode(
         _ => return Ok(None),
     };
     rse::charge(work, 1)?;
-    let mut fields = Fields::new(bytes, source.clone(), work);
+    let mut fields = Fields::new(bytes, source.clone(), work, major);
     decoder(&mut fields)?;
     Ok(Some(PayloadObservation {
         record_ordinal: ordinal,
         type_id: type_id.into(),
         source,
-        layout: "idw-major31-typed-fields-v1",
+        layout: match major {
+            23 => "idw-major23-typed-fields-v1",
+            _ => "idw-major31-typed-fields-v1",
+        },
         proposed_role: role,
         status: "unqualified",
         fields: fields.fields,
@@ -343,13 +383,40 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::geometry::line,
         super::geometry::circle,
         super::geometry::arc,
+        super::geometry::ellipse,
+        super::spline::fields,
     ] {
-        let mut fields = Fields::new(
-            bytes,
-            SourceSpan::stream("fuzz", "raw", 0, bytes.len()),
-            &mut work,
-        );
-        let _ = decoder(&mut fields);
+        for major in [23, 31] {
+            let mut fields = Fields::new(
+                bytes,
+                SourceSpan::stream("fuzz", "raw", 0, bytes.len()),
+                &mut work,
+                major,
+            );
+            if decoder(&mut fields).is_ok()
+                && fields.fields.iter().any(|f| f.name == "spline_degree")
+            {
+                let o = PayloadObservation {
+                    record_ordinal: 0,
+                    type_id: "fuzz".into(),
+                    source: fields.source.clone(),
+                    layout: "fuzz",
+                    proposed_role: "stored_bspline_candidate",
+                    status: "unqualified",
+                    fields: fields.fields,
+                };
+                if let Ok(spline) = super::spline::Spline::observation(&o) {
+                    for (span, start, end) in spline.spans().take(8) {
+                        if rse::charge(&mut work, 3).is_err() {
+                            return;
+                        }
+                        for t in [start, start + (end - start) * 0.5, end] {
+                            let _ = spline.evaluate(span, t);
+                        }
+                    }
+                }
+            }
+        }
     }
     if bytes.len() <= limits.max_property_bytes {
         super::images::fuzz(bytes);
@@ -372,6 +439,7 @@ mod marker_tests {
         let parse = |data: &[u8]| {
             decode(
                 "DlSheetSmSegmentType",
+                31,
                 "41305114-11d2-6450-6000-b4856c2387b0",
                 0,
                 data,

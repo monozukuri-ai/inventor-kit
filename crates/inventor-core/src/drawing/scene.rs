@@ -1,4 +1,4 @@
-//! Opt-in interpretation of the observed major31 stored-display layout.
+//! Opt-in interpretation of the observed major23/31 stored-display layouts.
 //! This is not a qualified active drawing state or a model reprojection API.
 use super::limits::DisplayBudget;
 use super::*;
@@ -217,18 +217,66 @@ pub(super) fn long(b: &[u8]) -> u32 {
     u32::from_le_bytes(b[..4].try_into().unwrap())
 }
 
-pub(super) fn resolve<'a>(
+type Resolved<'a> = (
+    &'a SegmentInventory,
+    &'a PayloadObservation,
+    Vec<SourceSpan>,
+    bool,
+);
+type ObjectKeys<'a> = BTreeMap<(u32, u16), Option<&'a PayloadObservation>>;
+
+#[derive(Default)]
+pub(super) struct ResolveCache<'a> {
+    objects: BTreeMap<String, ObjectKeys<'a>>,
+    bindings: BTreeMap<(String, u32, String), std::result::Result<Resolved<'a>, String>>,
+}
+
+pub(super) fn resolve_cached<'a>(
     doc: &'a DrawingInventory,
     sm: &SegmentInventory,
     raw: u32,
     kind: &str,
     work: &mut usize,
-) -> Result<(
-    &'a SegmentInventory,
-    &'a PayloadObservation,
-    Vec<SourceSpan>,
-    bool,
-)> {
+    cache: &mut ResolveCache<'a>,
+) -> Result<Resolved<'a>> {
+    rse::charge(work, 1)?;
+    let key = (sm.registry.id.clone(), raw, kind.to_owned());
+    if let Some(result) = cache.bindings.get(&key) {
+        if let Ok((_, _, sources, _)) = result {
+            rse::charge(work, sources.len())?;
+        }
+        return result.clone().map_err(Error);
+    }
+    let result = resolve_inner(doc, sm, raw, kind, work, cache);
+    cache.bindings.insert(
+        key,
+        match &result {
+            Ok(value) => Ok(value.clone()),
+            Err(error) => Err(error.to_string()),
+        },
+    );
+    result
+}
+
+#[cfg(test)]
+fn resolve<'a>(
+    doc: &'a DrawingInventory,
+    sm: &SegmentInventory,
+    raw: u32,
+    kind: &str,
+    work: &mut usize,
+) -> Result<Resolved<'a>> {
+    resolve_cached(doc, sm, raw, kind, work, &mut ResolveCache::default())
+}
+
+fn resolve_inner<'a>(
+    doc: &'a DrawingInventory,
+    sm: &SegmentInventory,
+    raw: u32,
+    kind: &str,
+    work: &mut usize,
+    cache: &mut ResolveCache<'a>,
+) -> Result<Resolved<'a>> {
     let index = raw
         .checked_sub(1)
         .ok_or_else(|| error("null display binding"))? as usize;
@@ -248,7 +296,8 @@ pub(super) fn resolve<'a>(
         .ok_or_else(|| error("missing display segment"))?;
     if targets.next().is_some()
         || target.status != "framed"
-        || target.registry.major != 31
+        || target.registry.major != sm.registry.major
+        || !matches!(target.registry.major, 23 | 31)
         || target.registry.kind != kind
     {
         return Err(error("ambiguous or unsupported display segment"));
@@ -269,17 +318,24 @@ pub(super) fn resolve<'a>(
             Err(_) => identity_verified = false, // Existing unqualified layer-cache fallback only.
         }
     }
-    rse::charge(work, target.observations.len())?;
-    let mut objects = target.observations.iter().filter(|o| {
-        word(o, "header_flags").ok() == Some(long(&object[2..6]))
-            && matches!(field(o,"object_id"),Ok(FieldValue::U16(id)) if *id==short(&object[6..]))
-    });
-    let root = objects
-        .next()
-        .ok_or_else(|| error("display object key is not decoded"))?;
-    if objects.next().is_some() {
-        return Err(error("ambiguous display object key"));
+    if !cache.objects.contains_key(&id) {
+        rse::charge(work, target.observations.len())?;
+        let mut keys = BTreeMap::new();
+        for o in &target.observations {
+            if let (Ok(flags), Ok(FieldValue::U16(id))) =
+                (word(o, "header_flags"), field(o, "object_id"))
+            {
+                keys.entry((flags, *id))
+                    .and_modify(|v| *v = None)
+                    .or_insert(Some(o));
+            }
+        }
+        cache.objects.insert(id.clone(), keys);
     }
+    let root = cache.objects[&id]
+        .get(&(long(&object[2..6]), short(&object[6..])))
+        .ok_or_else(|| error("display object key is not decoded"))?
+        .ok_or_else(|| error("ambiguous display object key"))?;
     sources.push(root.source.clone());
     Ok((target, root, sources, identity_verified))
 }
@@ -288,6 +344,7 @@ fn bind<'a>(
     sm: &'a SegmentInventory,
     placement: &PayloadObservation,
     work: &mut usize,
+    cache: &mut ResolveCache<'a>,
 ) -> Result<(&'a SegmentInventory, usize, DisplayBinding)> {
     let raw = word(placement, "display_reference")?;
     let (target, root, mut sources) = if matches!(
@@ -309,7 +366,8 @@ fn bind<'a>(
         }
         (sm, root, vec![root.source.clone()])
     } else {
-        let (target, root, sources, _) = resolve(doc, sm, raw, "DlSheetDlSegmentType", work)?;
+        let (target, root, sources, _) =
+            resolve_cached(doc, sm, raw, "DlSheetDlSegmentType", work, cache)?;
         (target, root, sources)
     };
     if root.proposed_role != "display_group_candidate" || word(root, "owner_reference")? != 0 {
@@ -337,7 +395,7 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
         .filter(|s| {
             s.status == "framed"
                 && s.registry.kind == "DlDirectorySegmentType"
-                && s.registry.major == 31
+                && matches!(s.registry.major, 23 | 31)
         })
         .flat_map(|s| s.observations.iter())
         .filter(|o| o.proposed_role == "font_table_candidate")
@@ -353,12 +411,23 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
     let Some((last, entries)) = fields.split_last() else {
         return Err(error("empty font directory"));
     };
-    if last.name != "font_next_id" || entries.len() % 7 != 0 {
+    let stride = if tables[0].layout == "idw-major23-typed-fields-v1" {
+        10
+    } else {
+        7
+    };
+    if last.name != "font_next_id" || entries.len() % stride != 0 {
         return Err(error("unsupported font directory fields"));
     }
-    for row in entries.chunks_exact(7) {
+    for row in entries.chunks_exact(stride) {
         rse::charge(work, 1)?;
-        let [id, tag, weight, flags, size, name, tail] = row else {
+        if row[7..]
+            .iter()
+            .any(|f| f.name != "font_tail_flag_unresolved" || !matches!(f.value, FieldValue::U8(_)))
+        {
+            return Err(error("unsupported font directory flags"));
+        }
+        let [id, tag, weight, flags, size, name, tail] = &row[..7] else {
             unreachable!()
         };
         if [
@@ -437,6 +506,32 @@ fn geometry_budgeted(
     budget: &mut DisplayBudget,
 ) -> Result<Option<DisplayGeometry>> {
     match o.proposed_role {
+        "stored_bspline_candidate" => {
+            let spline = super::spline::Spline::observation(o)?;
+            // Fixed parameter sampling is experimental, not a geometric error
+            // bound. Each nonempty trimmed knot span has 16 line segments.
+            const STEPS: usize = 16;
+            let count = spline.spans().count() * STEPS + 1;
+            budget.item()?;
+            budget.points(count)?;
+            // Charge inspection of the stored curve once. Derived samples use
+            // the shared point budget; degree <= 4 independently bounds their
+            // evaluation, without consuming the reference traversal allowance.
+            rse::charge(work, spline.stored_values())?;
+            let mut points = Vec::with_capacity(count);
+            for (span, start, end) in spline.spans() {
+                let first = usize::from(!points.is_empty());
+                for step in first..=STEPS {
+                    let t = if step == STEPS {
+                        end
+                    } else {
+                        start + (end - start) * (step as f64 / STEPS as f64)
+                    };
+                    points.push(transform(m, &spline.evaluate(span, t)?, 1.)?);
+                }
+            }
+            Ok(Some(DisplayGeometry::Polyline { points }))
+        }
         "stored_polyline_candidate" | "stored_line_candidate" => {
             budget.item()?;
             let count = if o.proposed_role == "stored_line_candidate" {
@@ -495,16 +590,18 @@ fn geometry_budgeted(
                 font,
             }))
         }
-        "stored_circle_candidate" | "stored_arc_candidate" => {
+        "stored_circle_candidate" | "stored_arc_candidate" | "stored_ellipse_candidate" => {
             budget.item()?;
-            rse::charge(work, 12)?;
             let is_arc = o.proposed_role == "stored_arc_candidate";
-            let v = if is_arc {
+            let is_ellipse = o.proposed_role == "stored_ellipse_candidate";
+            rse::charge(work, if is_ellipse { 13 } else { 12 })?;
+            let v = if is_ellipse {
+                doubles(o, "ellipse_center_radii_axes_angles", 13)?
+            } else if is_arc {
                 doubles(o, "arc_center_normal_axis_radius_angles", 12)?
             } else {
                 doubles(o, "circle_center_normal_radius", 7)?
             };
-            let n: &[f64] = &v[3..6];
             let dot = |a: &[f64], b: &[f64]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f64>();
             let cross = |a: &[f64], b: &[f64]| {
                 [
@@ -513,10 +610,20 @@ fn geometry_budgeted(
                     a[0] * b[1] - a[1] * b[0],
                 ]
             };
+            // This ellipse record stores two axes, unlike the circle/arc
+            // record's normal and axis. Do not reuse that wire interpretation.
+            let normal = if is_ellipse {
+                cross(&v[5..8], &v[8..11])
+            } else {
+                <[f64; 3]>::try_from(&v[3..6]).unwrap()
+            };
+            let n: &[f64] = &normal;
             if (dot(n, n) - 1.).abs() > 1e-9 {
                 return Err(error("non-unit stored curve normal"));
             }
-            let axis = if is_arc {
+            let axis = if is_ellipse {
+                <[f64; 3]>::try_from(&v[5..8]).unwrap()
+            } else if is_arc {
                 <[f64; 3]>::try_from(&v[6..9]).unwrap()
             } else {
                 let seed = if n[0].abs() < 0.9 {
@@ -531,18 +638,40 @@ fn geometry_budgeted(
             if (dot(&axis, &axis) - 1.).abs() > 1e-9 || dot(n, &axis).abs() > 1e-9 {
                 return Err(error("invalid stored arc basis"));
             }
-            let radius = v[if is_arc { 9 } else { 6 }];
-            let (start, end) = if is_arc {
+            let minor_axis = if is_ellipse {
+                let b = <[f64; 3]>::try_from(&v[8..11]).unwrap();
+                if (dot(&b, &b) - 1.).abs() > 1e-9 || dot(&axis, &b).abs() > 1e-9 {
+                    return Err(error("invalid stored ellipse basis"));
+                }
+                b
+            } else {
+                cross(n, &axis)
+            };
+            let radius = v[if is_ellipse {
+                3
+            } else if is_arc {
+                9
+            } else {
+                6
+            }];
+            let minor_radius = if is_ellipse { v[4] } else { radius };
+            let (start, end) = if is_ellipse {
+                (v[11], v[12])
+            } else if is_arc {
                 (v[10], v[11])
             } else {
                 (0., std::f64::consts::TAU)
             };
-            if radius <= 0. || end <= start || end - start > std::f64::consts::TAU + 1e-9 {
+            if radius <= 0.
+                || minor_radius <= 0.
+                || end <= start
+                || end - start > std::f64::consts::TAU + 1e-9
+            {
                 return Err(error("unsupported stored curve range"));
             }
             let center = transform(m, &v[..3], 1.)?;
             let u = transform(m, &axis.map(|x| x * radius), 0.)?;
-            let v = transform(m, &cross(n, &axis).map(|x| x * radius), 0.)?;
+            let v = transform(m, &minor_axis.map(|x| x * minor_radius), 0.)?;
             Ok(Some(DisplayGeometry::Curve {
                 center,
                 u,
@@ -556,15 +685,21 @@ fn geometry_budgeted(
 }
 
 // Bidirectional, unique ownership is required before a branch is interpreted.
+struct DisplayNodes<'a> {
+    nodes: BTreeMap<usize, &'a PayloadObservation>,
+    ordinals: BTreeSet<usize>,
+    external_children: BTreeSet<usize>,
+}
 fn owners_with_depth<'a>(
     s: &'a SegmentInventory,
     work: &mut usize,
     max_depth: usize,
-) -> Result<BTreeMap<usize, &'a PayloadObservation>> {
+) -> Result<DisplayNodes<'a>> {
     let map = by_ordinal(s, work)?;
     rse::charge(work, s.records.len())?;
     let ordinals: BTreeSet<_> = s.records.iter().map(|r| r.ordinal).collect();
     let mut incoming = BTreeMap::new();
+    let mut external_children = BTreeSet::new();
     for (&parent, o) in &map {
         if o.proposed_role != "display_group_candidate" {
             continue;
@@ -572,6 +707,13 @@ fn owners_with_depth<'a>(
         for &raw in references(o, "child_references_unresolved")? {
             rse::charge(work, 1)?;
             if raw == 0 {
+                continue;
+            }
+            if s.registry.major == 23 && raw & 0x80000000 == 0 {
+                // Observed cross-segment display child (including DC targets).
+                // Preserve the raw reference and omit this branch; never treat
+                // a foreign object key as a local slot or poison other roots.
+                external_children.insert(parent);
                 continue;
             }
             let child = slot(raw)?;
@@ -605,29 +747,43 @@ fn owners_with_depth<'a>(
             at = *parent;
         }
     }
-    Ok(map)
+    Ok(DisplayNodes {
+        nodes: map,
+        ordinals,
+        external_children,
+    })
 }
 
 #[allow(clippy::too_many_arguments)] // Container work and expanded display budgets are independent.
-fn display_branch(
+fn display_branch<'a>(
     space: &mut DisplaySpace,
-    doc: &DrawingInventory,
+    doc: &'a DrawingInventory,
     target: &SegmentInventory,
     binding: &DisplayBinding,
     parent: Matrix,
     fonts: &BTreeMap<u32, DisplayFont>,
     work: &mut usize,
     budget: &mut DisplayBudget,
+    display: &DisplayNodes,
+    cache: &mut ResolveCache<'a>,
 ) -> Result<()> {
     let root = binding.target_record;
     let placement = binding.placement_record;
-    let nodes = owners_with_depth(target, work, budget.limits.max_nesting_depth)?;
+    let nodes = &display.nodes;
     let mut stack = vec![(root, parent, Vec::new(), DisplayStyle::default())];
     let mut visited = BTreeSet::new();
     while let Some((id, mut m, mut path, inherited)) = stack.pop() {
         rse::charge(work, 1)?;
         if !visited.insert(id) || path.len() > budget.limits.max_nesting_depth {
             return Err(error("repeated/deep display branch"));
+        }
+        if display.external_children.contains(&id) {
+            space.omitted.push(Omission {
+                segment_id: target.registry.id.clone(),
+                record_ordinal: id,
+                reason: "cross_segment_display_children_not_supported",
+            });
+            continue;
         }
         let Some(o) = nodes.get(&id) else {
             space.omitted.push(Omission {
@@ -637,7 +793,16 @@ fn display_branch(
             });
             continue;
         };
-        let style = super::appearance::apply(doc, target, o, &nodes, &inherited, work)?;
+        let style = super::appearance::apply(
+            doc,
+            target,
+            o,
+            nodes,
+            &display.ordinals,
+            &inherited,
+            work,
+            cache,
+        )?;
         let unknown_color = style
             .unresolved
             .contains(&"display_color_mask_not_interpreted");
@@ -704,7 +869,7 @@ fn display_branch(
     Ok(())
 }
 
-/// Experimental major31 scene. Stored display coordinates/transforms only;
+/// Experimental major23/31 scene. Stored display coordinates/transforms only;
 /// no external model loading, no active-state claim and no fitted placement.
 pub fn experimental_scene(doc: &DrawingInventory, limits: &Limits) -> ExperimentalScene {
     experimental_scene_with_limits(doc, limits, &DrawingLimits::default())
@@ -723,7 +888,7 @@ pub fn experimental_scene_with_limits(
         spaces: vec![],
         diagnostics: vec![],
     };
-    if let Err(e) = drawing.validate() {
+    if let Err(e) = limits.validate().and_then(|_| drawing.validate()) {
         out.diagnostics.push(e.to_string());
         return out;
     }
@@ -731,7 +896,11 @@ pub fn experimental_scene_with_limits(
     // Synthetic resource IDs occupy a separate namespace from RefdFile images.
     // A collision is rejected by the asset reader rather than aliasing sources.
     let mut bitmap_ids = BTreeMap::new();
-    let mut work = limits.max_records.min(drawing.max_reference_visits);
+    // Validate each immutable display segment once per document. Rebuilding its
+    // owner graph for every annotation made large sheets exhaust the work cap.
+    let mut display_nodes = BTreeMap::new();
+    let mut resolve_cache = ResolveCache::default();
+    let mut work = drawing.max_reference_visits;
     let fonts = match fonts(doc, &mut work) {
         Ok(f) => f,
         Err(e) => {
@@ -740,7 +909,9 @@ pub fn experimental_scene_with_limits(
         }
     };
     for sm in doc.segments.iter().filter(|s| {
-        s.status == "framed" && s.registry.major == 31 && s.registry.kind == "DlSheetSmSegmentType"
+        s.status == "framed"
+            && matches!(s.registry.major, 23 | 31)
+            && s.registry.kind == "DlSheetSmSegmentType"
     }) {
         if out.spaces.len() >= drawing.max_sheets {
             out.spaces.clear();
@@ -825,21 +996,32 @@ pub fn experimental_scene_with_limits(
                     "sheet_space_candidate"
                         | "sheet_placement_candidate"
                         | "sheet_local_display_candidate"
+                        | "sheet_external_display_candidate"
                         | "sheet_local_transformed_display_candidate"
                 ) {
                     return Err(error("unsupported sheet placement role"));
                 }
-                let world = if node.proposed_role == "sheet_local_display_candidate" {
+                let world = if matches!(
+                    node.proposed_role,
+                    "sheet_local_display_candidate" | "sheet_external_display_candidate"
+                ) {
                     parent // These bounded annotation layouts store paper-space positions.
                 } else {
                     compose(&parent, &matrix(node)?)?
                 };
-                let (target, root, binding) = bind(doc, sm, node, &mut work)?;
+                let (target, root, binding) = bind(doc, sm, node, &mut work, &mut resolve_cache)?;
                 if !bound.insert((target.registry.id.clone(), root)) {
                     return Err(error(
                         "repeated display-root instance needs explicit semantics",
                     ));
                 }
+                if !display_nodes.contains_key(&target.registry.id) {
+                    display_nodes.insert(
+                        target.registry.id.clone(),
+                        owners_with_depth(target, &mut work, drawing.max_nesting_depth)?,
+                    );
+                }
+                let display_start = space.items.len();
                 display_branch(
                     &mut space,
                     doc,
@@ -849,6 +1031,8 @@ pub fn experimental_scene_with_limits(
                     &fonts,
                     &mut work,
                     &mut budget,
+                    &display_nodes[&target.registry.id],
+                    &mut resolve_cache,
                 )?;
                 space.bindings.push(binding);
                 if node
@@ -908,6 +1092,13 @@ pub fn experimental_scene_with_limits(
                                 v: transform(&world, &[0., b[1] - b[4], 0.], 0.)?,
                             },
                         });
+                        // The major23 shaded cache is the background of the
+                        // view's saved vector edges. Keep annotations above it.
+                        // General drawing z-order remains unqualified.
+                        if sm.registry.major == 23 {
+                            let cache = space.items.pop().unwrap();
+                            space.items.insert(display_start, cache);
+                        }
                     }
                     if raw == 0 {
                         view.diagnostics.push("view_cache_absent");

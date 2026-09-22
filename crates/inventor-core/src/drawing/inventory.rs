@@ -54,16 +54,19 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<DrawingI
     }
     let mut file = cfb::CompoundFile::open(Cursor::new(data)).map_err(|e| Error(e.to_string()))?;
     let mut work = limits.max_records;
+    let mut field_work = limits.max_records;
     let mut expanded = limits.max_total_inflated_bytes;
     let result = scan(
         &mut file,
         &summary.streams,
         limits,
         &mut work,
+        &mut field_work,
         &mut expanded,
         &mut out,
     );
     out.usage.work_items = limits.max_records - work;
+    out.usage.field_work_items = limits.max_records - field_work;
     out.usage.expanded_bytes = limits.max_total_inflated_bytes - expanded;
     if let Err(e) = result {
         out.diagnostics.push(diagnostic(
@@ -90,6 +93,7 @@ fn scan(
     streams: &[crate::StreamInfo],
     limits: &Limits,
     work: &mut usize,
+    field_work: &mut usize,
     expanded: &mut usize,
     out: &mut DrawingInventory,
 ) -> Result<()> {
@@ -278,7 +282,7 @@ fn scan(
                     reg.kind, reg.major
                 )));
             }
-            segment.profile = Some(super::profile::NAME);
+            segment.profile = Some(super::profile::name(reg.major));
             let bulk = owner.bulk_source.as_ref().ok_or_else(|| {
                 code = "drawing.missing_bulk";
                 segment.status = "missing_bulk";
@@ -361,7 +365,7 @@ fn scan(
             code = "drawing.bulk_framing_unavailable";
             failure_source = bulk.clone();
             let bytes = stream(file, bpath, limits.max_stream_bytes)?;
-            let compressed = super::profile::bulk(&bytes)?;
+            let compressed = super::profile::bulk_for_major(&bytes, reg.major)?;
             let (body, codec) =
                 rse::inflate_budgeted(compressed, limits.max_inflated_bytes, expanded)?;
             let table = rse::record_table(&body, &meta, reg.major, work, true)?;
@@ -376,11 +380,12 @@ fn scan(
                 let payload = span(&id, bpath, record.start, record.end, true);
                 match super::fields::decode(
                     &reg.kind,
+                    reg.major,
                     &guid(&record.kind),
                     record.ordinal,
                     &body[record.start..record.end],
                     payload.clone(),
-                    work,
+                    field_work,
                 ) {
                     Ok(Some(observation)) => segment.observations.push(observation),
                     Ok(None) => (),

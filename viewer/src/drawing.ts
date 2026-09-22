@@ -176,7 +176,7 @@ export function showDrawing(data: DrawingScene): () => void {
       const note = label('p', 'Diameter symbol uses a Unicode substitute for AIGDT. The original text is retained; glyph shape is approximate.');
       note.id = 'drawing-symbol-note'; omissions.append(note);
     }
-    if (s.items.some(i => { const g = i.geometry; return g.kind === 'image' && data.images.some(a => a.reference === g.reference && a.status === 'decoded_monochrome_view_cache_unqualified'); })) {
+    if (s.items.some(i => { const g = i.geometry; return g.kind === 'image' && data.images.some(a => a.reference === g.reference && ['decoded_monochrome_view_cache_unqualified', 'decoded_rgba_view_cache_unqualified'].includes(a.status)); })) {
       omissions.append(label('p', 'Some views use saved raster images. Detail when zooming is limited by their stored resolution.'));
     }
     for (const issue of s.diagnostics) omissions.append(label('p', issue));

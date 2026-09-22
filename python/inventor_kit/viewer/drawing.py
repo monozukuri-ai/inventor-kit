@@ -6,7 +6,7 @@ import re
 
 from ..drawing import DrawingDisplayError, read_drawing, _plain
 
-MAX_SHEET_BYTES = 16 * 1024 * 1024
+MAX_SHEET_BYTES = 32 * 1024 * 1024
 MAX_DRAWING_BYTES = 128 * 1024 * 1024
 
 

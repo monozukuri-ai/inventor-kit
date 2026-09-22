@@ -61,3 +61,12 @@ pub(super) fn arc(f: &mut Fields<'_, '_>) -> Result<()> {
     }
     f.r.finish()
 }
+
+pub(super) fn ellipse(f: &mut Fields<'_, '_>) -> Result<()> {
+    f.display_header()?;
+    f.doubles("ellipse_center_radii_axes_angles", 13)?;
+    if f.r.u8()? != 0 {
+        return Err(Error("unknown ellipse suffix".into()));
+    }
+    f.r.finish()
+}

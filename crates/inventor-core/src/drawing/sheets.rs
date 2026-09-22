@@ -55,9 +55,10 @@ pub fn stored_sheets_with_limits(
         sheets: vec![],
         diagnostics: vec!["physical_units_and_active_state_unverified".into()],
     };
-    let mut work = limits.max_records.min(drawing.max_reference_visits);
-    match drawing
+    let mut work = drawing.max_reference_visits;
+    match limits
         .validate()
+        .and_then(|_| drawing.validate())
         .and_then(|_| collect(doc, &mut work, drawing.max_sheets))
     {
         Ok(sheets) => {
@@ -78,7 +79,7 @@ fn collect(
     let mut candidates = vec![];
     for segment in &doc.segments {
         if segment.status != "framed"
-            || segment.registry.major != 31
+            || !matches!(segment.registry.major, 23 | 31)
             || segment.registry.kind != "DlDocDcSegmentType"
         {
             continue;
@@ -101,6 +102,7 @@ fn collect(
     rse::charge(work, refs.len())?;
     let mut seen = BTreeSet::new();
     let mut sheets = Vec::with_capacity(refs.len());
+    let mut cache = scene::ResolveCache::default();
     for (index, raw) in refs.iter().copied().enumerate() {
         if raw & 0x80000000 == 0 || raw == 0x80000000 || !seen.insert(raw) {
             return Err(Error("invalid or repeated document sheet reference".into()));
@@ -137,7 +139,7 @@ fn collect(
         for sm in &doc.segments {
             rse::charge(work, 1)?;
             if sm.status != "framed"
-                || sm.registry.major != 31
+                || !matches!(sm.registry.major, 23 | 31)
                 || sm.registry.kind != "DlSheetSmSegmentType"
             {
                 continue;
@@ -152,8 +154,9 @@ fn collect(
                 continue;
             }
             let space = roots[0];
-            let binding = scene::word(space, "definition_reference")
-                .and_then(|raw| scene::resolve(doc, sm, raw, "DlDocDcSegmentType", work));
+            let binding = scene::word(space, "definition_reference").and_then(|raw| {
+                scene::resolve_cached(doc, sm, raw, "DlDocDcSegmentType", work, &mut cache)
+            });
             if let Ok((target, object, sources, _)) = binding {
                 if target.registry.id == segment.registry.id && object.record_ordinal == ordinal {
                     matches.push((sm, space, sources));

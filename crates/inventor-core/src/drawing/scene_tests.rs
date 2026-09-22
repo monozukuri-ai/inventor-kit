@@ -244,6 +244,86 @@ fn saved_revision_binding_requires_both_exact_id_interval_and_current_revision()
 }
 
 #[test]
+fn major23_historical_context_requires_the_targets_exact_revision_range() {
+    let mut d = revised_placement_doc();
+    for s in &mut d.segments {
+        s.registry.major = 23;
+    }
+    // The target retains a later revision, while the reference names its older
+    // context, which is still in the exact object-identity range table.
+    d.segments[0].meta.as_mut().unwrap().reference_tables[0].bytes[16..32].fill(4);
+    let (_, _, sources, verified) =
+        resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).unwrap();
+    assert!(verified);
+    assert_eq!(sources.len(), 10); // Includes both historical and latest evidence.
+    let mut cache = ResolveCache::default();
+    resolve_cached(
+        &d,
+        &d.segments[0],
+        1,
+        "DlSheetDlSegmentType",
+        &mut 100,
+        &mut cache,
+    )
+    .unwrap();
+    assert!(resolve_cached(
+        &d,
+        &d.segments[0],
+        1,
+        "DlSheetDlSegmentType",
+        &mut 0,
+        &mut cache
+    )
+    .is_err());
+    assert!(resolve_cached(
+        &d,
+        &d.segments[0],
+        1,
+        "AppSegmentType",
+        &mut 100,
+        &mut cache
+    )
+    .is_err());
+    for s in &mut d.segments {
+        s.registry.major = 31;
+    }
+    assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_err());
+    for s in &mut d.segments {
+        s.registry.major = 23;
+    }
+    d.segments[0].meta.as_mut().unwrap().reference_tables[0].bytes[16..32].fill(9);
+    assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_err());
+}
+
+#[test]
+fn major23_external_display_child_is_omitted_without_local_slot_aliasing() {
+    let mut d = placement_doc();
+    for s in &mut d.segments {
+        s.registry.major = 23;
+    }
+    let children = d.segments[1].observations[0]
+        .fields
+        .iter_mut()
+        .find(|f| f.name == "child_references_unresolved")
+        .unwrap();
+    let FieldValue::U32(ref mut refs) = children.value else {
+        panic!()
+    };
+    refs.push(1);
+    let scene = experimental_scene(&d, &Limits::default());
+    assert_eq!(scene.spaces.len(), 1);
+    assert!(scene.spaces[0].items.is_empty());
+    assert!(scene.spaces[0]
+        .omitted
+        .iter()
+        .any(|o| o.reason == "cross_segment_display_children_not_supported"));
+    for s in &mut d.segments {
+        s.registry.major = 31;
+    }
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+}
+
+#[test]
 fn local_sm_display_uses_tagged_slots_and_validates_ownership() {
     let make = || {
         let mut d = placement_doc();
@@ -316,11 +396,11 @@ fn binding_uses_context_segment_guid_and_object_key_and_keeps_evidence() {
         assert!(!scene.diagnostics.is_empty());
     }
     let d = placement_doc();
-    let limits = Limits {
-        max_records: 1,
-        ..Limits::default()
+    let limits = DrawingLimits {
+        max_reference_visits: 1,
+        ..DrawingLimits::default()
     };
-    let scene = experimental_scene(&d, &limits);
+    let scene = experimental_scene_with_limits(&d, &Limits::default(), &limits);
     assert!(scene.spaces.is_empty());
 }
 
@@ -460,6 +540,7 @@ fn exact_line_circle_arc_fields_reject_truncation_extra_bytes_and_nonfinite() {
         let decode = |data: &[u8]| {
             super::super::fields::decode(
                 "DlSheetDlSegmentType",
+                31,
                 typ,
                 0,
                 data,
@@ -477,6 +558,121 @@ fn exact_line_circle_arc_fields_reject_truncation_extra_bytes_and_nonfinite() {
         b[26..34].copy_from_slice(&f64::NAN.to_le_bytes());
         assert!(decode(&b).is_err());
     }
+}
+
+#[test]
+fn ellipse_basis_radii_and_placement_remain_independent() {
+    let values = vec![
+        2.,
+        3.,
+        4.,
+        4.,
+        2.,
+        1.,
+        0.,
+        0.,
+        0.,
+        1.,
+        0.,
+        0.,
+        std::f64::consts::FRAC_PI_2,
+    ];
+    let mut bytes = vec![0; 26];
+    for v in &values {
+        bytes.extend(v.to_le_bytes());
+    }
+    bytes.push(0);
+    let parse = |b: &[u8], major| {
+        super::super::fields::decode(
+            "DlSheetDlSegmentType",
+            major,
+            "afd5ceeb-11d1-e071-0008-87a406e5dc09",
+            0,
+            b,
+            source(),
+            &mut 1000,
+        )
+    };
+    let o = parse(&bytes, 23).unwrap().unwrap();
+    let mut m = IDENTITY;
+    m[0] = [0., -2., 0., 10.];
+    m[1] = [3., 0., 0., 20.];
+    let DisplayGeometry::Curve {
+        center,
+        u,
+        v,
+        start,
+        end,
+    } = geometry(&o, &m, &BTreeMap::new(), &mut 100)
+        .unwrap()
+        .unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(center, [4., 26., 4.]);
+    assert_eq!(u, [0., 12., 0.]);
+    assert_eq!(v, [-4., 0., 0.]);
+    assert_eq!([start, end], [0., std::f64::consts::FRAC_PI_2]);
+    assert!(parse(&bytes, 31).unwrap().is_none());
+    for end in 0..bytes.len() {
+        assert!(parse(&bytes[..end], 23).is_err());
+    }
+    let mut extra = bytes.clone();
+    extra.push(0);
+    assert!(parse(&extra, 23).is_err());
+    for (index, value) in [(3, -1.), (4, 0.), (5, 2.), (8, 2.), (12, 0.)] {
+        let mut v = values.clone();
+        v[index] = value;
+        let o = observation(
+            1,
+            "stored_ellipse_candidate",
+            vec![("ellipse_center_radii_axes_angles", FieldValue::F64(v))],
+        );
+        assert!(geometry(&o, &m, &BTreeMap::new(), &mut 100).is_err());
+    }
+}
+
+#[test]
+fn sampled_spline_uses_shared_point_budget_and_affine_placement() {
+    let o = observation(
+        1,
+        "stored_bspline_candidate",
+        vec![
+            ("spline_degree", w(2)),
+            (
+                "spline_knots",
+                FieldValue::F64(vec![0., 0., 0., 1., 1., 1.]),
+            ),
+            ("spline_weights", FieldValue::F64(vec![])),
+            (
+                "spline_control_points",
+                FieldValue::F64(vec![0., 0., 0., 1., 2., 0., 2., 0., 0.]),
+            ),
+            ("spline_parameter_range", FieldValue::F64(vec![0.25, 0.75])),
+        ],
+    );
+    let mut m = IDENTITY;
+    m[0] = [0., -2., 0., 10.];
+    m[1] = [2., 0., 0., 20.];
+    let drawing = DrawingLimits {
+        max_polyline_points: 17,
+        ..DrawingLimits::default()
+    };
+    let mut budget = DisplayBudget::new(&drawing);
+    let DisplayGeometry::Polyline { points } =
+        geometry_budgeted(&o, &m, &BTreeMap::new(), &mut 100, &mut budget)
+            .unwrap()
+            .unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(points.len(), 17);
+    assert_eq!(points[0], [8.5, 21., 0.]);
+    assert_eq!(points[8], [8., 22., 0.]);
+    assert_eq!(points[16], [8.5, 23., 0.]);
+    assert!(geometry_budgeted(&o, &m, &BTreeMap::new(), &mut 100, &mut budget).is_err());
+    assert!(budget.exhausted);
+    assert!(geometry(&o, &m, &BTreeMap::new(), &mut 0).is_err());
 }
 
 #[test]
@@ -799,11 +995,13 @@ fn sheets_reject_corrupt_lists_and_keep_ambiguous_backlinks_unavailable() {
     assert_eq!(sheets.sheets[1].status, "unavailable");
     assert!(sheets.sheets[1].space_segment.is_none());
     let d = sheet_document();
-    let small = Limits {
-        max_records: 10,
-        ..Limits::default()
+    let small = DrawingLimits {
+        max_reference_visits: 10,
+        ..DrawingLimits::default()
     };
-    assert!(stored_sheets(&d, &small).sheets.is_empty());
+    assert!(stored_sheets_with_limits(&d, &Limits::default(), &small)
+        .sheets
+        .is_empty());
 }
 
 // Test conveniences use the public default ceilings, while production expansion
@@ -826,7 +1024,7 @@ fn owners<'a>(
     s: &'a SegmentInventory,
     work: &mut usize,
 ) -> Result<BTreeMap<usize, &'a PayloadObservation>> {
-    owners_with_depth(s, work, DrawingLimits::default().max_nesting_depth)
+    owners_with_depth(s, work, DrawingLimits::default().max_nesting_depth).map(|d| d.nodes)
 }
 
 #[test]

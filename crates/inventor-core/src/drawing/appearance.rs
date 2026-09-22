@@ -34,13 +34,16 @@ impl Default for DisplayStyle {
         }
     }
 }
-pub(super) fn apply(
-    doc: &DrawingInventory,
+#[allow(clippy::too_many_arguments)] // Shared immutable indexes and per-document work allowance.
+pub(super) fn apply<'a>(
+    doc: &'a DrawingInventory,
     segment: &SegmentInventory,
     object: &PayloadObservation,
     nodes: &BTreeMap<usize, &PayloadObservation>,
+    ordinals: &BTreeSet<usize>,
     parent: &DisplayStyle,
     work: &mut usize,
+    cache: &mut ResolveCache<'a>,
 ) -> Result<DisplayStyle> {
     rse::charge(work, parent.cost() + 1)?;
     let mut style = parent.clone();
@@ -78,12 +81,8 @@ pub(super) fn apply(
             return Err(error("invalid/duplicate attribute entry"));
         }
         let Some(attr) = nodes.get(&(refs[0] as usize - 1)) else {
-            rse::charge(work, segment.records.len())?;
-            if !segment
-                .records
-                .iter()
-                .any(|r| r.ordinal == refs[0] as usize - 1)
-            {
+            rse::charge(work, 1)?;
+            if !ordinals.contains(&(refs[0] as usize - 1)) {
                 return Err(error("dangling display attribute"));
             }
             style.unresolved.push("attribute_type_not_decoded");
@@ -106,12 +105,13 @@ pub(super) fn apply(
                 }
             }
             "layer_binding_candidate" => {
-                let (target, layer, sources, identity_verified) = resolve(
+                let (target, layer, sources, identity_verified) = resolve_cached(
                     doc,
                     segment,
                     word(attr, "layer_reference")?,
                     "AppSegmentType",
                     work,
+                    cache,
                 )?;
                 if target.registry.kind != "AppSegmentType"
                     || layer.proposed_role != "layer_definition_candidate"

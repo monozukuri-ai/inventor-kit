@@ -208,7 +208,7 @@ fn full_types_ordinals_spans_and_unresolved_references_are_preserved() {
 #[test]
 fn old_majors_and_unknown_kinds_remain_inventory_only() {
     for (major, kind) in [
-        (23, "DlSheetDlSegmentType"),
+        (22, "DlSheetDlSegmentType"),
         (24, "DlSheetDlSegmentType"),
         (31, "UnqualifiedType"),
     ] {
@@ -228,6 +228,113 @@ fn old_majors_and_unknown_kinds_remain_inventory_only() {
             serde_json::to_value(d.metadata).unwrap(),
             serde_json::to_value(before.summary.document).unwrap()
         );
+    }
+}
+
+#[test]
+fn major23_requires_its_own_envelope_and_zlib_codec() {
+    let data = mutate(&fixture(), |c| {
+        put(
+            c,
+            "/RSeStorage/RSeSegInfo",
+            &registry(&[("DLSheet999DLSegment", 23, [1; 16], "DlSheetDlSegmentType")]),
+        );
+        let mut b = profile::BULK_HEADER.to_vec();
+        b[17] = 1;
+        b.extend(zlib(&body()));
+        put(c, "/RSeStorage/Bone", &b);
+    });
+    let doc = read(&data);
+    assert_eq!(doc.status, "framed_subset");
+    assert_eq!(doc.segments[0].records.len(), 2);
+    assert_eq!(doc.segments[0].bulk.as_ref().unwrap().codec, "zlib");
+    assert_eq!(doc.segments[0].profile, Some(profile::name(23)));
+    for mutation in 0..4 {
+        let bad = mutate(&data, |c| {
+            let mut b = get(c, "/RSeStorage/Bone");
+            match mutation {
+                0 => b[17] = 2,
+                1 => {
+                    b.truncate(18);
+                    b.extend(zstd(&body()));
+                }
+                2 => {
+                    b.pop();
+                }
+                3 => b.extend(zlib(&body())),
+                _ => unreachable!(),
+            }
+            put(c, "/RSeStorage/Bone", &b);
+        });
+        let rejected = read(&bad);
+        assert!(
+            rejected.segments[0].records.is_empty(),
+            "mutation {mutation}"
+        );
+        assert!(has(&rejected, "drawing.bulk_framing_unavailable"));
+    }
+    let mut wire = profile::BULK_HEADER.to_vec();
+    wire[17] = 1;
+    wire.extend(zlib(&body()));
+    assert!(profile::bulk_for_major(&wire, 31).is_err());
+    for n in 0..20 {
+        assert!(profile::bulk_for_major(&wire[..n], 23).is_err());
+    }
+}
+
+#[test]
+fn major23_list_variants_and_annotation_layouts_are_exact() {
+    let parse = |major, kind, ty, b: &[u8], work: &mut usize| {
+        fields::decode(
+            kind,
+            major,
+            ty,
+            0,
+            b,
+            SourceSpan::stream("test", "/B", 0, b.len()),
+            work,
+        )
+    };
+    for tag in [0x30000002u32, 0x30000003] {
+        let mut b = vec![0; 26];
+        word(&mut b, tag);
+        word(&mut b, 1);
+        if tag == 0x30000002 {
+            word(&mut b, 1);
+        }
+        word(&mut b, 0);
+        word(&mut b, 0x80000003);
+        b.push(0);
+        assert!(parse(23, "DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 100)
+            .unwrap()
+            .is_some());
+        assert!(parse(31, "DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 100).is_err());
+        assert!(parse(23, "DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 0).is_err());
+        for n in 0..b.len() {
+            assert!(parse(23, "DlSheetDlSegmentType", GROUP_TYPE, &b[..n], &mut 100).is_err());
+        }
+        b.push(0);
+        assert!(parse(23, "DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 100).is_err());
+    }
+    let mut balloon = vec![0; 15];
+    for n in [0x30000003, 0, 0x80000005, 9] {
+        word(&mut balloon, n);
+    }
+    balloon.push(1);
+    word(&mut balloon, 9);
+    let ty = "025e3388-4cbb-8851-7d1c-b0876dcb2a07";
+    assert_eq!(
+        parse(23, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
+            .unwrap()
+            .unwrap()
+            .proposed_role,
+        "sheet_local_display_candidate"
+    );
+    assert!(parse(31, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
+        .unwrap()
+        .is_none());
+    for n in 0..balloon.len() {
+        assert!(parse(23, "DlSheetSmSegmentType", ty, &balloon[..n], &mut 100).is_err());
     }
 }
 #[test]
@@ -578,7 +685,7 @@ fn observed(
 ) -> crate::Result<Option<PayloadObservation>> {
     let mut source = SourceSpan::stream("synthetic", "/RSeStorage/Btest", 100, 100 + data.len());
     source.byte_domain = "inflated_stream";
-    super::fields::decode(kind, type_id, 17, data, source, work)
+    super::fields::decode(kind, 31, type_id, 17, data, source, work)
 }
 const TEXT_TYPE: &str = "a79eacd5-11d1-c281-6000-a38ab46bceb0";
 const POINT_TYPE: &str = "a79eaccb-11d1-c281-6000-a38ab46bceb0";
