@@ -270,6 +270,23 @@ def render_svg(sheet, source_sha256, images, *, max_bytes=MAX_SVG_BYTES):
             for index,line in enumerate(re.split(r'\r\n|\n|\r', p['text'])):
                 node('tspan', dict(x='0', dy='1.2em' if index else '0'), line)
             put('</text>')
+        elif g['kind'] == 'triangles':
+            vertices, indices = g['vertices'], g['indices']
+            if len(vertices) not in (3, 6) or len(indices) != len(vertices) or any(
+                    type(i) is not int or not 0 <= i < len(vertices) for i in indices):
+                raise ValueError('Invalid saved triangle topology')
+            if any(len(p) != 3 or any(not math.isfinite(v) for v in p) for p in vertices):
+                raise ValueError('Invalid saved triangle vertices')
+            paths = []
+            for offset in range(0, len(indices), 3):
+                points = [vertices[i] for i in indices[offset:offset + 3]]
+                a, b, c = points
+                area = (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
+                if not math.isfinite(area) or area == 0 or a[2] != b[2] or b[2] != c[2]:
+                    raise ValueError('Degenerate or nonplanar saved triangle')
+                paths.append('M'+' L'.join(_number(p[0])+','+_number(height-p[1]) for p in points)+' Z')
+            attrs.update(fill=color, stroke='none', d=' '.join(paths))
+            node('path', attrs)
         elif g['kind'] in ('polyline','curve'):
             stroke = style.get('width')
             if stroke is not None and stroke <= 0:

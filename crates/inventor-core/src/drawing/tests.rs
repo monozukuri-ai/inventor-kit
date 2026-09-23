@@ -284,10 +284,10 @@ fn major23_requires_its_own_envelope_and_zlib_codec() {
 
 #[test]
 fn major23_list_variants_and_annotation_layouts_are_exact() {
-    let parse = |major, kind, ty, b: &[u8], work: &mut usize| {
+    let parse = |major: u8, kind, ty, b: &[u8], work: &mut usize| {
         fields::decode(
             kind,
-            major,
+            major.into(),
             ty,
             0,
             b,
@@ -685,11 +685,80 @@ fn observed(
 ) -> crate::Result<Option<PayloadObservation>> {
     let mut source = SourceSpan::stream("synthetic", "/RSeStorage/Btest", 100, 100 + data.len());
     source.byte_domain = "inflated_stream";
-    super::fields::decode(kind, 31, type_id, 17, data, source, work)
+    super::fields::decode(kind, 31.into(), type_id, 17, data, source, work)
 }
 const TEXT_TYPE: &str = "a79eacd5-11d1-c281-6000-a38ab46bceb0";
 const POINT_TYPE: &str = "a79eaccb-11d1-c281-6000-a38ab46bceb0";
 const GROUP_TYPE: &str = "a79eaccf-11d1-c281-6000-a38ab46bceb0";
+const TRIANGLES_TYPE: &str = "a79eacd2-11d1-c281-6000-a38ab46bceb0";
+
+#[test]
+fn saved_triangle_batches_require_exact_profile_indices_and_auxiliary_layout() {
+    for (major, vertex_flags, index_flags) in [(26, 0x102, 0), (28, 0x102, 8), (29, 0x102, 8)] {
+        for count in [3, 6] {
+            let mut b = vec![0; 26];
+            for n in [0x30000002, count, count, vertex_flags] {
+                word(&mut b, n);
+            }
+            for _ in 0..count / 3 {
+                for v in [0f32, 0., 0., 1., 0., 0., 0., 1., 0.] {
+                    b.extend(v.to_le_bytes());
+                }
+            }
+            let list = b.len();
+            for n in [0x30000002, count, count, index_flags] {
+                word(&mut b, n);
+            }
+            for n in 0..count {
+                word(&mut b, n);
+            }
+            let suffix = b.len();
+            for n in [0x30000002, 0, 0x30000002, 0, 0x105, 0x30000002, 0, 0, 0] {
+                word(&mut b, n);
+            }
+            let parse = |major, bytes: &[u8], work: &mut usize| {
+                observed_major(major, "DlSheetSmSegmentType", TRIANGLES_TYPE, bytes, work)
+            };
+            let o = parse(major, &b, &mut 100).unwrap().unwrap();
+            assert_eq!(o.proposed_role, "stored_triangles_candidate");
+            assert!(
+                matches!(&o.fields.last().unwrap().value, FieldValue::U32(v) if v == &(0..count).collect::<Vec<_>>())
+            );
+            for n in 0..b.len() {
+                assert!(parse(major, &b[..n], &mut 100).is_err());
+            }
+            for (offset, value) in [
+                (30, 9),
+                (34, 2),
+                (38, 0x103),
+                (42, f32::INFINITY.to_bits()),
+                (list + 4, count + 1),
+                (list + 8, 2),
+                (list + 12, 7),
+                (list + 16, count),
+                (suffix + 4, 1),
+            ] {
+                let mut bad = b.clone();
+                bad[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+                assert!(
+                    parse(major, &bad, &mut 100).is_err(),
+                    "major {major} offset {offset}"
+                );
+            }
+            for other in [26, 28, 29] {
+                if (other == 26) != (major == 26) {
+                    assert!(parse(other, &b, &mut 100).is_err());
+                }
+            }
+            for other in [23, 24, 31] {
+                assert!(parse(other, &b, &mut 100).unwrap().is_none());
+            }
+            assert!(parse(major, &b, &mut 0).is_err());
+            b.push(0);
+            assert!(parse(major, &b, &mut 100).is_err());
+        }
+    }
+}
 fn observed_major(
     major: u8,
     kind: &str,
@@ -699,7 +768,7 @@ fn observed_major(
 ) -> crate::Result<Option<PayloadObservation>> {
     let mut source = SourceSpan::stream("synthetic", "/RSeStorage/Btest", 100, 100 + data.len());
     source.byte_domain = "inflated_stream";
-    super::fields::decode(kind, major, type_id, 17, data, source, work)
+    super::fields::decode(kind, major.into(), type_id, 17, data, source, work)
 }
 
 #[test]
@@ -924,6 +993,85 @@ fn typed_text_preserves_unicode_nul_z_and_unqualified_source_fields() {
     assert!(observed("DlSheetDlSegmentType", TEXT_TYPE, &b, &mut work).is_err());
     assert_eq!(work, 0);
 }
+#[test]
+fn border_placement_requires_complete_suffix_and_observed_major() {
+    let mut b = vec![0; 15];
+    for n in [0x30000003, 0, 3] {
+        word(&mut b, n);
+    }
+    b.push(1);
+    word(&mut b, 4);
+    b.extend(0x8421u16.to_le_bytes());
+    b.extend(0x7bdeu16.to_le_bytes());
+    b.push(1);
+    word(&mut b, 4);
+    word(&mut b, 4);
+    let parse = |major, bytes: &[u8]| {
+        observed_major(
+            major,
+            "DlSheetSmSegmentType",
+            "62a8e6a8-11d1-ad4b-6000-108a806bceb0",
+            bytes,
+            &mut 100,
+        )
+    };
+    for major in [24, 26, 28] {
+        assert_eq!(
+            parse(major, &b).unwrap().unwrap().proposed_role,
+            "sheet_placement_candidate"
+        );
+        for n in 0..b.len() {
+            assert!(parse(major, &b[..n]).is_err());
+        }
+        let mut bad = b.clone();
+        bad[36] = 2;
+        assert!(parse(major, &bad).is_err());
+        bad = b.clone();
+        bad.push(0);
+        assert!(parse(major, &bad).is_err());
+    }
+    for major in [23, 29, 31] {
+        assert!(parse(major, &b).unwrap().is_none());
+    }
+}
+
+#[test]
+fn point_encoding_resolves_the_owning_meta_type_table() {
+    let point = [
+        0xc1, 0x10, 0x72, 0xf2, 0xd2, 0x11, 0xa2, 0xcd, 0xa0, 0, 0x56, 0xb6, 0xfc, 0xdb, 0xc7, 0xc9,
+    ];
+    let mut b = vec![0; 26];
+    for n in [0x30000002, 2, 2, 0x103] {
+        word(&mut b, n);
+    }
+    for n in [1f32, 2., 0., 3., 4., 0.] {
+        b.extend(n.to_le_bytes());
+    }
+    b.push(0);
+    let parse = |b: &[u8], types: &[[u8; 16]]| {
+        fields::decode(
+            "DlSheetDlSegmentType",
+            fields::Context::new(28, types),
+            POINT_TYPE,
+            0,
+            b,
+            SourceSpan::stream("synthetic", "/B", 0, b.len()),
+            &mut 100,
+        )
+    };
+    let types = [[0; 16], [0; 16], [0; 16], point];
+    assert!(parse(&b, &types).unwrap().is_some());
+    assert!(parse(&b, &types[..3]).is_err());
+    assert!(parse(&b, &[[0; 16], [0; 16], point, [0; 16]]).is_err());
+    for selector in [3u32, 0x203, 0x10003, 0x1ff] {
+        let mut invalid = b.clone();
+        invalid[38..42].copy_from_slice(&selector.to_le_bytes());
+        assert!(parse(&invalid, &types).is_err());
+    }
+    b[38..42].copy_from_slice(&0x102u32.to_le_bytes());
+    assert!(parse(&b, &[[0; 16], [0; 16], point]).unwrap().is_some());
+}
+
 #[test]
 fn typed_points_reject_unknown_encoding_and_nonfinite_without_projecting_z() {
     let mut b = vec![0; 26];

@@ -30,7 +30,7 @@ assets retain original PNG/JPEG bytes. Supported major23 splines use the stored
 degree, knots, control points, weights and parameter range, sampled into a `polyline`
 with 16 segments per nonempty knot span. This approximation has no general geometric
 error bound. Elliptical arcs retain their center, two axes and angle range as `curve`.
-Supported major31 monochrome and major23/28 color RGBA view caches are converted
+Supported major31 monochrome and major23/26/28 color RGBA view caches are converted
 from stored pixels to PNG, retaining the generated asset hash and original record source. Source spans and omission
 reasons are retained. `drawing.sheet(id)` selects by input-bound ID; duplicate
 sheet names are allowed. IDs include the input SHA-256 and stored record/placement identity. Foreign-input IDs are rejected. They are stable across path changes, not guaranteed across
@@ -158,12 +158,29 @@ support. Segment major numbers are not Inventor release-year identifiers.
 
 | Segment major | New regression inputs | Saved sheets / views | Display items | View-cache decoder |
 | --- | --- | --- | --- | --- |
-| 24 | `Template_IACS.idw` | 1 / 0 | 50 | Not enabled; model views remain unobserved |
-| 29 | `Toys-R-Us-Rex.idw` | 1 / 3 | 156 | Not enabled |
-| 28 | `mateolikescats.idw` | 1 / 5 | 1,411 | RGBA; one saved cache observed |
-| 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 270 and 90 | Not enabled |
+| 24 | `Template_IACS.idw` | 1 / 0 | 70 | Not enabled; model views remain unobserved |
+| 29 | `Toys-R-Us-Rex.idw` | 1 / 3 | 166 | Not enabled |
+| 28 | `mateolikescats.idw` | 1 / 5 | 1,816 | RGBA; one saved cache observed |
+| 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 529 and 90 | RGBA |
+| 26 | `RespiraWorks-bottom-assembly.idw`, `RespiraWorks-filter-panel-assembly.idw` | 1 / 3 and 1 / 4 | 528 and 9,475 | RGBA; two saved caches observed |
 
-These are pinned real-file regression results, not Autodesk render comparisons.
+Point lists resolve their encoding from the owning segment type table. Observed
+major26/28/29 triangle batches render filled saved arrowhead geometry. Major28
+also admits the observed spline, ellipse and annotation-placement layouts.
+The filter-panel assembly can export partial SVG, but its Viewer sheet JSON
+exceeds the 32 MiB limit and is rejected with an explicit diagnostic.
+
+These are pinned real-file regression results. Source-preserved Inventor 2027.1
+API/PDF captures of the five original inputs corroborated paper dimensions and
+11 saved view positions. The 93 matched filled PDF triangles have maximum vertex
+distance 0.04381 mm, with no fitted transform. Two additional saved triangles
+have no standalone triangular PDF match. Native opening marked all documents
+dirty; three had missing external models. This comparison does not qualify
+current state, general units or complete rendering. The new captures also
+support the observed major24/26/28 border layout, major24 color mask 8, and
+major26/28 local annotation/major26 hole-table placements.
+`measure_drawing_profiles.py` validates the private capture identities and
+reproduces these limited comparisons; the capture bytes are not distributed.
 All remain `experimental_partial`. Unknown curve variants, colors, fonts and
 unresolved references remain diagnostic omissions or explicit font fallbacks.
 In particular, some major26 circle/arc suffixes are still unsupported. Major24
@@ -175,7 +192,7 @@ unlisted versions remain unsupported.
 The fixture manifest pins source commits, sizes and SHA-256 hashes. CAD inputs
 are downloaded separately for validation; they are not bundled in releases and
 the manifest does not grant redistribution rights. Regression inventories cover
-158,245 records across seven drawings, including the existing major23/31 inputs.
+283,487 records across nine drawings, including the existing major23/31 inputs.
 
 ## Display requests and sheet resources
 

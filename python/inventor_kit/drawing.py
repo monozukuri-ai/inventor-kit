@@ -172,6 +172,8 @@ def _millimeter_item(item, scale):
         return result
     if kind == 'polyline':
         geometry['points'] = [point(p) for p in geometry['points']]
+    elif kind == 'triangles':
+        geometry['vertices'] = [point(p) for p in geometry['vertices']]
     elif kind in ('curve', 'image'):
         for key in (('center', 'u', 'v') if kind == 'curve' else ('origin', 'u', 'v')):
             geometry[key] = point(geometry[key])

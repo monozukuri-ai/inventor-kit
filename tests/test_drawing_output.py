@@ -171,6 +171,23 @@ sys.meta_path.insert(0,NoGeometry())
         self.assertEqual(texts[1].find('s:tspan',NS).text,'⌀')
         self.assertEqual(texts[1].attrib['data-raw-text'],'n')
 
+    def test_saved_triangles_fill_indexed_vertices_and_reject_invalid_geometry(self):
+        geometry = dict(kind='triangles', vertices=[[1., 2., 0.], [4., 2., 0.], [1., 5., 0.]], indices=[2, 0, 1])
+        def render(g):
+            return render_svg(dict(id='triangles', name='Arrows', status='experimental_partial',
+                size_in_source_units=[10, 10], items=[dict(id='arrow', geometry=g,
+                style=dict(rgba=[1, 0, 0, 1], width=.02, dash=[.5, .1], unresolved=[]))]), 'a'*64, {})
+        node = ET.fromstring(render(geometry)).find('s:path', NS)
+        self.assertEqual(node.attrib['d'], 'M1,5 L1,8 L4,8 Z')
+        self.assertEqual(node.attrib['stroke'], 'none')
+        self.assertNotEqual(node.attrib['fill'], 'none')
+        self.assertNotIn('stroke-dasharray', node.attrib)
+        for change in [dict(indices=[0, 1, 3]), dict(indices=[0, True, 2]), dict(indices=[0, 1]),
+                       dict(indices=[0, 0, 2]), dict(vertices=[[1., 2., 0.], [4., 2., 1.], [1., 5., 0.]]),
+                       dict(vertices=[[float('nan'), 2., 0.], [4., 2., 0.], [1., 5., 0.]])]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                render(dict(geometry, **change))
+
     def test_edge_on_ellipse_keeps_turning_points_without_unstable_svg_arcs(self):
         # A complete edge-on projection must travel to both extrema and back;
         # replacing it with one endpoint-to-endpoint line would erase it.

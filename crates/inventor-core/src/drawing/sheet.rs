@@ -99,6 +99,18 @@ pub(super) fn sketch_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     f.r.finish()
 }
 
+// Saved border instance observed in major24/26/28 captures. Both trailing
+// references are retained; neither establishes document state or ownership.
+pub(super) fn border_placement(f: &mut Fields<'_, '_>) -> Result<()> {
+    placement(f)?;
+    if f.r.u8()? != 1 {
+        return Err(Error("unknown drawing border suffix".into()));
+    }
+    f.word("border_suffix_reference_unresolved")?;
+    f.word("border_other_reference_unresolved")?;
+    f.r.finish()
+}
+
 fn local_display_prefix(f: &mut Fields<'_, '_>) -> Result<()> {
     f.r.skip(15)?;
     f.references("references_unresolved")?;

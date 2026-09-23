@@ -540,7 +540,7 @@ fn exact_line_circle_arc_fields_reject_truncation_extra_bytes_and_nonfinite() {
         let decode = |data: &[u8]| {
             super::super::fields::decode(
                 "DlSheetDlSegmentType",
-                31,
+                31.into(),
                 typ,
                 0,
                 data,
@@ -582,10 +582,10 @@ fn ellipse_basis_radii_and_placement_remain_independent() {
         bytes.extend(v.to_le_bytes());
     }
     bytes.push(0);
-    let parse = |b: &[u8], major| {
+    let parse = |b: &[u8], major: u8| {
         super::super::fields::decode(
             "DlSheetDlSegmentType",
-            major,
+            major.into(),
             "afd5ceeb-11d1-e071-0008-87a406e5dc09",
             0,
             b,
@@ -686,6 +686,58 @@ fn added_profiles_resolve_only_same_major_target_segments() {
         d.segments[1].registry.major = if major == 28 { 29 } else { 28 };
         assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_err());
     }
+}
+
+#[test]
+fn saved_triangle_geometry_transforms_once_and_rejects_bad_topology() {
+    let make = |points: Vec<f32>, indices: Vec<u32>| {
+        observation(
+            0,
+            "stored_triangles_candidate",
+            vec![
+                ("triangle_vertices", FieldValue::F32(points)),
+                ("triangle_indices", FieldValue::U32(indices)),
+            ],
+        )
+    };
+    let points = vec![0., 0., 0., 1., 0., 0., 0., 1., 0.];
+    let o = make(points.clone(), vec![0, 1, 2]);
+    let mut m = crate::assembly::IDENTITY;
+    m[0][0] = 2.;
+    m[0][3] = 10.;
+    m[1][3] = -5.;
+    let Some(DisplayGeometry::Triangles { vertices, indices }) =
+        geometry(&o, &m, &BTreeMap::new(), &mut 100).unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(vertices, [[10., -5., 0.], [12., -5., 0.], [10., -4., 0.]]);
+    assert_eq!(indices, [0, 1, 2]);
+    for indices in [vec![0, 1, 3], vec![0, 0, 1], vec![0, 1]] {
+        assert!(geometry(
+            &make(points.clone(), indices),
+            &m,
+            &BTreeMap::new(),
+            &mut 100
+        )
+        .is_err());
+    }
+    let mut nonplanar = points.clone();
+    nonplanar[8] = 1.;
+    assert!(geometry(
+        &make(nonplanar, vec![0, 1, 2]),
+        &m,
+        &BTreeMap::new(),
+        &mut 100
+    )
+    .is_err());
+    let limits = DrawingLimits {
+        max_polyline_points: 2,
+        ..DrawingLimits::default()
+    };
+    let mut budget = DisplayBudget::new(&limits);
+    assert!(geometry_budgeted(&o, &m, &BTreeMap::new(), &mut 100, &mut budget).is_err());
+    assert!(geometry(&o, &m, &BTreeMap::new(), &mut 0).is_err());
 }
 
 #[test]
@@ -1216,6 +1268,37 @@ fn expansion_budget_is_aggregate_and_output_writer_checks_before_append() {
     }
     .validate()
     .is_err());
+}
+
+#[test]
+fn native_major24_color_mask_eight_does_not_enable_neighboring_profiles() {
+    for major in [23, 24, 26, 28, 29, 31] {
+        let mut d = placement_doc();
+        for segment in &mut d.segments {
+            segment.registry.major = major;
+        }
+        let mut rgba = vec![0.; 21];
+        rgba[..4].copy_from_slice(&[1., 0., 1., 1.]);
+        attach_attribute(
+            &mut d,
+            1,
+            observation(
+                101,
+                "display_color_candidate",
+                vec![
+                    ("color_mask", w(8)),
+                    ("color_rgba_parameters", FieldValue::F32(rgba)),
+                ],
+            ),
+        );
+        let s = experimental_scene(&d, &Limits::default());
+        if major == 24 {
+            assert_eq!(s.spaces[0].items.len(), 1);
+            assert_eq!(s.spaces[0].items[0].style.rgba, Some([1., 0., 1., 1.]));
+        } else {
+            assert!(s.spaces[0].items.is_empty());
+        }
+    }
 }
 
 #[test]

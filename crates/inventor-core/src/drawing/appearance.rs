@@ -194,7 +194,11 @@ pub(super) fn apply<'a>(
                 }
             }
             "display_color_candidate" => {
-                if word(attr, "color_mask")? != 1 {
+                let mask = word(attr, "color_mask")?;
+                // The major24 projection-symbol and border colors with mask 8
+                // were matched to the source-preserved native PDF. Other
+                // majors keep this mask unresolved until independently checked.
+                if mask != 1 && !(segment.registry.major == 24 && mask == 8) {
                     style.unresolved.push("display_color_mask_not_interpreted");
                 } else {
                     style.rgba = Some(color(&floats(attr, "color_rgba_parameters", 21)?[..4])?);

@@ -364,11 +364,12 @@ Path(sys.argv[3]).write_bytes(with_segment_major(Path(sys.argv[2]).read_bytes(),
 });
 
 for (const [major, file, count, views] of [
-  [24, 'iacs/Template_IACS', 50, 0],
-  [29, 'versions/Toys-R-Us-Rex', 156, 3],
-  [28, 'versions/mateolikescats', 1411, 5],
-  [26, 'versions/RespiraWorks', 270, 3],
+  [24, 'iacs/Template_IACS', 70, 0],
+  [29, 'versions/Toys-R-Us-Rex', 166, 3],
+  [28, 'versions/mateolikescats', 1816, 5],
+  [26, 'versions/RespiraWorks', 529, 3],
   [26, 'versions/starliliko', 90, 0],
+  [26, 'versions/RespiraWorks-bottom-assembly', 528, 3],
 ] as const) {
   test(`IDW major${major} saved display ${file}`, async ({ page }, info) => {
     const url = await open(page, `drawings/${file}.idw`);

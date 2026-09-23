@@ -24,7 +24,7 @@ class DrawingCorpus(unittest.TestCase):
     def test_real_manifest_reserves_distinct_families_and_reuses_existing_identities(self):
         data, lookup = load_drawings()
         rows = drawing_rows()
-        self.assertEqual(len(rows), 9)
+        self.assertEqual(len(rows), 11)
         existing = [d for d, r in rows if d['fixture']['manifest'] == 'manifest.json']
         self.assertEqual(len(existing), 2)
         self.assertFalse({d['fixture']['file'] for d in existing} & {r['file'] for r in data['assets']})

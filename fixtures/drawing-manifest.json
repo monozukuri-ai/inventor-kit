@@ -369,6 +369,34 @@
       "asset_kind": "native_drawing",
       "license_notice": "Opt-in download-only regression fixture. No redistribution license for this CAD asset established; see pinned source README. This entry is an external source reference, not a license grant. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
       "license_url": "https://github.com/mateolikescats/mechanical-design-manufacturing/blob/3566c093f0fa1a706224e7436bece4b54e3d2954/README.md"
+    },
+    {
+      "file": "drawings/versions/RespiraWorks-bottom-assembly.idw",
+      "repo": "RespiraWorks/Ventilator",
+      "commit": "6165c82de293d66b71f43040a2f145ab70bb49c0",
+      "upstream_path": "manufacturing/enclosure/bottom_assembly.idw",
+      "url": "https://media.githubusercontent.com/media/RespiraWorks/Ventilator/6165c82de293d66b71f43040a2f145ab70bb49c0/manufacturing/enclosure/bottom_assembly.idw",
+      "bytes": 442880,
+      "sha256": "127be397f6fe018ae7ba608f28b2edf55927af06e6bcdfa91849eb563ab14946",
+      "family_id": "respiraworks-enclosure",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. Upstream declares Apache-2.0 for software and hardware; see pinned LICENSE and open_source.md. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/RespiraWorks/Ventilator/blob/6165c82de293d66b71f43040a2f145ab70bb49c0/LICENSE"
+    },
+    {
+      "file": "drawings/versions/RespiraWorks-filter-panel-assembly.idw",
+      "repo": "RespiraWorks/Ventilator",
+      "commit": "6165c82de293d66b71f43040a2f145ab70bb49c0",
+      "upstream_path": "manufacturing/internals/filter_panel/filter_panel_assembly.idw",
+      "url": "https://media.githubusercontent.com/media/RespiraWorks/Ventilator/6165c82de293d66b71f43040a2f145ab70bb49c0/manufacturing/internals/filter_panel/filter_panel_assembly.idw",
+      "bytes": 2605056,
+      "sha256": "4ee9d8f25d27d04b08e4730e2ed17547689d0dfe94e4595af5de244d17956520",
+      "family_id": "respiraworks-enclosure",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. Upstream declares Apache-2.0 for software and hardware; see pinned LICENSE and open_source.md. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/RespiraWorks/Ventilator/blob/6165c82de293d66b71f43040a2f145ab70bb49c0/LICENSE"
     }
   ],
   "drawings": [
@@ -469,6 +497,36 @@
         "file": "drawings/versions/mateolikescats.idw"
       },
       "role": "part",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "respiraworks-bottom-assembly",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/RespiraWorks-bottom-assembly.idw"
+      },
+      "role": "assembly",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "respiraworks-filter-panel-assembly",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/RespiraWorks-filter-panel-assembly.idw"
+      },
+      "role": "assembly",
       "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
       "references": [],
       "reference_completeness": "unverified",

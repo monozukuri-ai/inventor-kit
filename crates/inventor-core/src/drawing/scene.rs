@@ -84,6 +84,10 @@ pub enum DisplayGeometry {
     Polyline {
         points: Vec<[f64; 3]>,
     },
+    Triangles {
+        vertices: Vec<[f64; 3]>,
+        indices: Vec<u32>,
+    },
     Curve {
         center: [f64; 3],
         u: [f64; 3],
@@ -525,6 +529,42 @@ fn geometry_budgeted(
     budget: &mut DisplayBudget,
 ) -> Result<Option<DisplayGeometry>> {
     match o.proposed_role {
+        "stored_triangles_candidate" => {
+            let FieldValue::F32(raw) = field(o, "triangle_vertices")? else {
+                return Err(error("invalid saved triangle vertices"));
+            };
+            let indices = references(o, "triangle_indices")?;
+            let count = raw.len() / 3;
+            if !matches!(count, 3 | 6)
+                || raw.len() != count * 3
+                || indices.len() != count
+                || indices.iter().any(|&i| i as usize >= count)
+            {
+                return Err(error("invalid saved triangle topology"));
+            }
+            budget.item()?;
+            budget.points(count)?;
+            rse::charge(work, raw.len() + indices.len())?;
+            let vertices = raw
+                .chunks_exact(3)
+                .map(|p| transform(m, &[p[0] as f64, p[1] as f64, p[2] as f64], 1.))
+                .collect::<Result<Vec<_>>>()?;
+            for t in indices.chunks_exact(3) {
+                let [a, b, c] = [
+                    vertices[t[0] as usize],
+                    vertices[t[1] as usize],
+                    vertices[t[2] as usize],
+                ];
+                let area = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+                if !area.is_finite() || area == 0. || a[2] != b[2] || b[2] != c[2] {
+                    return Err(error("degenerate or nonplanar saved triangle"));
+                }
+            }
+            Ok(Some(DisplayGeometry::Triangles {
+                vertices,
+                indices: indices.to_vec(),
+            }))
+        }
         "stored_bspline_candidate" => {
             let spline = super::spline::Spline::observation(o)?;
             // Fixed parameter sampling is experimental, not a geometric error

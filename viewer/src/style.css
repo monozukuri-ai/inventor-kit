@@ -68,6 +68,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; }
 #drawing-svg .drawing-selected { filter: drop-shadow(0 0 .08px #ee701b); }
 #drawing-svg .drawing-selected[data-kind="text"] { fill: #d85d00; }
 #drawing-svg .drawing-selected[data-kind="polyline"], #drawing-svg .drawing-selected[data-kind="curve"] { stroke: #d85d00; }
+#drawing-svg .drawing-selected[data-kind="triangles"] { fill: #d85d00; }
 #sheet-buttons, #drawing-search-results { display: flex; flex-direction: column; gap: 6px; padding: 8px; }
 #sheet-buttons button { text-align: left; overflow-wrap: anywhere; }
 #sheet-buttons button[aria-pressed="true"] { background: #e1eefb; border-color: #4082ba; }

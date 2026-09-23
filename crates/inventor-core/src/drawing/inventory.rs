@@ -380,7 +380,7 @@ fn scan(
                 let payload = span(&id, bpath, record.start, record.end, true);
                 match super::fields::decode(
                     &reg.kind,
-                    reg.major,
+                    super::fields::Context::new(reg.major, &meta.types),
                     &guid(&record.kind),
                     record.ordinal,
                     &body[record.start..record.end],

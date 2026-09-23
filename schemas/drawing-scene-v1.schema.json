@@ -818,6 +818,7 @@
                   "kind": {
                     "enum": [
                       "polyline",
+                      "triangles",
                       "curve",
                       "text",
                       "image"

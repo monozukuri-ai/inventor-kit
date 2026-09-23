@@ -1,6 +1,57 @@
 use super::{fields::Fields, FieldValue};
 use crate::{rse, Error, Result};
 
+// Observed indexed triangle batches used by saved dimension arrowheads. Their
+// vertex type is resolved through the owning Meta table; index flags are kept
+// as wire evidence, not interpreted as styles.
+pub(super) fn triangles(f: &mut Fields<'_, '_>) -> Result<()> {
+    let index_flags = f
+        .profile
+        .triangle_flags()
+        .ok_or_else(|| Error("unsupported saved triangle profile".into()))?;
+    f.display_header()?;
+    f.require(0x30000002)?;
+    let count = f.r.count(6)?;
+    if !matches!(count, 3 | 6) || f.r.u32()? < count as u32 {
+        return Err(Error("unsupported saved triangle vertex count".into()));
+    }
+    let start = f.r.pos;
+    let vertex_flags = f.point_type()?;
+    f.add(
+        "triangle_point_type_selector",
+        start,
+        FieldValue::U32(vec![vertex_flags]),
+    );
+    f.floats("triangle_vertices", count * 3)?;
+    f.require(0x30000002)?;
+    f.require(count as u32)?;
+    if f.r.u32()? < count as u32 {
+        return Err(Error("saved triangle index capacity below count".into()));
+    }
+    let start = f.r.pos;
+    f.require(index_flags)?;
+    f.add(
+        "triangle_index_flags_unresolved",
+        start,
+        FieldValue::U32(vec![index_flags]),
+    );
+    rse::charge(f.work, count)?;
+    let start = f.r.pos;
+    let mut indices = Vec::with_capacity(count);
+    for _ in 0..count {
+        let index = f.r.u32()?;
+        if index >= count as u32 {
+            return Err(Error("saved triangle index out of range".into()));
+        }
+        indices.push(index);
+    }
+    f.add("triangle_indices", start, FieldValue::U32(indices));
+    for expected in [0x30000002, 0, 0x30000002, 0, 0x105, 0x30000002, 0, 0, 0] {
+        f.require(expected)?;
+    }
+    f.r.finish()
+}
+
 pub(super) fn points(f: &mut Fields<'_, '_>) -> Result<()> {
     f.display_header()?;
     f.require(0x30000002)?;
@@ -8,7 +59,7 @@ pub(super) fn points(f: &mut Fields<'_, '_>) -> Result<()> {
     if n == 0 || f.r.u32()? < n as u32 {
         return Err(Error("unsupported drawing point list".into()));
     }
-    f.require(0x102)?;
+    f.point_type()?;
     rse::charge(f.work, n * 3)?;
     let start = f.r.pos;
     let mut values = Vec::with_capacity(n * 3);

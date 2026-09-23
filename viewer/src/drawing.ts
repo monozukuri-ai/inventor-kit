@@ -5,6 +5,7 @@ type Point = [number, number, number];
 type Font = { family: string; height_candidate: number; weight_candidate: number; width_factor: number | null; flags: number };
 type Geometry =
   | { kind: 'polyline'; points: Point[] }
+  | { kind: 'triangles'; vertices: Point[]; indices: number[] }
   | { kind: 'curve'; center: Point; u: Point; v: Point; start: number; end: number }
   | { kind: 'text'; text: string; position: Point; direction: Point; up: Point; raw_flags: number; font: Font | null }
   | { kind: 'image'; reference: number; origin: Point; u: Point; v: Point };

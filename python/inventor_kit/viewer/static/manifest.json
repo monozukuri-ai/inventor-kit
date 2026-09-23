@@ -14,19 +14,19 @@
     "scripts/manifest.mjs": "101a4cc3c0c371d17f378ad37b24332920a7637a01e24de2358660f0e8ebfd92",
     "src/drawing-data.ts": "bd9d3262fc5737bb0332800aae759bd562e5339e3015a8668979ba2f5b1c8b54",
     "src/drawing-svg.ts": "905ea88127b3e125aab039e2fa469baf341166d7f72e2d3a62a1699b6bbec2ef",
-    "src/drawing.ts": "0a957c3ea8f22716724efee99058cc7c057ba595e15a6fd9d85b113f8fcbc1a7",
+    "src/drawing.ts": "fea5dff36e4ccb1d4160a06245b71da627d9625800b4ff5e00ce5d772bc82e0e",
     "src/main.ts": "d30f6e293ecf0837e0431be1cc926675649cbcd213f01081b248b1897c4f676a",
     "src/scene-graph.ts": "60206b9f129fff66f276bdc0eed00946f985d0f08b7bbf580781ff027994f66c",
-    "src/style.css": "443e4da08add9c5a9baeba43377bec0da2158878aee57c193d088fc2d3bffa09",
+    "src/style.css": "50308e701df80385f5cef73ab6576847d018d5370f4ef3494e111464f5fa2ea6",
     "tsconfig.json": "aed5cd64e684f15334aa2bae06ae24e5ea5a8e2c15a6981ded99e9003950b712",
     "vite.config.ts": "632e8b4536dc9b476a8e64db12ac7aa7fbd271f8c90b998615986751ff7dabff"
   },
   "outputs": {
     "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "THIRD_PARTY_LICENSES.txt": "c76f9cf7e6e3cebf8d331a4aec0e25756460820e7596377ac5afcc5d14d0962c",
-    "assets/index-D9DHzFeU.js": "a4d02e75e01d903b34264b6019d9f8883e0407bc18135faaae1f4dac5f995a83",
-    "assets/index-DvesNz8n.css": "149afecdf6c4bc482227ad1f8d7d287d93258cb8cef2d24bf49460241a06f2e8",
+    "assets/index-CqcD-lJH.js": "a4d02e75e01d903b34264b6019d9f8883e0407bc18135faaae1f4dac5f995a83",
+    "assets/index-o5G6nt2e.css": "b0e9409817339e6641737468c521f0189a668de8df64d705742a23adbbe9d660",
     "assets/three-cad-viewer.esm-lXp_aS3t.js": "2179a8d0f2feae3a6041e03314c3e6573f985692f65d74c32871ef3e6c16728a",
-    "index.html": "06a34ebea5a8d0842e354c5fa39ae750a033283aa8e42de3185ac6ad12d6030c"
+    "index.html": "847424492dae6abdcf5f4bb930160b83a3cbbb7fe50828e0e1d8844f43ae0e97"
   }
 }

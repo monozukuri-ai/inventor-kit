@@ -214,7 +214,7 @@ mod tests {
     fn parse(b: &[u8], major: u8, work: &mut usize) -> Result<Option<PayloadObservation>> {
         super::super::fields::decode(
             "DlSheetDlSegmentType",
-            major,
+            major.into(),
             "d3a55702-11d1-ebbb-62ae-0297584063da",
             0,
             b,

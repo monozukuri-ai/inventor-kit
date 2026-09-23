@@ -381,14 +381,18 @@ mod tests {
             .read_to_end(&mut raw)
             .unwrap();
         assert_eq!(raw, [0, 44, 55, 66, 0, 0, 11, 22, 33, 255]);
-        assert_eq!(
-            view_bitmap_png(&b, 28, 1024, &mut 2, &mut 100).unwrap().2,
-            png
-        );
-        for major in [24, 26, 29, 31] {
+        for major in [26, 28] {
+            assert_eq!(
+                view_bitmap_png(&b, major, 1024, &mut 2, &mut 100)
+                    .unwrap()
+                    .2,
+                png
+            );
+        }
+        for major in [24, 29, 31] {
             assert!(view_bitmap_png(&b, major, 1024, &mut 2, &mut 100).is_err());
         }
-        for major in [23, 28] {
+        for major in [23, 26, 28] {
             for n in 0..b.len() {
                 assert!(view_bitmap_png(&b[..n], major, 1024, &mut 2, &mut 100).is_err());
             }

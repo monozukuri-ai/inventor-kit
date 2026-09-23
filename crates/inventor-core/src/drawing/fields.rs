@@ -2,8 +2,28 @@
 use super::{FieldObservation, FieldValue, PayloadObservation};
 use crate::{document::SourceSpan, read::Reader, rse, Error, Result};
 
+const POINT3F: [u8; 16] = [
+    0xc1, 0x10, 0x72, 0xf2, 0xd2, 0x11, 0xa2, 0xcd, 0xa0, 0x00, 0x56, 0xb6, 0xfc, 0xdb, 0xc7, 0xc9,
+];
+pub(super) struct Context<'a> {
+    major: u8,
+    types: &'a [[u8; 16]],
+}
+impl<'a> Context<'a> {
+    pub fn new(major: u8, types: &'a [[u8; 16]]) -> Self {
+        Self { major, types }
+    }
+}
+#[cfg(test)]
+impl From<u8> for Context<'static> {
+    fn from(major: u8) -> Self {
+        Self::new(major, &[[0; 16], [0; 16], POINT3F])
+    }
+}
+
 pub(super) struct Fields<'a, 'b> {
     pub profile: super::profile::Profile,
+    types: &'a [[u8; 16]],
     pub r: Reader<'a>,
     pub work: &'b mut usize,
     source: SourceSpan,
@@ -15,9 +35,11 @@ impl<'a, 'b> Fields<'a, 'b> {
         source: SourceSpan,
         work: &'b mut usize,
         profile: super::profile::Profile,
+        types: &'a [[u8; 16]],
     ) -> Self {
         Self {
             profile,
+            types,
             r: Reader::new(bytes),
             work,
             source,
@@ -39,6 +61,14 @@ impl<'a, 'b> Fields<'a, 'b> {
             return Err(Error("unqualified drawing field layout".into()));
         }
         Ok(())
+    }
+    pub fn point_type(&mut self) -> Result<u32> {
+        let selector = self.r.u32()?;
+        if selector & !0xff != 0x100 || self.types.get((selector & 0xff) as usize) != Some(&POINT3F)
+        {
+            return Err(Error("unqualified drawing point type reference".into()));
+        }
+        Ok(selector)
     }
     pub fn word(&mut self, name: &'static str) -> Result<()> {
         rse::charge(self.work, 1)?;
@@ -164,13 +194,14 @@ impl<'a, 'b> Fields<'a, 'b> {
 
 pub(super) fn decode(
     kind: &str,
-    major: u8,
+    context: Context<'_>,
     type_id: &str,
     ordinal: usize,
     bytes: &[u8],
     source: SourceSpan,
     work: &mut usize,
 ) -> Result<Option<PayloadObservation>> {
+    let major = context.major;
     let profile = super::profile::get(major)
         .ok_or_else(|| Error("unsupported drawing field profile".into()))?;
     let decoder: fn(&mut Fields<'_, '_>) -> Result<()>;
@@ -218,6 +249,12 @@ pub(super) fn decode(
             decoder = super::sheet::sketch_placement;
             "sheet_placement_candidate"
         }
+        ("DlSheetSmSegmentType", "62a8e6a8-11d1-ad4b-6000-108a806bceb0")
+            if matches!(major, 24 | 26 | 28) =>
+        {
+            decoder = super::sheet::border_placement;
+            "sheet_placement_candidate"
+        }
         (
             "DlSheetSmSegmentType",
             "5eb510c2-11d2-7068-6000-f191790357b0"
@@ -231,20 +268,46 @@ pub(super) fn decode(
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
-        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07")
-            if profile.legacy_records =>
+        ("DlSheetSmSegmentType", "8deaf986-11d4-3763-6000-61b782b6fbb0")
+            if matches!(major, 26 | 28) =>
         {
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
+        ("DlSheetSmSegmentType", "b2d41a36-4a3a-cc6b-07d7-8b8a7ece02ce") if major == 26 => {
+            decoder = super::sheet::leader_display;
+            "sheet_external_display_candidate"
+        }
+        (
+            "DlSheetSmSegmentType",
+            "f5a6ed7a-11d4-7c69-6000-69b782b6fbb0" | "35ecb98a-419c-f0d7-262b-dc98b8750e13",
+        ) if major == 26 => {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07")
+            if profile.extended_record(type_id) =>
+        {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        (
+            "DlSheetSmSegmentType",
+            "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0"
+            | "648cd16a-11d1-c06c-6000-24b209e1b5b0"
+            | "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
+        ) if matches!(major, 26 | 28) => {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
         ("DlSheetSmSegmentType", "9b3499d1-11d1-8626-6000-27bd351c3cb0")
-            if profile.legacy_records =>
+            if profile.extended_record(type_id) =>
         {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
         ("DlSheetSmSegmentType", "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86")
-            if profile.legacy_records =>
+            if profile.extended_record(type_id) =>
         {
             decoder = super::sheet::leader_display;
             "sheet_external_display_candidate"
@@ -252,12 +315,12 @@ pub(super) fn decode(
         (
             "DlSheetSmSegmentType",
             "69c12b31-11d2-1c34-6000-1c9feb49cdb0" | "6589a70e-11d1-a4a7-6000-2fa5602d6bb0",
-        ) if profile.legacy_records => {
+        ) if profile.extended_record(type_id) => {
             decoder = super::sheet::sketch_placement;
             "sheet_placement_candidate"
         }
         ("DlSheetSmSegmentType", "4e52b139-11d1-d3ba-6000-46bead9287b0")
-            if profile.legacy_records =>
+            if profile.extended_record(type_id) =>
         {
             decoder = super::sheet::table_display;
             "sheet_local_transformed_display_candidate"
@@ -315,16 +378,22 @@ pub(super) fn decode(
             "stored_polyline_candidate"
         }
         ("DlSheetDlSegmentType", "d3a55702-11d1-ebbb-62ae-0297584063da")
-            if profile.legacy_records =>
+            if profile.extended_record(type_id) =>
         {
             decoder = super::spline::fields;
             "stored_bspline_candidate"
         }
         ("DlSheetDlSegmentType", "afd5ceeb-11d1-e071-0008-87a406e5dc09")
-            if profile.legacy_records =>
+            if profile.extended_record(type_id) =>
         {
             decoder = super::geometry::ellipse;
             "stored_ellipse_candidate"
+        }
+        ("DlSheetSmSegmentType", "a79eacd2-11d1-c281-6000-a38ab46bceb0")
+            if profile.triangle_flags().is_some() =>
+        {
+            decoder = super::geometry::triangles;
+            "stored_triangles_candidate"
         }
         (
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
@@ -357,7 +426,7 @@ pub(super) fn decode(
         _ => return Ok(None),
     };
     rse::charge(work, 1)?;
-    let mut fields = Fields::new(bytes, source.clone(), work, profile);
+    let mut fields = Fields::new(bytes, source.clone(), work, profile, context.types);
     decoder(&mut fields)?;
     Ok(Some(PayloadObservation {
         record_ordinal: ordinal,
@@ -379,6 +448,7 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::sheet::links,
         super::sheet::space,
         super::sheet::placement,
+        super::sheet::border_placement,
         super::sheet::local_display,
         super::sheet::leader_display,
         super::sheet::table_display,
@@ -395,6 +465,7 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::sheet::image,
         super::text::fields,
         super::geometry::points,
+        super::geometry::triangles,
         super::geometry::group,
         super::geometry::line,
         super::geometry::circle,
@@ -408,6 +479,7 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
                 SourceSpan::stream("fuzz", "raw", 0, bytes.len()),
                 &mut work,
                 super::profile::get(major).unwrap(),
+                &[[0; 16], [0; 16], POINT3F],
             );
             if decoder(&mut fields).is_ok()
                 && fields.fields.iter().any(|f| f.name == "spline_degree")
@@ -455,7 +527,7 @@ mod marker_tests {
         let parse = |data: &[u8]| {
             decode(
                 "DlSheetSmSegmentType",
-                31,
+                31.into(),
                 "41305114-11d2-6450-6000-b4856c2387b0",
                 0,
                 data,

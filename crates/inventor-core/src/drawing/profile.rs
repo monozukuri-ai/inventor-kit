@@ -28,6 +28,24 @@ pub(super) struct Profile {
     pub external_children: bool,
 }
 impl Profile {
+    pub fn triangle_flags(self) -> Option<u32> {
+        match self.major {
+            26 => Some(0),
+            28 | 29 => Some(8),
+            _ => None,
+        }
+    }
+    pub fn extended_record(self, type_id: &str) -> bool {
+        self.legacy_records
+            || (self.major == 28
+                && matches!(
+                    type_id,
+                    "d3a55702-11d1-ebbb-62ae-0297584063da"
+                        | "afd5ceeb-11d1-e071-0008-87a406e5dc09"
+                        | "69c12b31-11d2-1c34-6000-1c9feb49cdb0"
+                        | "4e52b139-11d1-d3ba-6000-46bead9287b0"
+                ))
+    }
     pub fn fields_name(self) -> &'static str {
         match self.major {
             23 => "idw-major23-typed-fields-v1",
@@ -75,7 +93,7 @@ pub(super) fn get(major: u8) -> Option<Profile> {
             p.legacy_fonts = false;
             p.layer_prefix = 21;
             p.view_suffix_guid = true;
-            p.bitmap = None;
+            p.bitmap = Some(BitmapLayout::Rgba);
             p.legacy_records = false;
             p.historical_context = false;
             p.external_children = false;
