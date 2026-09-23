@@ -1,10 +1,13 @@
 """Serve only packaged assets and resources named by the current scene."""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
+import errno
 import json
 import mimetypes
 from pathlib import Path
 import secrets
+import sys
+import time
 from socketserver import TCPServer
 from urllib.parse import urlsplit
 
@@ -15,6 +18,20 @@ class LoopbackServer(ThreadingHTTPServer):
         # DNS even for 127.0.0.1. All viewer URLs use the numeric address.
         TCPServer.server_bind(self)
         self.server_name, self.server_port = self.server_address
+
+
+def read_state(directory):
+    """Read a complete snapshot through a short Windows rename collision."""
+    for attempt in range(21):
+        try:
+            return (directory / "state.json").read_bytes()
+        except PermissionError as error:
+            code = getattr(error, "winerror", None)
+            # Windows CRT open() may report only EACCES, without winerror.
+            sharing = code in (5, 32, 33) or (code is None and error.errno == errno.EACCES)
+            if sys.platform != "win32" or not sharing or attempt == 20:
+                raise
+            time.sleep(0.05)
 
 
 def create_server(directory, port=0):
@@ -47,9 +64,9 @@ def create_server(directory, port=0):
                 if name in assets:
                     body = static.joinpath(name).read_bytes()
                 elif name == "state.json":
-                    body = (directory / name).read_bytes()
+                    body = read_state(directory)
                 else:
-                    scene = json.loads((directory / "state.json").read_text(encoding="utf-8"))
+                    scene = json.loads(read_state(directory))
                     resources = {t["resource"] for t in scene["thumbnails"]}
                     resources.update(b["resource"] for m in scene["meshes"] for b in m["buffers"].values())
                     if scene.get("drawing"):
@@ -61,6 +78,15 @@ def create_server(directory, port=0):
                     body = (directory / name).read_bytes()
             except (FileNotFoundError, IsADirectoryError):
                 self.send_error(404)
+                return
+            except PermissionError:
+                # A persistent denial remains a failure, with a complete HTTP
+                # response instead of silently disconnecting the client.
+                self.send_response(503)
+                self.send_header("Retry-After", "1")
+                self.send_header("Content-Length", "0")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
                 return
             mime = {".js": "text/javascript", ".json": "application/json", ".bin": "application/octet-stream"}.get(
                 Path(name).suffix, mimetypes.guess_type(name)[0] or "application/octet-stream")

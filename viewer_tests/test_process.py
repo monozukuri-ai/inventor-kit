@@ -1,4 +1,5 @@
 import json
+import errno
 import os
 from pathlib import Path
 import tempfile
@@ -42,6 +43,49 @@ def assembly_crash_worker(path, directory, options):
 
 
 class Processes(unittest.TestCase):
+    def test_http_snapshot_read_survives_windows_rename_and_bounds_denials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            scene = empty_scene('complete snapshot')
+            scene['thumbnails'] = [{'resource': 'image.png'}]
+            write_scene(directory, scene)
+            (directory/'image.png').write_bytes(b'allowed resource')
+            server, url = create_server(directory)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            read = Path.read_bytes
+            try:
+                for resource in ('state.json', 'image.png'):
+                    attempts = []
+
+                    def sharing_collision(path):
+                        if path.name == 'state.json':
+                            attempts.append(path)
+                            if len(attempts) < 3:
+                                # The real Windows CRT error has errno 13 and
+                                # no winerror; preserve that error shape.
+                                raise PermissionError(errno.EACCES, 'Temporary sharing collision')
+                        return read(path)
+
+                    with patch('inventor_kit.viewer.server.sys.platform', 'win32'), patch.object(Path, 'read_bytes', sharing_collision):
+                        with urlopen(url+resource, timeout=3) as response:
+                            value = response.read()
+                    self.assertEqual(len(attempts), 3)
+                    self.assertEqual(value, read(directory/resource))
+
+                for platform, count in (('win32', 21), ('linux', 1)):
+                    error = PermissionError(errno.EACCES, 'Persistent denial')
+                    with patch('inventor_kit.viewer.server.sys.platform', platform), patch.object(Path, 'read_bytes', side_effect=error) as reads:
+                        with patch('inventor_kit.viewer.server.time.sleep'), self.assertRaises(HTTPError) as caught:
+                            urlopen(url+'state.json', timeout=3)
+                    self.assertEqual(caught.exception.code, 503)
+                    self.assertEqual(caught.exception.headers['Retry-After'], '1')
+                    self.assertEqual(reads.call_count, count)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join()
+
     def run_job(self, target=None, timeout=15):
         with tempfile.TemporaryDirectory() as temporary:
             kwargs = {'target':target} if target else {}
