@@ -106,6 +106,10 @@
     "status": "experimental_partial",
     "segment_majors": [
       23,
+      24,
+      26,
+      28,
+      29,
       31
     ],
     "rse_database_schema": 31,
@@ -116,7 +120,7 @@
     "native_accuracy_qualified": false,
     "external_model_loading": false,
     "viewer_flag": null,
-    "scope": "stored document sheet list and unique SM backlinks; selected lines, curves, text, styles and embedded PNG/JPEG; unsupported profiles unavailable",
+    "scope": "stored document sheet list and unique SM backlinks; selected lines, curves, text, styles and embedded PNG/JPEG; exact observed per-major layouts only; unsupported records and cache profiles remain explicit omissions",
     "codecs": [
       "zlib",
       "zstd"
@@ -125,6 +129,11 @@
     "svg_export": true,
     "svg_renderer_version": 1,
     "svg_embedded_images": true,
-    "svg_physical_scale_verified": false
+    "svg_physical_scale_verified": false,
+    "view_cache_segment_majors": [
+      23,
+      28,
+      31
+    ]
   }
 }

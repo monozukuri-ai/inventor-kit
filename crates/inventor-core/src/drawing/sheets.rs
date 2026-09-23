@@ -79,7 +79,7 @@ fn collect(
     let mut candidates = vec![];
     for segment in &doc.segments {
         if segment.status != "framed"
-            || !matches!(segment.registry.major, 23 | 31)
+            || super::profile::get(segment.registry.major).is_none()
             || segment.registry.kind != "DlDocDcSegmentType"
         {
             continue;
@@ -139,7 +139,7 @@ fn collect(
         for sm in &doc.segments {
             rse::charge(work, 1)?;
             if sm.status != "framed"
-                || !matches!(sm.registry.major, 23 | 31)
+                || super::profile::get(sm.registry.major).is_none()
                 || sm.registry.kind != "DlSheetSmSegmentType"
             {
                 continue;

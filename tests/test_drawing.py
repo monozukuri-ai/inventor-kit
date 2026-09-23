@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from inventor_kit import read_drawing, read_drawing_file, Limits, DrawingDisplayError, DrawingLimits
 from inventor_kit.viewer.scene import Options, build_scene, discard_geometry
+from drawing_fixture_helpers import with_segment_major
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT / 'fixtures/public/SampleBg.idw'
@@ -160,7 +161,7 @@ class DrawingAPI(unittest.TestCase):
             with self.assertRaises(ValueError): read_drawing(data)
         with self.assertRaisesRegex(ValueError, 'file byte limit'):
             read_drawing(SAMPLE.read_bytes(), limits=Limits(max_file_bytes=1))
-        unsupported = read_drawing_file(ROOT/'fixtures/public/drawings/iacs/Template_IACS.idw')
+        unsupported = read_drawing(with_segment_major(SAMPLE.read_bytes(), 25))
         self.assertEqual(unsupported.status, 'unavailable')
         self.assertFalse(unsupported.sheets)
         self.assertTrue(unsupported.metadata.thumbnails)

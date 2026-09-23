@@ -3,16 +3,21 @@ use super::{FieldObservation, FieldValue, PayloadObservation};
 use crate::{document::SourceSpan, read::Reader, rse, Error, Result};
 
 pub(super) struct Fields<'a, 'b> {
-    pub major: u8,
+    pub profile: super::profile::Profile,
     pub r: Reader<'a>,
     pub work: &'b mut usize,
     source: SourceSpan,
     pub fields: Vec<FieldObservation>,
 }
 impl<'a, 'b> Fields<'a, 'b> {
-    fn new(bytes: &'a [u8], source: SourceSpan, work: &'b mut usize, major: u8) -> Self {
+    fn new(
+        bytes: &'a [u8],
+        source: SourceSpan,
+        work: &'b mut usize,
+        profile: super::profile::Profile,
+    ) -> Self {
         Self {
-            major,
+            profile,
             r: Reader::new(bytes),
             work,
             source,
@@ -102,7 +107,7 @@ impl<'a, 'b> Fields<'a, 'b> {
     }
     pub fn references(&mut self, name: &'static str) -> Result<()> {
         let tag = self.r.u32()?;
-        if tag != 0x30000002 && !(self.major == 23 && tag == 0x30000003) {
+        if tag != 0x30000002 && !(self.profile.compact_references && tag == 0x30000003) {
             return Err(Error("unqualified drawing reference list".into()));
         }
         let count = self.r.count(65536)?;
@@ -111,7 +116,7 @@ impl<'a, 'b> Fields<'a, 'b> {
             if tag == 0x30000002 && self.r.u32()? < count as u32 {
                 return Err(Error("drawing list capacity below count".into()));
             }
-            self.require(if self.major == 23 { 0 } else { 0x10 })?;
+            self.require(self.profile.reference_flags)?;
         }
         let start = self.r.pos;
         let mut values = Vec::with_capacity(count);
@@ -166,6 +171,8 @@ pub(super) fn decode(
     source: SourceSpan,
     work: &mut usize,
 ) -> Result<Option<PayloadObservation>> {
+    let profile = super::profile::get(major)
+        .ok_or_else(|| Error("unsupported drawing field profile".into()))?;
     let decoder: fn(&mut Fields<'_, '_>) -> Result<()>;
     let role = match (kind, type_id) {
         ("DlDocDcSegmentType", "d37c90cb-11d0-fa16-6000-0dbd861c3cb0") => {
@@ -191,7 +198,7 @@ pub(super) fn decode(
             decoder = super::sheet::placement;
             "sheet_placement_candidate"
         }
-        ("DlSheetSmSegmentType", "8a6d1381-11d1-6b56-6000-38bd861c3cb0") => {
+        ("DlSheetSmSegmentType", "8a6d1381-11d1-6b56-6000-38bd861c3cb0") if profile.views => {
             decoder = super::sheet::view_placement;
             "sheet_placement_candidate"
         }
@@ -224,26 +231,34 @@ pub(super) fn decode(
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
-        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07") if major == 23 => {
+        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07")
+            if profile.legacy_records =>
+        {
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
-        ("DlSheetSmSegmentType", "9b3499d1-11d1-8626-6000-27bd351c3cb0") if major == 23 => {
+        ("DlSheetSmSegmentType", "9b3499d1-11d1-8626-6000-27bd351c3cb0")
+            if profile.legacy_records =>
+        {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
-        ("DlSheetSmSegmentType", "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86") if major == 23 => {
+        ("DlSheetSmSegmentType", "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86")
+            if profile.legacy_records =>
+        {
             decoder = super::sheet::leader_display;
             "sheet_external_display_candidate"
         }
         (
             "DlSheetSmSegmentType",
             "69c12b31-11d2-1c34-6000-1c9feb49cdb0" | "6589a70e-11d1-a4a7-6000-2fa5602d6bb0",
-        ) if major == 23 => {
+        ) if profile.legacy_records => {
             decoder = super::sheet::sketch_placement;
             "sheet_placement_candidate"
         }
-        ("DlSheetSmSegmentType", "4e52b139-11d1-d3ba-6000-46bead9287b0") if major == 23 => {
+        ("DlSheetSmSegmentType", "4e52b139-11d1-d3ba-6000-46bead9287b0")
+            if profile.legacy_records =>
+        {
             decoder = super::sheet::table_display;
             "sheet_local_transformed_display_candidate"
         }
@@ -299,11 +314,15 @@ pub(super) fn decode(
             decoder = super::geometry::points;
             "stored_polyline_candidate"
         }
-        ("DlSheetDlSegmentType", "d3a55702-11d1-ebbb-62ae-0297584063da") if major == 23 => {
+        ("DlSheetDlSegmentType", "d3a55702-11d1-ebbb-62ae-0297584063da")
+            if profile.legacy_records =>
+        {
             decoder = super::spline::fields;
             "stored_bspline_candidate"
         }
-        ("DlSheetDlSegmentType", "afd5ceeb-11d1-e071-0008-87a406e5dc09") if major == 23 => {
+        ("DlSheetDlSegmentType", "afd5ceeb-11d1-e071-0008-87a406e5dc09")
+            if profile.legacy_records =>
+        {
             decoder = super::geometry::ellipse;
             "stored_ellipse_candidate"
         }
@@ -338,16 +357,13 @@ pub(super) fn decode(
         _ => return Ok(None),
     };
     rse::charge(work, 1)?;
-    let mut fields = Fields::new(bytes, source.clone(), work, major);
+    let mut fields = Fields::new(bytes, source.clone(), work, profile);
     decoder(&mut fields)?;
     Ok(Some(PayloadObservation {
         record_ordinal: ordinal,
         type_id: type_id.into(),
         source,
-        layout: match major {
-            23 => "idw-major23-typed-fields-v1",
-            _ => "idw-major31-typed-fields-v1",
-        },
+        layout: profile.fields_name(),
         proposed_role: role,
         status: "unqualified",
         fields: fields.fields,
@@ -386,12 +402,12 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::geometry::ellipse,
         super::spline::fields,
     ] {
-        for major in [23, 31] {
+        for major in [23, 24, 26, 28, 29, 31] {
             let mut fields = Fields::new(
                 bytes,
                 SourceSpan::stream("fuzz", "raw", 0, bytes.len()),
                 &mut work,
-                major,
+                super::profile::get(major).unwrap(),
             );
             if decoder(&mut fields).is_ok()
                 && fields.fields.iter().any(|f| f.name == "spline_degree")

@@ -313,6 +313,62 @@
       "license_notice": "Download-only fixture. Upstream repository license: GPL-3.0; see pinned license and upstream third-party terms. CAD, PDF and license payloads are not bundled in distributions. No upstream source code incorporated.",
       "license_url": "https://github.com/LFrum/Engr_Principles-Final_Project-Vise/blob/3dbd55f768f1170a803ff6950f10ebc8cc628f04/LICENSE",
       "holdout_policy": "Reserved entire source project family, including references and visuals. Do not fit native drawing decoders or tolerances to this family; replace holdout if used for development."
+    },
+    {
+      "file": "drawings/versions/RespiraWorks.idw",
+      "repo": "RespiraWorks/Ventilator",
+      "commit": "6165c82de293d66b71f43040a2f145ab70bb49c0",
+      "upstream_path": "manufacturing/enclosure/back.idw",
+      "url": "https://media.githubusercontent.com/media/RespiraWorks/Ventilator/6165c82de293d66b71f43040a2f145ab70bb49c0/manufacturing/enclosure/back.idw",
+      "bytes": 419840,
+      "sha256": "adf027ad77d3831430353471ee3af9a16edcbc0ceed7d028869eee1b9a525c20",
+      "family_id": "respiraworks-enclosure",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. Upstream declares Apache-2.0 for software and hardware; see pinned LICENSE and open_source.md. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/RespiraWorks/Ventilator/blob/6165c82de293d66b71f43040a2f145ab70bb49c0/LICENSE"
+    },
+    {
+      "file": "drawings/versions/Toys-R-Us-Rex.idw",
+      "repo": "Toys-R-Us-Rex/Duckify",
+      "commit": "3aec39dda878b480d012418d191e87b418f3b13b",
+      "upstream_path": "3dmodel/support/pen/adpater/pen_adapter.idw",
+      "url": "https://media.githubusercontent.com/media/Toys-R-Us-Rex/Duckify/3aec39dda878b480d012418d191e87b418f3b13b/3dmodel/support/pen/adpater/pen_adapter.idw",
+      "bytes": 294912,
+      "sha256": "815ac0cd87cc8b9e8a19f21afb778d3e7693a073fae580c35c1179bbf506b1bd",
+      "family_id": "duckify-pen",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. No redistribution license for this CAD asset established; see pinned source README. This entry is an external source reference, not a license grant. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/Toys-R-Us-Rex/Duckify/blob/3aec39dda878b480d012418d191e87b418f3b13b/README.md"
+    },
+    {
+      "file": "drawings/versions/starliliko.idw",
+      "repo": "starliliko/3d-printed-smart-car-cad",
+      "commit": "3b9c91f85cba6e03fc2195d6e7881e0631a0db2d",
+      "upstream_path": "inventor/Templates/Metric/JIS.idw",
+      "url": "https://media.githubusercontent.com/media/starliliko/3d-printed-smart-car-cad/3b9c91f85cba6e03fc2195d6e7881e0631a0db2d/inventor/Templates/Metric/JIS.idw",
+      "bytes": 164864,
+      "sha256": "b07f54065ad0e344bfded3a05721ee823a8e3f7a68c3b1b9d24cd1848655c0f2",
+      "family_id": "smart-car-template",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. No redistribution license for this CAD asset established; see pinned source README. This entry is an external source reference, not a license grant. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/starliliko/3d-printed-smart-car-cad/blob/3b9c91f85cba6e03fc2195d6e7881e0631a0db2d/README.md"
+    },
+    {
+      "file": "drawings/versions/mateolikescats.idw",
+      "repo": "mateolikescats/mechanical-design-manufacturing",
+      "commit": "3566c093f0fa1a706224e7436bece4b54e3d2954",
+      "upstream_path": "Taller1_Project/complex_assembly/Brazo.idw",
+      "url": "https://media.githubusercontent.com/media/mateolikescats/mechanical-design-manufacturing/3566c093f0fa1a706224e7436bece4b54e3d2954/Taller1_Project/complex_assembly/Brazo.idw",
+      "bytes": 872448,
+      "sha256": "799509ce2c6be7f77bc26b3bc850043f6a68842aaf153db2a09fe1d4f4d916b0",
+      "family_id": "mechanical-brazo",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. No redistribution license for this CAD asset established; see pinned source README. This entry is an external source reference, not a license grant. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/mateolikescats/mechanical-design-manufacturing/blob/3566c093f0fa1a706224e7436bece4b54e3d2954/README.md"
     }
   ],
   "drawings": [
@@ -354,6 +410,66 @@
       },
       "role": "template",
       "role_basis": "Upstream project and source filename; role has not been verified with Autodesk API.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "respiraworks-enclosure",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/RespiraWorks.idw"
+      },
+      "role": "part",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "duckify-pen",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/Toys-R-Us-Rex.idw"
+      },
+      "role": "part",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "smart-car-template",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/starliliko.idw"
+      },
+      "role": "template",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "mechanical-brazo",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/mateolikescats.idw"
+      },
+      "role": "part",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
       "references": [],
       "reference_completeness": "unverified",
       "visuals": [],

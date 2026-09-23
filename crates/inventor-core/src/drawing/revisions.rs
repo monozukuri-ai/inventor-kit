@@ -129,13 +129,14 @@ pub(super) fn binding(
     // Major23 saves may retain a historical target context. Admit it only if
     // the target's own ordered ranges contain it after this object's creation.
     // This binds the stored object key; it does not reconstruct that old state.
-    let (current, last_slot) = if target.registry.major == 23 {
-        requested_context
-            .filter(|(r, _)| *r >= identity)
-            .ok_or_else(|| Error("missing or pre-creation target context".into()))?
-    } else {
-        (latest, latest_slot)
-    };
+    let (current, last_slot) =
+        if super::profile::get(target.registry.major).is_some_and(|p| p.historical_context) {
+            requested_context
+                .filter(|(r, _)| *r >= identity)
+                .ok_or_else(|| Error("missing or pre-creation target context".into()))?
+        } else {
+            (latest, latest_slot)
+        };
     if revisions.entries[identity].id != guid(&namespace[..16])
         || revisions.entries[current].id != guid(&segment[16..32])
     {

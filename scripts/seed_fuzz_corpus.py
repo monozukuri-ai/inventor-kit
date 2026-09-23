@@ -75,7 +75,9 @@ def seed(fixtures, output):
     write('drawing', b'\x03'+bytes(26)+struct.pack('<6IBIHH2d',0x30000002,2,2,0x10,0x80000001,0x80000001,1,0x203,0x8421,0x7b56,1.,2.))
     for tag in (0x30000002, 0x30000003):
         refs = struct.pack('<2I', tag, 1) + (struct.pack('<I', 1) if tag == 0x30000002 else b'')
-        write('drawing', b'\x03'+bytes(26)+refs+struct.pack('<2IB', 0, 0x80000002, 0))
+        # Major28 combines the compact tag with modern flags; vary them independently.
+        for flags in (0, 0x10):
+            write('drawing', b'\x03'+bytes(26)+refs+struct.pack('<2IB', flags, 0x80000002, 0))
     write('drawing', b'\x03'+bytes(6)+b'\x01\x01'+struct.pack('<2I', 2, 1)+bytes(5)
           +bytes([11, 22, 33, 255, 44, 55, 66, 0, 1]))
     write('drawing', b'\x03'+bytes(15)+struct.pack('<2I',0x30000002,0)+struct.pack('<IBI',1,1,2)+

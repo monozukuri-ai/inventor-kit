@@ -37,9 +37,9 @@ class DrawingInventory(unittest.TestCase):
             self.assertEqual(Path(row['file']).name,item['file'])
         totals = {major: sum(s['framed_records'] for r in baseline['results']
                             for s in r['segments'] if s['major'] == major)
-                  for major in (23, 31)}
-        self.assertEqual(totals, {23: 112352, 31: 5733})
-        self.assertEqual(sum(sum(r['types'].values()) for r in baseline['results']),118085)
+                  for major in (23, 24, 26, 28, 29, 31)}
+        self.assertEqual(totals, {23: 112352, 24: 6901, 26: 14147, 28: 15708, 29: 3404, 31: 5733})
+        self.assertEqual(sum(sum(r['types'].values()) for r in baseline['results']),158245)
 
     def test_typed_fields_match_wire_bytes_without_promoting_semantics(self):
         text = '図面\0𝄞'.encode('utf-16le')

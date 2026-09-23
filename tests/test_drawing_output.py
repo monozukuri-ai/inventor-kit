@@ -16,6 +16,7 @@ import jsonschema
 import inventor_kit as ik
 from inventor_kit.drawing_output import MAX_SVG_BYTES, render_svg
 from inventor_kit.cli import run_job
+from drawing_fixture_helpers import with_segment_major
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT/'fixtures/public/SampleBg.idw'
@@ -107,9 +108,12 @@ class DrawingOutput(unittest.TestCase):
             invalid=self.cli(SOURCE,'--drawing-report','--step',tmp/'never.step')
             self.assertEqual(invalid.returncode,1)
             self.assertFalse((tmp/'never.step').exists())
-        unsupported=self.cli(ROOT/'fixtures/public/drawings/iacs/Template_IACS.idw','--drawing-report')
-        self.assertEqual(unsupported.returncode,3)
-        jsonschema.validate(json.loads(unsupported.stdout),SCHEMA)
+        with tempfile.TemporaryDirectory() as tmp:
+            source=Path(tmp)/'synthetic-major25.idw'
+            source.write_bytes(with_segment_major(SOURCE.read_bytes(),25))
+            unsupported=self.cli(source,'--drawing-report')
+            self.assertEqual(unsupported.returncode,3)
+            jsonschema.validate(json.loads(unsupported.stdout),SCHEMA)
         foreign=self.cli(ROOT/'fixtures/public/SamplePart.ipt','--list-sheets')
         self.assertEqual(foreign.returncode,3)
 

@@ -209,7 +209,7 @@ fn full_types_ordinals_spans_and_unresolved_references_are_preserved() {
 fn old_majors_and_unknown_kinds_remain_inventory_only() {
     for (major, kind) in [
         (22, "DlSheetDlSegmentType"),
-        (24, "DlSheetDlSegmentType"),
+        (25, "DlSheetDlSegmentType"),
         (31, "UnqualifiedType"),
     ] {
         let data = mutate(&fixture(), |c| {
@@ -690,6 +690,180 @@ fn observed(
 const TEXT_TYPE: &str = "a79eacd5-11d1-c281-6000-a38ab46bceb0";
 const POINT_TYPE: &str = "a79eaccb-11d1-c281-6000-a38ab46bceb0";
 const GROUP_TYPE: &str = "a79eaccf-11d1-c281-6000-a38ab46bceb0";
+fn observed_major(
+    major: u8,
+    kind: &str,
+    type_id: &str,
+    data: &[u8],
+    work: &mut usize,
+) -> crate::Result<Option<PayloadObservation>> {
+    let mut source = SourceSpan::stream("synthetic", "/RSeStorage/Btest", 100, 100 + data.len());
+    source.byte_domain = "inflated_stream";
+    super::fields::decode(kind, major, type_id, 17, data, source, work)
+}
+
+#[test]
+fn added_profiles_require_their_exact_envelope_and_codec() {
+    for major in [24, 29, 28, 26] {
+        let mut b = profile::BULK_HEADER.to_vec();
+        b[17] = 1;
+        b.extend(zlib(b"synthetic record bytes"));
+        assert!(profile::bulk_for_major(&b, major).is_ok());
+        assert!(profile::bulk_for_major(&b, 31).is_err());
+        for unknown in [21, 25, 27, 30, 32] {
+            assert!(profile::bulk_for_major(&b, unknown).is_err());
+            assert!(!profile::admits("DlSheetDlSegmentType", unknown));
+        }
+        for n in 0..20 {
+            assert!(profile::bulk_for_major(&b[..n], major).is_err());
+        }
+        let mut wrong_codec = b[..18].to_vec();
+        wrong_codec.extend(zstd(b"synthetic record bytes"));
+        assert!(profile::bulk_for_major(&wrong_codec, major).is_err());
+        b[17] = 2;
+        assert!(profile::bulk_for_major(&b, major).is_err());
+    }
+}
+
+#[test]
+fn reference_list_tag_and_flags_are_independent_version_choices() {
+    for major in [23, 24, 26, 28, 29, 31] {
+        for tag in [0x30000002, 0x30000003] {
+            for flags in [0, 0x10] {
+                let mut b = vec![0; 26];
+                word(&mut b, tag);
+                word(&mut b, 1);
+                if tag == 0x30000002 {
+                    word(&mut b, 1);
+                }
+                word(&mut b, flags);
+                word(&mut b, 0x80000012);
+                b.push(0);
+                let accepted = flags == if major <= 26 { 0 } else { 0x10 }
+                    && (tag == 0x30000002 || matches!(major, 23 | 24 | 26 | 28));
+                let parsed =
+                    observed_major(major, "DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 100);
+                assert_eq!(
+                    parsed.is_ok(),
+                    accepted,
+                    "major {major}, tag {tag:x}, flags {flags}"
+                );
+                if accepted {
+                    assert!(parsed.unwrap().is_some());
+                    for end in 0..b.len() {
+                        assert!(observed_major(
+                            major,
+                            "DlSheetDlSegmentType",
+                            GROUP_TYPE,
+                            &b[..end],
+                            &mut 100
+                        )
+                        .is_err());
+                    }
+                    assert!(
+                        observed_major(major, "DlSheetDlSegmentType", GROUP_TYPE, &b, &mut 0)
+                            .is_err()
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn sheet_links_require_profile_prefix_and_complete_suffix() {
+    for (major, prefix, suffix) in [(24, 30, 4), (29, 34, 8), (28, 34, 8), (26, 30, 8)] {
+        let mut b = vec![0; prefix];
+        for n in [0x30000002, 0] {
+            word(&mut b, n);
+        }
+        b.extend([0; 11]);
+        for name in [
+            "DLSheet1DCSegment",
+            "DLSheet1DLSegment",
+            "DLSheet1SMSegment",
+        ] {
+            wide(&mut b, name);
+        }
+        b.extend([0; 28]);
+        for n in [0x30000002, 0] {
+            word(&mut b, n);
+        }
+        b.extend([0; 8]);
+        for n in [0x30000002, 0, 0x30000006, 0] {
+            word(&mut b, n);
+        }
+        b.extend([0; 8]);
+        for n in [0x30000002, 0] {
+            word(&mut b, n);
+        }
+        b.extend([0; 92]);
+        wide(&mut b, "Synthetic sheet");
+        b.extend(vec![0; suffix]);
+        let parse = |data: &[u8]| {
+            observed_major(
+                major,
+                "DlDocDcSegmentType",
+                "a200fb76-11d1-6107-0008-70bdec18db09",
+                data,
+                &mut 1000,
+            )
+        };
+        let o = parse(&b).unwrap().unwrap();
+        assert!(o.fields.iter().any(|f| f.name == "name"
+            && matches!(&f.value, FieldValue::Utf16(s) if s == "Synthetic sheet")));
+        for end in 0..b.len() {
+            assert!(parse(&b[..end]).is_err());
+        }
+        if major == 26 {
+            let last = b.len() - 1;
+            b[last] = 1;
+            assert!(parse(&b).is_err());
+            b[last] = 0;
+        }
+        b.push(0);
+        assert!(parse(&b).is_err());
+    }
+}
+
+#[test]
+fn intermediate_view_layouts_have_two_lists_and_a_suffix_guid() {
+    for major in [26, 28, 29] {
+        let mut b = vec![0; 15];
+        for n in [0x30000002, 0, 0x80000001] {
+            word(&mut b, n);
+        }
+        b.push(1);
+        word(&mut b, 0x80000002);
+        b.extend(0x8421u16.to_le_bytes());
+        b.extend(0x7bdeu16.to_le_bytes());
+        b.push(1);
+        for n in [0x80000002, 0, 0x30000002, 0, 0x30000002, 0] {
+            word(&mut b, n);
+        }
+        wide(&mut b, "Synthetic view");
+        for n in [0x80000003, 0] {
+            word(&mut b, n);
+        }
+        b.extend([0; 48 + 16]);
+        let parse = |major, data: &[u8]| {
+            observed_major(
+                major,
+                "DlSheetSmSegmentType",
+                "8a6d1381-11d1-6b56-6000-38bd861c3cb0",
+                data,
+                &mut 1000,
+            )
+        };
+        assert!(parse(major, &b).unwrap().is_some());
+        assert!(parse(23, &b).is_err());
+        assert!(parse(31, &b).is_err());
+        assert!(parse(24, &b).unwrap().is_none());
+        for end in 0..b.len() {
+            assert!(parse(major, &b[..end]).is_err());
+        }
+    }
+}
 fn text_payload() -> Vec<u8> {
     let mut b = vec![0; 26];
     wide(&mut b, "図面\0𝄞");

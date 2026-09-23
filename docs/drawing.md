@@ -5,7 +5,7 @@ English | [日本語](drawing.ja.md)
 The Viewer opens supported IDW drawings by default, reading stored 2D elements
 without Inventor, model reprojection or Python CAD imports. The reader provides
 **experimental partial support**, currently observed
-on schema31 / Meta8 with major31 (zstd) or major23 (zlib). Drawing correctness, physical
+on schema31 / Meta8 with segment majors 23, 24, 26, 28, 29 (zlib), or 31 (zstd). Drawing correctness, physical
 units, complete sheet membership and current state are not qualified.
 The reader uses saved display data and does not load related IPT/IAM files or
 regenerate drawing views.
@@ -30,7 +30,7 @@ assets retain original PNG/JPEG bytes. Supported major23 splines use the stored
 degree, knots, control points, weights and parameter range, sampled into a `polyline`
 with 16 segments per nonempty knot span. This approximation has no general geometric
 error bound. Elliptical arcs retain their center, two axes and angle range as `curve`.
-Supported major31 monochrome and major23 color RGBA view caches are converted
+Supported major31 monochrome and major23/28 color RGBA view caches are converted
 from stored pixels to PNG, retaining the generated asset hash and original record source. Source spans and omission
 reasons are retained. `drawing.sheet(id)` selects by input-bound ID; duplicate
 sheet names are allowed. IDs include the input SHA-256 and stored record/placement identity. Foreign-input IDs are rejected. They are stable across path changes, not guaranteed across
@@ -144,10 +144,38 @@ splines still use the approximation described above. Nearly degenerate projected
 ellipses use line segments through endpoints and coordinate extrema, recorded in
 the SVG and sidecar. Their analytic deviation is at most 2e-9 source units,
 excluding serialization and browser rasterization error. Unknown line-pattern masks
-remain unresolved; they are not interpreted as newly supported native line types. Major24/26/28/29 are outside this drawing profile.
-For major23, supported saved vector edges and annotations overlay the color cache.
+remain unresolved; they are not interpreted as newly supported native line types.
+For major23/28, supported saved vector edges and annotations overlay the color cache.
 Historical target contexts require matching object identity; this does not reconstruct historical state.
 Unknown sketch states, cross-segment display children and missing images remain explicit omissions.
+
+## Observed segment profiles
+
+The additional profiles were enabled in the order 24 → 29 → 28 → 26. Each
+profile requires its own registry version, envelope, codec and observed field
+layouts. A nearby version number or the same compression codec does not grant
+support. Segment major numbers are not Inventor release-year identifiers.
+
+| Segment major | New regression inputs | Saved sheets / views | Display items | View-cache decoder |
+| --- | --- | --- | --- | --- |
+| 24 | `Template_IACS.idw` | 1 / 0 | 50 | Not enabled; model views remain unobserved |
+| 29 | `Toys-R-Us-Rex.idw` | 1 / 3 | 156 | Not enabled |
+| 28 | `mateolikescats.idw` | 1 / 5 | 1,411 | RGBA; one saved cache observed |
+| 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 270 and 90 | Not enabled |
+
+These are pinned real-file regression results, not Autodesk render comparisons.
+All remain `experimental_partial`. Unknown curve variants, colors, fonts and
+unresolved references remain diagnostic omissions or explicit font fallbacks.
+In particular, some major26 circle/arc suffixes are still unsupported. Major24
+has template evidence only. Embedded PNG/JPEG assets are independent of the
+view-cache decoder. Native unit/state accuracy and independent holdout acceptance
+have not been qualified for these profiles. Majors 21, 25, 27, 30 and other
+unlisted versions remain unsupported.
+
+The fixture manifest pins source commits, sizes and SHA-256 hashes. CAD inputs
+are downloaded separately for validation; they are not bundled in releases and
+the manifest does not grant redistribution rights. Regression inventories cover
+158,245 records across seven drawings, including the existing major23/31 inputs.
 
 ## Display requests and sheet resources
 
@@ -155,7 +183,7 @@ Unknown sketch states, cross-segment display children and missing images remain 
 `SheetDisplay`. An invalid or foreign sheet ID raises `DrawingDisplayError` with
 code `drawing.invalid_sheet_id`. Unknown units or placement raise `DrawingDisplayError` even when
 `allow_partial=True`; inspect its `sheet_id`, `diagnostics` and `omissions`.
-Current major23/31 profiles still have unverified physical units, so this entrypoint
+All current drawing profiles still have unverified physical units, so this entrypoint
 refuses them. `sheet.items` and the default Viewer expose the supported saved
 content in source coordinates without physical-unit conversion. Content coverage stays `unknown`, with
 `snapshot_kind=saved` and `reference_freshness=unverified`.

@@ -121,8 +121,11 @@ pub fn read_embedded_images_with_limits(
                 if !bodies.contains_key(&source.stream) {
                     let encoded =
                         crate::stream(&mut file, &source.stream, limits.max_stream_bytes)?;
-                    let compressed = super::profile::bulk(&encoded)?;
-                    let major = if encoded[17] == 1 { 23 } else { 31 };
+                    let major = *scene
+                        .bitmap_majors
+                        .get(&source.stream)
+                        .ok_or_else(|| Error("missing registry-bound bitmap profile".into()))?;
+                    let compressed = super::profile::bulk_for_major(&encoded, major)?;
                     let (body, _) = rse::inflate_budgeted(
                         compressed,
                         limits.max_inflated_bytes,
@@ -142,7 +145,9 @@ pub fn read_embedded_images_with_limits(
                 image.height = Some(h);
                 image.sha256 = Some(format!("{:x}", Sha256::digest(&png)));
                 image.data = Some(Binary(png));
-                image.status = if *major == 23 {
+                image.status = if super::profile::get(*major).and_then(|p| p.bitmap)
+                    == Some(super::profile::BitmapLayout::Rgba)
+                {
                     "decoded_rgba_view_cache_unqualified"
                 } else {
                     "decoded_monochrome_view_cache_unqualified"
@@ -192,7 +197,7 @@ pub fn read_embedded_images_with_limits(
     Ok(out)
 }
 
-// Exact saved-cache variants: major31 monochrome; major23 RGBA with 01/01
+// Exact saved-cache variants: major31 monochrome; major23/28 RGBA with 01/01
 // prefix and 01 suffix. Pixels are bottom-up. Colorimetry remains unqualified.
 fn view_bitmap_png(
     b: &[u8],
@@ -202,9 +207,12 @@ fn view_bitmap_png(
     work: &mut usize,
 ) -> Result<(u32, u32, Vec<u8>)> {
     let bad = || Error("unsupported saved view bitmap".into());
+    let layout = super::profile::get(major)
+        .and_then(|p| p.bitmap)
+        .ok_or_else(bad)?;
     let mut r = crate::read::Reader::new(b);
     r.skip(6)?;
-    if !matches!(major, 23 | 31) || (major == 23 && r.take(2)? != [1, 1]) {
+    if layout == super::profile::BitmapLayout::Rgba && r.take(2)? != [1, 1] {
         return Err(bad());
     }
     let h = r.u32()?;
@@ -218,15 +226,15 @@ fn view_bitmap_png(
     }
     *pixels_left -= pixels;
     let rgba = r.take(pixels as usize * 4)?;
-    if major == 23 && r.u8()? != 1 {
+    if layout == super::profile::BitmapLayout::Rgba && r.u8()? != 1 {
         return Err(bad());
     }
     r.finish()?;
     rse::charge(work, (pixels as usize).div_ceil(1024) + 1)?;
-    if rgba
-        .chunks_exact(4)
-        .any(|p| (major == 31 && p[..3] != [0; 3]) || !matches!(p[3], 0 | 255))
-    {
+    if rgba.chunks_exact(4).any(|p| {
+        (layout == super::profile::BitmapLayout::Monochrome && p[..3] != [0; 3])
+            || !matches!(p[3], 0 | 255)
+    }) {
         return Err(bad());
     }
     // Raw cache bytes are bounded by expanded-stream and aggregate pixel limits.
@@ -349,7 +357,7 @@ fn jpeg(b: &[u8]) -> Result<(u32, u32)> {
 pub(super) fn fuzz(bytes: &[u8]) {
     let _ = jpeg(bytes);
     let _ = crate::thumbnail::validate_png(bytes);
-    for major in [23, 31] {
+    for major in [23, 24, 26, 28, 29, 31] {
         let _ = view_bitmap_png(bytes, major, 65536, &mut 65536, &mut 1000);
     }
 }
@@ -358,7 +366,7 @@ pub(super) fn fuzz(bytes: &[u8]) {
 mod tests {
     use super::*;
     #[test]
-    fn major23_color_cache_preserves_channels_flips_rows_and_checks_suffix() {
+    fn rgba_color_cache_preserves_channels_flips_rows_and_checks_suffix() {
         let mut b = vec![0; 6];
         b.extend([1, 1]);
         b.extend(2u32.to_le_bytes());
@@ -373,9 +381,17 @@ mod tests {
             .read_to_end(&mut raw)
             .unwrap();
         assert_eq!(raw, [0, 44, 55, 66, 0, 0, 11, 22, 33, 255]);
-        assert!(view_bitmap_png(&b, 31, 1024, &mut 2, &mut 100).is_err());
-        for n in 0..b.len() {
-            assert!(view_bitmap_png(&b[..n], 23, 1024, &mut 2, &mut 100).is_err());
+        assert_eq!(
+            view_bitmap_png(&b, 28, 1024, &mut 2, &mut 100).unwrap().2,
+            png
+        );
+        for major in [24, 26, 29, 31] {
+            assert!(view_bitmap_png(&b, major, 1024, &mut 2, &mut 100).is_err());
+        }
+        for major in [23, 28] {
+            for n in 0..b.len() {
+                assert!(view_bitmap_png(&b[..n], major, 1024, &mut 2, &mut 100).is_err());
+            }
         }
         for index in [6, 7, 16, 20, 24, 29] {
             let mut bad = b.clone();
@@ -475,6 +491,7 @@ mod tests {
             },
         };
         let mut scene = ExperimentalScene {
+            bitmap_majors: BTreeMap::new(),
             status: "experimental_partial",
             qualified: false,
             source_sha256: format!("{:x}", Sha256::digest(&data)),

@@ -15,6 +15,9 @@ mod tests;
 
 #[derive(Debug, Serialize)]
 pub struct ExperimentalScene {
+    /// Registry-bound cache profiles; never inferred from the compression envelope.
+    #[serde(skip)]
+    pub(crate) bitmap_majors: BTreeMap<String, u8>,
     pub status: &'static str,
     pub qualified: bool,
     pub source_sha256: String,
@@ -297,7 +300,7 @@ fn resolve_inner<'a>(
     if targets.next().is_some()
         || target.status != "framed"
         || target.registry.major != sm.registry.major
-        || !matches!(target.registry.major, 23 | 31)
+        || super::profile::get(target.registry.major).is_none()
         || target.registry.kind != kind
     {
         return Err(error("ambiguous or unsupported display segment"));
@@ -384,7 +387,11 @@ fn bind<'a>(
     Ok((target, root.record_ordinal, binding))
 }
 
-fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, DisplayFont>> {
+fn fonts(
+    doc: &DrawingInventory,
+    work: &mut usize,
+    diagnostics: &mut Vec<String>,
+) -> Result<BTreeMap<u32, DisplayFont>> {
     rse::charge(work, doc.segments.len())?;
     for s in &doc.segments {
         rse::charge(work, s.observations.len())?;
@@ -395,10 +402,10 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
         .filter(|s| {
             s.status == "framed"
                 && s.registry.kind == "DlDirectorySegmentType"
-                && matches!(s.registry.major, 23 | 31)
+                && super::profile::get(s.registry.major).is_some()
         })
-        .flat_map(|s| s.observations.iter())
-        .filter(|o| o.proposed_role == "font_table_candidate")
+        .flat_map(|s| s.observations.iter().map(move |o| (s.registry.major, o)))
+        .filter(|(_, o)| o.proposed_role == "font_table_candidate")
         .collect();
     if tables.is_empty() {
         return Ok(BTreeMap::new());
@@ -407,18 +414,18 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
         return Err(error("ambiguous font directory"));
     }
     let mut result = BTreeMap::new();
-    let fields = &tables[0].fields;
+    let fields = &tables[0].1.fields;
     let Some((last, entries)) = fields.split_last() else {
         return Err(error("empty font directory"));
     };
-    let stride = if tables[0].layout == "idw-major23-typed-fields-v1" {
-        10
-    } else {
-        7
-    };
+    let profile =
+        super::profile::get(tables[0].0).ok_or_else(|| error("unsupported font profile"))?;
+    let stride = if profile.legacy_fonts { 10 } else { 7 };
     if last.name != "font_next_id" || entries.len() % stride != 0 {
         return Err(error("unsupported font directory fields"));
     }
+    let mut identifiers = BTreeSet::new();
+    let mut unsupported = 0;
     for row in entries.chunks_exact(stride) {
         rse::charge(work, 1)?;
         if row[7..]
@@ -451,7 +458,7 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
         }
         let (
             FieldValue::U32(ids),
-            FieldValue::U16(4),
+            FieldValue::U16(tag),
             FieldValue::U16(weight),
             FieldValue::F32(size),
             FieldValue::Utf16(name),
@@ -465,8 +472,15 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
         else {
             return Err(error("unsupported font directory values"));
         };
-        if ids.len() != 1 || size.len() != 2 || !size[0].is_finite() || size[0] <= 0. {
+        if ids.len() != 1 || size.len() != 2 || !size[0].is_finite() {
             return Err(error("invalid font size or identifier"));
+        }
+        if !identifiers.insert(ids[0]) {
+            return Err(error("duplicate font identifier"));
+        }
+        if *tag != 4 || size[0] <= 0. {
+            unsupported += 1;
+            continue;
         }
         rse::charge(work, name.len())?;
         let FieldValue::U16(raw_flags) = flags.value else {
@@ -494,6 +508,11 @@ fn fonts(doc: &DrawingInventory, work: &mut usize) -> Result<BTreeMap<u32, Displ
         {
             return Err(error("duplicate font identifier"));
         }
+    }
+    if unsupported != 0 {
+        diagnostics.push(format!(
+            "{unsupported} native font entries have unsupported tags or nonpositive sizes"
+        ));
     }
     Ok(result)
 }
@@ -709,7 +728,9 @@ fn owners_with_depth<'a>(
             if raw == 0 {
                 continue;
             }
-            if s.registry.major == 23 && raw & 0x80000000 == 0 {
+            if super::profile::get(s.registry.major).is_some_and(|p| p.external_children)
+                && raw & 0x80000000 == 0
+            {
                 // Observed cross-segment display child (including DC targets).
                 // Preserve the raw reference and omit this branch; never treat
                 // a foreign object key as a local slot or poison other roots.
@@ -881,6 +902,7 @@ pub fn experimental_scene_with_limits(
     drawing: &DrawingLimits,
 ) -> ExperimentalScene {
     let mut out = ExperimentalScene {
+        bitmap_majors: BTreeMap::new(),
         status: "unavailable",
         qualified: false,
         source_sha256: doc.source_sha256.clone(),
@@ -901,7 +923,7 @@ pub fn experimental_scene_with_limits(
     let mut display_nodes = BTreeMap::new();
     let mut resolve_cache = ResolveCache::default();
     let mut work = drawing.max_reference_visits;
-    let fonts = match fonts(doc, &mut work) {
+    let fonts = match fonts(doc, &mut work, &mut out.diagnostics) {
         Ok(f) => f,
         Err(e) => {
             out.diagnostics.push(e.to_string());
@@ -910,7 +932,7 @@ pub fn experimental_scene_with_limits(
     };
     for sm in doc.segments.iter().filter(|s| {
         s.status == "framed"
-            && matches!(s.registry.major, 23 | 31)
+            && super::profile::get(s.registry.major).is_some()
             && s.registry.kind == "DlSheetSmSegmentType"
     }) {
         if out.spaces.len() >= drawing.max_sheets {
@@ -1074,6 +1096,14 @@ pub fn experimental_scene_with_limits(
                         let reference = *bitmap_ids
                             .entry((sm.registry.id.clone(), id))
                             .or_insert(next);
+                        if let Some(old) = out
+                            .bitmap_majors
+                            .insert(bitmap.source.stream.clone(), sm.registry.major)
+                        {
+                            if old != sm.registry.major {
+                                return Err(error("conflicting view bitmap profiles"));
+                            }
+                        }
                         view.image_reference = Some(reference);
                         budget.item()?;
                         space.items.push(DisplayItem {
@@ -1092,10 +1122,12 @@ pub fn experimental_scene_with_limits(
                                 v: transform(&world, &[0., b[1] - b[4], 0.], 0.)?,
                             },
                         });
-                        // The major23 shaded cache is the background of the
+                        // The major23/28 shaded cache is the background of the
                         // view's saved vector edges. Keep annotations above it.
                         // General drawing z-order remains unqualified.
-                        if sm.registry.major == 23 {
+                        if super::profile::get(sm.registry.major)
+                            .is_some_and(|p| p.bitmap == Some(super::profile::BitmapLayout::Rgba))
+                        {
                             let cache = space.items.pop().unwrap();
                             space.items.insert(display_start, cache);
                         }

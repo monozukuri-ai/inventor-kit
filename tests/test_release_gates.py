@@ -154,7 +154,7 @@ class ReleaseGates(unittest.TestCase):
         self.assertFalse(caps['assembly']['current_state_verified'])
         self.assertTrue(caps['experimental_drawing']['viewer_default'])
         self.assertIsNone(caps['experimental_drawing']['viewer_flag'])
-        self.assertEqual(caps['experimental_drawing']['segment_majors'], [23, 31])
+        self.assertEqual(caps['experimental_drawing']['segment_majors'], [23, 24, 26, 28, 29, 31])
         self.assertFalse(caps['experimental_drawing']['physical_units_verified'])
         self.assertFalse(caps['experimental_drawing']['native_accuracy_qualified'])
         caps['assembly']['section_versions'].clear()

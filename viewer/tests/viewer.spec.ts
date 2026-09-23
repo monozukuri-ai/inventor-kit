@@ -345,12 +345,45 @@ test('IDW default startup shows stored elements, images and source-unit controls
 });
 
 test('IDW unsupported profile retains previews and a clear unavailable state', async ({ page }) => {
-  await open(page, 'drawings/iacs/Template_IACS.idw');
-  await expect(page.locator('#empty')).toBeVisible();
-  await expect(page.locator('#empty h2')).toHaveText('Drawing display unavailable');
-  await expect(page.locator('#previews img')).not.toHaveCount(0);
-  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  const directory = mkdtempSync(resolve(tmpdir(), 'idw-unsupported-'));
+  try {
+    const source = resolve(directory, 'synthetic-major25.idw');
+    const made = spawnSync(python, ['-c', `import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from drawing_fixture_helpers import with_segment_major
+Path(sys.argv[3]).write_bytes(with_segment_major(Path(sys.argv[2]).read_bytes(), 25))`,
+      resolve(root, 'tests'), resolve(corpus, 'SampleBg.idw'), source], { encoding: 'utf-8' });
+    expect(made.status, made.stderr).toBe(0);
+    await open(page, source);
+    await expect(page.locator('#empty')).toBeVisible();
+    await expect(page.locator('#empty h2')).toHaveText('Drawing display unavailable');
+    await expect(page.locator('#previews img')).not.toHaveCount(0);
+    await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+for (const [major, file, count, views] of [
+  [24, 'iacs/Template_IACS', 50, 0],
+  [29, 'versions/Toys-R-Us-Rex', 156, 3],
+  [28, 'versions/mateolikescats', 1411, 5],
+  [26, 'versions/RespiraWorks', 270, 3],
+  [26, 'versions/starliliko', 90, 0],
+] as const) {
+  test(`IDW major${major} saved display ${file}`, async ({ page }, info) => {
+    const url = await open(page, `drawings/${file}.idw`);
+    await expect(page.locator('#cad')).toHaveAttribute('data-mode', 'drawing');
+    await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(count);
+    await expect(page.locator('#sheet-buttons button')).toHaveCount(1);
+    await expect(page.locator('.notice')).toContainText('Partial display');
+    const state = await (await page.request.get(url + 'state.json')).json();
+    expect(state.drawing.qualified).toBe(false);
+    expect(state.drawing.millimeters_per_unit).toBeNull();
+    const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+    expect(sheet.views).toHaveLength(views);
+    await page.locator('#drawing-svg').screenshot({ path: info.outputPath(`major${major}.png`) });
+  });
+}
 
 test('IDW legacy flag still opens the same saved display', async ({ page }) => {
   const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);

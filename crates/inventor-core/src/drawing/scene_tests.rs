@@ -676,6 +676,19 @@ fn sampled_spline_uses_shared_point_budget_and_affine_placement() {
 }
 
 #[test]
+fn added_profiles_resolve_only_same_major_target_segments() {
+    for major in [24, 29, 28, 26] {
+        let mut d = revised_placement_doc();
+        for s in &mut d.segments {
+            s.registry.major = major;
+        }
+        assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_ok());
+        d.segments[1].registry.major = if major == 28 { 29 } else { 28 };
+        assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_err());
+    }
+}
+
+#[test]
 fn fonts_use_stored_identifier_and_reject_duplicates() {
     let entry = || {
         vec![
@@ -695,9 +708,41 @@ fn fonts_use_stored_identifier_and_reject_duplicates() {
         [4; 16],
         vec![observation(0, "font_table_candidate", row)],
     )]);
-    let f = fonts(&d, &mut 100).unwrap();
+    let f = fonts(&d, &mut 100, &mut vec![]).unwrap();
     assert!(!f.contains_key(&1));
     assert_eq!(f[&77].family, "Synthetic font");
+    let mut rows = entry();
+    let mut unknown = entry();
+    unknown[0].1 = w(78);
+    unknown[1].1 = FieldValue::U16(1);
+    rows.extend(unknown);
+    let mut zero = entry();
+    zero[0].1 = w(79);
+    zero[4].1 = FieldValue::F32(vec![0., 1.]);
+    rows.extend(zero);
+    rows.push(("font_next_id", w(80)));
+    let d = document(vec![segment(
+        "DlDirectorySegmentType",
+        [4; 16],
+        vec![observation(0, "font_table_candidate", rows)],
+    )]);
+    let mut diagnostics = vec![];
+    let f = fonts(&d, &mut 100, &mut diagnostics).unwrap();
+    assert_eq!(f.len(), 1);
+    assert_eq!(f[&77].family, "Synthetic font");
+    assert_eq!(diagnostics.len(), 1);
+    assert!(diagnostics[0].starts_with("2 native font entries"));
+    let mut unknown = entry();
+    unknown[1].1 = FieldValue::U16(1);
+    let mut rows = entry();
+    rows.extend(unknown);
+    rows.push(("font_next_id", w(78)));
+    let d = document(vec![segment(
+        "DlDirectorySegmentType",
+        [4; 16],
+        vec![observation(0, "font_table_candidate", rows)],
+    )]);
+    assert!(fonts(&d, &mut 100, &mut vec![]).is_err());
     let mut rows = entry();
     rows.extend(entry());
     rows.push(("font_next_id", w(78)));
@@ -706,7 +751,7 @@ fn fonts_use_stored_identifier_and_reject_duplicates() {
         [4; 16],
         vec![observation(0, "font_table_candidate", rows)],
     )]);
-    assert!(fonts(&d, &mut 100).is_err());
+    assert!(fonts(&d, &mut 100, &mut vec![]).is_err());
 }
 
 fn attach_attribute(doc: &mut DrawingInventory, ordinal: usize, attribute: PayloadObservation) {

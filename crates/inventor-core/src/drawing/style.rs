@@ -17,8 +17,11 @@ pub(super) fn fonts(f: &mut Fields<'_, '_>) -> Result<()> {
         f.short("font_flags")?;
         f.floats("font_size_parameters", 2)?;
         f.text("font_name")?;
-        f.floats("font_tail_parameters", if f.major == 23 { 2 } else { 3 })?;
-        if f.major == 23 {
+        f.floats(
+            "font_tail_parameters",
+            if f.profile.legacy_fonts { 2 } else { 3 },
+        )?;
+        if f.profile.legacy_fonts {
             for _ in 0..3 {
                 f.byte("font_tail_flag_unresolved")?;
             }
@@ -32,7 +35,7 @@ pub(super) fn attributes(f: &mut Fields<'_, '_>) -> Result<()> {
     f.require(0x30000002)?;
     let n = f.r.count(65536)?;
     rse::charge(f.work, n)?;
-    if n == 0 && f.major == 23 {
+    if n == 0 && f.profile.empty_attributes {
         return f.r.finish();
     }
     if n == 0 || f.r.u32()? < n as u32 {
@@ -61,7 +64,7 @@ pub(super) fn layer_binding(f: &mut Fields<'_, '_>) -> Result<()> {
 pub(super) fn layer(f: &mut Fields<'_, '_>) -> Result<()> {
     f.word("header_flags")?;
     f.short("object_id")?;
-    f.r.skip(if f.major == 23 { 19 } else { 21 })?;
+    f.r.skip(f.profile.layer_prefix)?;
     f.text("layer_name")?;
     f.r.skip(6)?;
     f.text("layer_origin")?;
