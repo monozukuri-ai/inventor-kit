@@ -109,7 +109,8 @@ def text_presentation(g):
                   and font['family'].lower() == 'aigdt' and font['flags'] == 0 and font['weight_candidate'] == 400)
     family = font['family'] if font else ''
     cjk = bool(re.search(r'[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef]', g['text']))
-    fallbacks = ['Noto Sans CJK JP', 'Yu Gothic', 'Meiryo'] if cjk else []
+    fallbacks = ['Noto Sans CJK JP', 'Yu Gothic', 'Meiryo', 'Hiragino Sans',
+                 'Hiragino Kaku Gothic ProN', 'IPAGothic', 'IPAPGothic'] if cjk else []
     # Explicit symbol fonts avoid a legacy AIGDT glyph being used for Unicode.
     if symbol:
         fallbacks = ['DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2']

@@ -91,10 +91,12 @@ try {
         assert(fonts.every(f => !/lastresort/i.test(f.familyName)), 'missing platform glyph font');
         result.fonts.push(fonts);
       }
+      assert(result.fonts[0].some(f => /NotoSansCJKjp|YuGothic|Meiryo|Hiragino|IPAP?Gothic/i.test(f.postScriptName)),
+        'Japanese control needs an actual Japanese font, not a generic CJK/tofu fallback');
       await cdp.detach();
     }
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    await page.screenshot({ path: path.join(directory, input.file + '.png') });
+    await page.screenshot({ path: path.join(directory, input.file + '.png'), fullPage: true });
     delete result.boxes;
     delete result.texts;
     results.push({ file: input.file, ...result });
