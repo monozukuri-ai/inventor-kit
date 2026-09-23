@@ -113,6 +113,18 @@ class WheelRecords(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'stale viewer asset'):
             self.validate(self.rows('/'))
 
+    def test_new_source_file_requires_a_rebuilt_viewer_manifest(self):
+        import json
+        from check_viewer_assets import check_bundle
+        prefix = 'inventor_kit/viewer/static/'
+        manifest = json.loads(self.contents[prefix+'manifest.json'])
+        contents = dict(self.contents)
+        contents.update({'viewer/'+name: (ROOT/'viewer'/name).read_bytes() for name in manifest['inputs']})
+        check_bundle(contents.__getitem__, set(contents), prefix, 'viewer/')
+        contents['viewer/scripts/new-check.mjs'] = b'// New build input, absent from the old manifest'
+        with self.assertRaisesRegex(ValueError, 'Unlisted or missing viewer build input'):
+            check_bundle(contents.__getitem__, set(contents), prefix, 'viewer/')
+
 
     def test_mit_only_metadata_is_rejected_even_with_valid_record(self):
         self.contents[self.metadata] = self.contents[self.metadata].replace(

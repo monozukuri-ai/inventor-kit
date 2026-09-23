@@ -10,6 +10,7 @@
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
     "package-lock.json": "c04d64479c3deff3420a10147dc41f694de71fb0154f38d04a210bbae67317a9",
     "package.json": "807b77d4ab1318852c14ab3b59e5f3033a8e3cfba8d5416b1df5532ac29c8917",
+    "scripts/check-drawing-platform.mjs": "b2470f0da3aaf17f6b3a28a2729822d2095bd5e05d55e731031d53ce4f44ffea",
     "scripts/manifest.mjs": "101a4cc3c0c371d17f378ad37b24332920a7637a01e24de2358660f0e8ebfd92",
     "src/drawing-data.ts": "bd9d3262fc5737bb0332800aae759bd562e5339e3015a8668979ba2f5b1c8b54",
     "src/drawing-svg.ts": "905ea88127b3e125aab039e2fa469baf341166d7f72e2d3a62a1699b6bbec2ef",
