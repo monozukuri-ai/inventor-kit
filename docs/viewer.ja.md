@@ -37,7 +37,7 @@ python -m inventor_kit.viewer part.ipt --quality fine
 python -m inventor_kit.viewer part.ipt --candidate-id CANDIDATE_ID
 python -m inventor_kit.viewer part.ipt --require-current-state
 python -m inventor_kit.viewer drawing.idw --metadata-only
-python -m inventor_kit.viewer drawing.idw --experimental-drawing
+python -m inventor_kit.viewer drawing.idw
 python -m inventor_kit.viewer assembly.iam
 python -m inventor_kit.viewer assembly.iam --allow-unverified-state
 python -m inventor_kit.viewer assembly.iam --search-root parts --allow-unverified-state --allow-partial
@@ -78,7 +78,7 @@ Inventor の外観は未解析です。
 **Current Model State is unverified** の表示は、メッシュを描画できた場合も適用されます。
 保存プレビューは別の保存状態を示す場合があり、3D 表示と区別します。
 形状変換に失敗しても、取得済みの属性、プレビュー、候補、元の診断を残します。
-IDWは`--experimental-drawing`で[実験的な2D表示](drawing.ja.md)を利用できます。Pythonのviewer extraは不要です。IPNは文書情報のみで、プレゼンテーションのアニメーションは未対応です。
+対応するIDWは通常起動で[保存2D表示](drawing.ja.md)を開きます。部分表示であり、単位と現在状態は未検証です。Pythonのviewer extraは不要です。IPNは文書情報のみで、プレゼンテーションのアニメーションは未対応です。
 [対応範囲](support.ja.md)を参照してください。
 
 `--quality` は `draft`、`normal`（既定）、`fine` から選びます。

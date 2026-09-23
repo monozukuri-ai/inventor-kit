@@ -84,7 +84,7 @@ class ReleaseGates(unittest.TestCase):
                                    mesh_buffers_fetched=4, shutdown='passed')
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         for report in reports:
-            for case, status, count in [('drawing', 'unavailable', 0), ('partial_drawing', 'experimental_partial', 3)]:
+            for case, status, count in [('drawing', 'experimental_partial', 3), ('partial_drawing', 'experimental_partial', 3)]:
                 report['cases'][case] = dict(status=status, sheet_count=1, resources_fetched=count, qualified=False,
                     source_sha256='c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e', shutdown='passed')
         with tempfile.TemporaryDirectory() as temporary:
@@ -105,6 +105,8 @@ class ReleaseGates(unittest.TestCase):
                     **reports[0]['cases']['partial_assembly'], 'displayed_instances': 0}}},
                 {'cases': {**reports[0]['cases'], 'part': {
                     **reports[0]['cases']['part'], 'shutdown': 'failed'}}},
+                {'cases': {**reports[0]['cases'], 'drawing': {
+                    **reports[0]['cases']['drawing'], 'status': 'unavailable', 'resources_fetched': 0}}},
             ]
             for mutation in mutations:
                 paths[0].write_text(json.dumps({**reports[0], **mutation}))
@@ -134,6 +136,11 @@ class ReleaseGates(unittest.TestCase):
         self.assertEqual(caps['support_level'], 'verified_subset')
         self.assertFalse(caps['part_geometry']['current_state_verified'])
         self.assertFalse(caps['assembly']['current_state_verified'])
+        self.assertTrue(caps['experimental_drawing']['viewer_default'])
+        self.assertIsNone(caps['experimental_drawing']['viewer_flag'])
+        self.assertEqual(caps['experimental_drawing']['segment_majors'], [23, 31])
+        self.assertFalse(caps['experimental_drawing']['physical_units_verified'])
+        self.assertFalse(caps['experimental_drawing']['native_accuracy_qualified'])
         caps['assembly']['section_versions'].clear()
         self.assertEqual(len(ik.capabilities()['assembly']['section_versions']), 27)
 

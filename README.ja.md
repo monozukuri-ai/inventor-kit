@@ -1,6 +1,6 @@
 # inventor-kit
 
-IDWの保存シートと2D要素の実験表示は[Python API・Viewer](docs/drawing.ja.md)を参照してください。
+IDWの保存2D表示は通常のViewer起動で利用できます（部分対応）。詳しくは[Python API・Viewer](docs/drawing.ja.md)を参照してください。
 
 [English](README.md) | 日本語
 

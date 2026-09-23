@@ -1,4 +1,4 @@
-/** Experimental stored IDW display in source units. No 3D renderer dependency. */
+/** Partial stored IDW display in source units. No 3D renderer dependency. */
 import { loadSheet, type SheetResource } from './drawing-data';
 type Point = [number, number, number];
 type Font = { family: string; height_candidate: number; weight_candidate: number; width_factor: number | null; flags: number };
@@ -58,9 +58,7 @@ export function showDrawing(data: DrawingScene): () => void {
   el('tree-title').textContent = 'Sheets'; el('body-count').textContent = String(data.sheets.length);
   el('body-list').replaceChildren();
   const tree = document.createElement('div'); tree.id = 'sheet-buttons'; el('body-list').append(tree);
-  document.querySelector('.notice')!.textContent = data.experimental
-    ? 'Experimental drawing · Partial display · Units and current state unverified'
-    : 'Saved drawing · Display qualification incomplete';
+  document.querySelector('.notice')!.textContent = 'Saved drawing · Partial display · Units and current state unverified';
   document.querySelector('.viewport')!.setAttribute('aria-label', '2D drawing');
   (document.querySelector('.viewport > nav') as HTMLElement).hidden = true;
   (document.querySelector('.tree-controls') as HTMLElement).hidden = true;
@@ -72,6 +70,8 @@ export function showDrawing(data: DrawingScene): () => void {
   const omissions = document.createElement('section'); omissions.id = 'drawing-omissions'; el('diagnostics').prepend(omissions);
   const results = document.createElement('div'); results.id = 'drawing-search-results'; el('body-list').append(results);
   const viewList = document.createElement('div'); viewList.id = 'drawing-views'; el('body-list').append(viewList);
+  const sheetLabel = (s: { name: string; index: number }) => !s.name ? `Sheet ${s.index + 1}`
+    : data.sheets.filter(other => other.name === s.name).length > 1 ? `${s.index + 1} · ${s.name}` : s.name;
   function node<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number>, parent: SVGElement = svg) {
     const e = document.createElementNS(NS, tag); for (const [key, value] of Object.entries(attrs)) e.setAttribute(key, String(value)); parent.append(e); return e;
   }
@@ -152,7 +152,7 @@ export function showDrawing(data: DrawingScene): () => void {
     sheet = s; selected = null; drag = null;
     el('cad').dataset.sheetId = s.id;
     el('selected').textContent = 'No drawing element selected';
-    el('selection-info').replaceChildren(label('h2', s.name || `Sheet ${s.index + 1}`), details({ ...s, items: undefined }));
+    el('selection-info').replaceChildren(label('h2', sheetLabel(s)), details({ ...s, items: undefined }));
     tree.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sheetId === s.id)));
     viewList.replaceChildren();
     for (const v of s.views ?? []) {
@@ -185,7 +185,9 @@ export function showDrawing(data: DrawingScene): () => void {
     svg.style.display = available ? '' : 'none'; fit.disabled = zoom.disabled = !available;
     el('empty').hidden = available;
     if (!available) { el('empty').querySelector('h2')!.textContent = 'Sheet display unavailable'; el('empty').querySelector('p')!.textContent = 'The stored sheet could not be linked to supported display elements. See Read results.'; }
-    el('render-status').textContent = `${s.name || `Sheet ${s.index + 1}`} · ${s.items.length} saved elements · Partial display`;
+    el('render-status').textContent = available
+      ? `${sheetLabel(s)} · ${s.items.length} saved elements · Partial display`
+      : `${sheetLabel(s)} · Display unavailable`;
     el('cad').dataset.rendered = String(available); el('cad').dataset.displayed = String(s.items.length);
     reset(); draw(); rows();
   }
@@ -202,7 +204,7 @@ export function showDrawing(data: DrawingScene): () => void {
     if (!descriptor.resource) { present(unavailable); return; }
     fit.disabled = zoom.disabled = true; el('empty').hidden = false;
     el('empty').querySelector('h2')!.textContent = 'Loading sheet';
-    el('empty').querySelector('p')!.textContent = descriptor.name;
+    el('empty').querySelector('p')!.textContent = sheetLabel(descriptor);
     el('render-status').textContent = 'Loading selected sheet…';
     try {
       const payload = await loadSheet(data.source_sha256, descriptor, controller.signal);
@@ -217,7 +219,7 @@ export function showDrawing(data: DrawingScene): () => void {
     }
   }
   for (const s of data.sheets) {
-    const button = label('button', s.name || `Sheet ${s.index + 1}`); button.dataset.sheetId = s.id;
+    const button = label('button', sheetLabel(s)); button.dataset.sheetId = s.id;
     button.addEventListener('click', () => { void choose(s); }); tree.append(button);
   }
   fit.onclick = reset; zoom.onclick = () => { const cx = view[0] + view[2] / 2, cy = view[1] + view[3] / 2;
@@ -231,7 +233,7 @@ export function showDrawing(data: DrawingScene): () => void {
   svg.onpointermove = e => { if (!drag) return; const p = position(e); if (!p) return;
     view[0] += drag.x - p.x; view[1] += drag.y - p.y; viewBox(); };
   svg.onpointerup = svg.onpointercancel = svg.onlostpointercapture = () => { drag = null; };
-  if (data.sheets.length) void choose(data.sheets[0]);
+  if (data.sheets.length) void choose(data.sheets.find(s => s.resource && s.status !== 'unavailable') ?? data.sheets[0]);
   else {
     el('empty').hidden = false; el('empty').querySelector('h2')!.textContent = 'Drawing display unavailable';
     el('empty').querySelector('p')!.textContent = 'No supported stored sheet list was resolved. Saved previews and diagnostics remain available.';

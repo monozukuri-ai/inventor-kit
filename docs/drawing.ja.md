@@ -1,7 +1,8 @@
-# 実験的なIDW読み取り・表示
+# IDW読み取り・保存図面の表示
 
 [English](drawing.md) | 日本語
 
+対応するIDWは、通常のViewer起動で開けます。
 Inventorや参照モデルの再投影を使わず、保存された2D要素を読み取ります。
 **実験的な部分対応**で、schema31 / Meta8のmajor31（zstd）とmajor23（zlib）が対象です。
 図面全体の正確性、物理単位、シート所属の完全性、現在状態は未検証です。
@@ -42,12 +43,17 @@ Inventorでの再保存をまたぐ安定性は保証しません。`api_version
 表示できても`qualified=False`、`complete=False`、`current_state=unverified`です。
 
 ```sh
-python -m inventor_kit.viewer drawing.idw --experimental-drawing
+python -m inventor_kit.viewer drawing.idw
 ```
 
 通常のローカルViewerで、シート選択、パン、拡大、全体表示、文字・曲線の表示切替、文字検索、
 要素の出典確認ができます。IDW表示にはPythonの`viewer` extraは不要で、ブラウザーの3D描画器も読み込みません。
-フラグなしでは文書情報・保存プレビュー、シート一覧と表示できない理由を表示します。CLIの依存判定も含め、識別はCFB root CLSIDによります。
+文書情報と保存プレビューだけを確認する場合は `--metadata-only` を指定します。
+従来の `--experimental-drawing` は互換性のため受理しますが、指定は不要です。
+`--allow-partial` を付けてもIDWの表示や単位の検証状態は変わりません。
+原座標の保存内容を表示し、画面には部分表示・単位と現在状態が未検証であることを表示します。
+同名シートには一覧で順番を添え、最初に表示可能なシートを開きます。
+CLIの依存判定も含め、識別はCFB root CLSIDによります。
 文書種別と両立しないオプションはworkerの診断として表示します。
 IPT/IAM選択オプションとの併用はできません。既存のプロセスタイムアウト、シーンJSON 16 MiB上限、
 画像のバイト・画素数上限とViewerバッファ上限を適用します。workerが正常終了した後に図面と画像を公開します。
@@ -117,14 +123,12 @@ major23では保存カラー画像の上に対応する輪郭線・注記を重�
 単位・配置が未確定の場合は、`allow_partial=True` でも `DrawingDisplayError` を返します。
 例外の `sheet_id`、`diagnostics`、`omissions` から理由を確認できます。
 現行major23/31は物理単位が未検証なので、この入口での表示はまだ受理されません。
-`sheet.items` と `--experimental-drawing` による原座標の調査表示は継続して利用できます。
+`sheet.items` と通常のViewerは、物理単位へ変換せず、対応する保存内容を原座標で表示します。
 `content_coverage=unknown`、`snapshot_kind=saved`、`reference_freshness=unverified` を保持します。
 
-通常のViewer起動と `--allow-partial` はシート一覧・表示できない理由・保存プレビューを表示します。
-`--allow-partial` は未知の単位を許可する指定ではありません。
-実験的表示では選択したシートを必要に応じて読み込み、切替前の古い応答は表示しません。
+Viewerは選択したシートを必要に応じて読み込み、切替前の古い応答は表示しません。
 シートと画像のリソースを検査してから配信します。
-シートJSONは個別16 MiB、シートJSONと画像の合計は最大128 MiB（Viewerのbuffer上限で縮小可能）です。
+シートJSONは個別32 MiB、シートJSONと画像の合計は最大128 MiB（Viewerのbuffer上限で縮小可能）です。
 metadataの16 MiB上限は別に維持します。これらはRSSや実行時間の保証ではありません。
 
 ### 保存ビューの読み取り

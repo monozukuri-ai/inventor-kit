@@ -1,4 +1,4 @@
-"""Entry point for the local saved-part viewer."""
+"""Entry point for the local saved-document viewer."""
 import argparse
 from contextlib import contextmanager
 import signal
@@ -33,18 +33,20 @@ def shutdown_signals():
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="View saved Inventor parts, assemblies and experimental IDW drawings locally")
+    parser = argparse.ArgumentParser(description="View saved Inventor parts, assemblies and IDW drawings locally",
+        epilog="Supported IDW drawings open in saved source coordinates by default. Drawing content, physical units and current state remain unverified.")
     parser.add_argument("path")
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--quality", choices=("draft", "normal", "fine"), default="normal")
-    parser.add_argument("--metadata-only", action="store_true")
-    parser.add_argument("--experimental-drawing", action="store_true", help="Display experimental saved IDW elements; units and completeness are unverified")
+    parser.add_argument("--metadata-only", action="store_true", help="Show document information and saved previews without decoding geometry")
+    # Accepted for existing scripts; IDW saved display is now the default.
+    parser.add_argument("--experimental-drawing", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--candidate-id")
     parser.add_argument("--require-current-state", action="store_true")
     parser.add_argument("--search-root", action="append", default=[], help="IAM reference search directory (repeatable)")
     parser.add_argument("--allow-unverified-state", action="store_true", help="Allow saved IAM placements with unverified current state")
-    parser.add_argument("--allow-partial", action="store_true", help="Allow partial geometry; IDW still requires verified units and placement")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow partial IPT/IAM geometry; IDW already shows partial saved content")
     parser.add_argument("--body-id", action="append", default=[], help="Select an IPT body ID (repeatable)")
     parser.add_argument("--timeout", type=float, default=120, help="Conversion time limit in seconds (default: 120)")
     args = parser.parse_args(argv)

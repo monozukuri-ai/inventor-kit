@@ -84,7 +84,7 @@ def viewer_reports(paths, artifacts):
             if (tuple(result[k] for k in ('displayed_instances', 'occurrences', 'omissions')) != counts
                     or result['mesh_buffers_fetched'] <= 0 or result['shutdown'] != 'passed'):
                 raise ValueError('Viewer qualification scenario failed')
-        for case, status, resources in [('drawing', 'unavailable', 0), ('partial_drawing', 'experimental_partial', 3)]:
+        for case, status, resources in [('drawing', 'experimental_partial', 3), ('partial_drawing', 'experimental_partial', 3)]:
             result = cases[case]
             if (result['status'] != status or result['sheet_count'] != 1 or result['resources_fetched'] != resources
                     or result['qualified'] is not False or result['shutdown'] != 'passed'

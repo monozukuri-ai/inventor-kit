@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 
-from ..drawing import DrawingDisplayError, read_drawing, _plain
+from ..drawing import read_drawing, _plain
 
 MAX_SHEET_BYTES = 32 * 1024 * 1024
 MAX_DRAWING_BYTES = 128 * 1024 * 1024
@@ -94,15 +94,10 @@ def build_drawing_scene(data, directory, options, scene):
     total, limit = 0, min(options.max_buffer_bytes, MAX_DRAWING_BYTES)
     for sheet in doc.sheets:
         issues = list(sheet.diagnostics)
+        # The Viewer presents saved source coordinates. render_sheet() instead
+        # requests a physically scaled display and intentionally refuses unknown
+        # units; it is not the admission check for this partial saved display.
         publish = sheet.status != 'unavailable'
-        if not options.experimental_drawing:
-            try:
-                doc.render_sheet(sheet_id=sheet.id, allow_partial=options.allow_partial)
-            except DrawingDisplayError as error:
-                publish = False
-                issues.extend(d['message'] for d in error.diagnostics)
-                scene['diagnostics'].extend(_plain(d) | dict(severity='warning', source=None)
-                                            for d in error.diagnostics)
         descriptor = dict(id=sheet.id, index=sheet.index, name=sheet.name,
             status=sheet.status if publish else 'unavailable',
             size_in_source_units=list(sheet.size_in_source_units) if sheet.size_in_source_units is not None else None,
@@ -144,7 +139,7 @@ def build_drawing_scene(data, directory, options, scene):
     scene['drawing'] = dict(api_version=1, source_sha256=doc.source_sha256, status=status, sheet_status=doc.sheet_status,
         units=doc.units, length_unit=doc.length_unit, millimeters_per_unit=doc.millimeters_per_unit,
         qualified=False, complete=False, current_state='unverified', snapshot_kind='saved',
-        reference_freshness='unverified', experimental=options.experimental_drawing,
+        reference_freshness='unverified', experimental=True,
         allow_partial=options.allow_partial, sheets=sheets, images=images)
     scene['stages'].update(geometry=status, conversion='not_applicable', tessellation='not_applicable')
     return scene

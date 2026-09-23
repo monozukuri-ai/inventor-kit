@@ -1,9 +1,10 @@
-# Experimental IDW reading and display
+# IDW reading and saved display
 
 English | [日本語](drawing.ja.md)
 
-The opt-in IDW path reads stored 2D elements without Inventor, model reprojection,
-or Python CAD imports. It is **experimental partial support**, currently observed
+The Viewer opens supported IDW drawings by default, reading stored 2D elements
+without Inventor, model reprojection or Python CAD imports. The reader provides
+**experimental partial support**, currently observed
 on schema31 / Meta8 with major31 (zstd) or major23 (zlib). Drawing correctness, physical
 units, complete sheet membership and current state are not qualified.
 The reader uses saved display data and does not load related IPT/IAM files or
@@ -48,16 +49,21 @@ cm-to-mm conversion or dimensional measurement is exposed. `qualified=False`,
 looks correct.
 
 ```sh
-python -m inventor_kit.viewer drawing.idw --experimental-drawing
+python -m inventor_kit.viewer drawing.idw
 ```
 
 The normal local Viewer provides sheet selection, pan, zoom, fit, text/curve
 toggles, text search and element provenance. The IDW path does not require the
-`viewer` Python extra or load the browser's 3D renderer. Without the flag it shows
-metadata, saved previews, sheet descriptors and strict display diagnostics. Identification uses the CFB
-root CLSID, not the filename extension, including dependency checks at CLI startup.
-Incompatible document options appear as worker diagnostics. IPT/IAM selection flags cannot be combined
-with experimental drawing mode. The existing process timeout and 16 MiB scene
+`viewer` Python extra or load the browser's 3D renderer. Use `--metadata-only` to
+show document information and saved previews without decoding the drawing.
+The old `--experimental-drawing` flag is accepted for compatibility and is no
+longer necessary. `--allow-partial` does not change IDW display or verify its units.
+The Viewer displays supported content in saved source coordinates and labels it
+as partial, with unverified units and current state. Identical sheet names include
+their order number in the sidebar; the first available sheet opens automatically.
+Identification uses the CFB root CLSID, not the filename extension.
+Incompatible IPT/IAM selection options appear as worker diagnostics.
+The existing process timeout and 16 MiB scene
 limit apply; images also obey native byte/pixel limits and the Viewer buffer limit.
 Only final successful worker output publishes the drawing and its image resources.
 Each selected sheet resource is limited to 32 MiB; all sheet and image resources
@@ -144,15 +150,13 @@ Unknown sketch states, cross-segment display children and missing images remain 
 code `drawing.invalid_sheet_id`. Unknown units or placement raise `DrawingDisplayError` even when
 `allow_partial=True`; inspect its `sheet_id`, `diagnostics` and `omissions`.
 Current major23/31 profiles still have unverified physical units, so this entrypoint
-refuses them. `sheet.items` and `--experimental-drawing` retain the explicit
-source-coordinate investigation path. Content coverage stays `unknown`, with
+refuses them. `sheet.items` and the default Viewer expose the supported saved
+content in source coordinates without physical-unit conversion. Content coverage stays `unknown`, with
 `snapshot_kind=saved` and `reference_freshness=unverified`.
 
-Normal Viewer startup and `--allow-partial` show the stored sheet inventory and
-reasons display is refused. Partial permission never resolves unknown units.
-The experimental Viewer loads the selected sheet on demand and discards stale
+The Viewer loads the selected sheet on demand and discards stale
 responses when switching sheets. Sheet and image resources are checked before
 being made available.
-Each sheet JSON is limited to 16 MiB. Sheets and images together are limited to
+Each sheet JSON is limited to 32 MiB. Sheets and images together are limited to
 128 MiB or the lower Viewer buffer limit. The 16 MiB metadata ceiling is separate;
 none of these byte limits promises bounded RSS or elapsed time.

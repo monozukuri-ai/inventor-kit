@@ -129,7 +129,7 @@ def compare(root, output, inventory, row, exported):
             'Do not promote field correlations to a general unit contract')
     target = output / source.stem
     target.mkdir()
-    scene = build_scene(source, target, Options(experimental_drawing=True))
+    scene = build_scene(source, target, Options())
     require(scene['drawing']['status'] == doc.status, 'Viewer/API status differs')
     require([s['name'] for s in scene['drawing']['sheets']] == [s.name for s in doc.sheets],
             'Viewer/API sheet list differs')

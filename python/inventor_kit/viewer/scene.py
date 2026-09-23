@@ -25,7 +25,7 @@ class Options:
     allow_unverified_state: bool = False
     allow_partial: bool = False
     body_ids: tuple[str, ...] = ()
-    experimental_drawing: bool = False
+    experimental_drawing: bool = False  # Legacy IDW-only alias; no longer gates display.
 
     def __post_init__(self):
         if self.quality not in ("draft", "normal", "fine"):
@@ -43,7 +43,7 @@ class Options:
             raise ValueError("Assembly options cannot be combined with IPT selection options")
         if self.experimental_drawing and (self.metadata_only or self.candidate_id or self.require_current_state
                 or self.body_ids or self.search_roots or self.allow_unverified_state or self.allow_partial):
-            raise ValueError("Experimental drawing cannot be combined with metadata-only or IPT/IAM selection options")
+            raise ValueError("Legacy --experimental-drawing cannot be combined with metadata-only or IPT/IAM selection options")
 
 
 def empty_scene(name):

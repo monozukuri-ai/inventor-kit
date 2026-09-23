@@ -50,7 +50,7 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                 time.sleep(.1)
             if drawing:
                 display = scene['drawing']
-                expected = 'experimental_partial' if '--experimental-drawing' in options else 'unavailable'
+                expected = 'experimental_partial'
                 assert scene['source']['kind'] == scene['scene_kind'] == 'drawing'
                 assert scene['stages']['tessellation'] == 'not_applicable' and not scene['meshes']
                 assert display['status'] == expected and not display['qualified']
@@ -74,8 +74,7 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
             if drawing:
                 for descriptor in display['sheets']:
                     if descriptor['resource'] is None:
-                        assert expected == 'unavailable'
-                        continue
+                        raise AssertionError('Supported IDW did not publish its saved display')
                     with urlopen(url+descriptor['resource'], timeout=5) as response:
                         body = response.read()
                     assert len(body) == descriptor['bytes'] and hashlib.sha256(body).hexdigest() == descriptor['sha256']
@@ -88,7 +87,7 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                         with urlopen(url+image['resource'], timeout=5) as response:
                             assert hashlib.sha256(response.read()).hexdigest() == image['sha256']
                         resources += 1
-                assert resources == (3 if expected == 'experimental_partial' else 0)
+                assert resources == 3
         except Exception as error:
             failure = error
         finally:
@@ -150,7 +149,7 @@ def installed(corpus):
     assert len(drawing.images) == 2 and all(image.data for image in drawing.images)
     from inventor_kit.viewer.scene import Options, build_scene
     with tempfile.TemporaryDirectory(prefix='inventor-installed-drawing-') as temporary:
-        scene = build_scene(corpus / 'SampleBg.idw', Path(temporary), Options(experimental_drawing=True))
+        scene = build_scene(corpus / 'SampleBg.idw', Path(temporary), Options())
         assert scene['drawing']['status'] == 'experimental_partial' and not scene['meshes']
         assert all((Path(temporary)/i['resource']).is_file() for i in scene['drawing']['images'])
     assert not {'cq_acis', 'cadquery', 'ocp_tessellate', 'OCP'} & sys.modules.keys()

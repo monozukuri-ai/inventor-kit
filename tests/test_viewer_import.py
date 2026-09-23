@@ -32,6 +32,8 @@ with TemporaryDirectory() as d:
         help_ = subprocess.run([sys.executable, '-m', 'inventor_kit.viewer', '--help'], capture_output=True, text=True)
         self.assertEqual(help_.returncode, 0)
         self.assertIn('--candidate-id', help_.stdout)
+        self.assertIn('IDW drawings open in saved source coordinates by default', help_.stdout)
+        self.assertNotIn('--experimental-drawing', help_.stdout)
         for args in (['--metadata-only','--candidate-id','bad'], ['--port','-1'], ['--timeout','nan'],
                      ['--metadata-only', '--allow-unverified-state']):
             result = subprocess.run([sys.executable, '-m', 'inventor_kit.viewer', 'part.ipt', *args], capture_output=True)
@@ -45,7 +47,8 @@ with TemporaryDirectory() as d:
         cases = [('SamplePart.ipt', 'renamed.idw', Options(search_roots=('parts',)), 'IAM assemblies only'),
                  ('m5-samplebg/Subassembly.iam', 'renamed.ipt', Options(candidate_id='bad'), 'IPT parts only'),
                  ('m5-samplebg/Subassembly.iam', 'renamed.idw', Options(allow_partial=True), 'requires --allow-unverified-state'),
-                 ('SampleBg.idw', 'renamed.iam', Options(candidate_id='bad'), 'IDW')]
+                 ('SampleBg.idw', 'renamed.iam', Options(candidate_id='bad'), 'IDW'),
+                 ('SamplePart.ipt', 'renamed.idw', Options(experimental_drawing=True), 'identified IDW')]
         for source, renamed, options, reason in cases:
             with self.subTest(source=source, options=options), TemporaryDirectory() as temporary:
                 directory = Path(temporary)

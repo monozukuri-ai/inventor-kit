@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from inventor_kit import read_drawing, read_drawing_file, Limits, DrawingDisplayError, DrawingLimits
 from inventor_kit.viewer.scene import Options, build_scene, discard_geometry
@@ -181,21 +182,36 @@ class DrawingAPI(unittest.TestCase):
             directory = Path(tmp)
             path = directory/'renamed.ipt'
             path.write_bytes(SAMPLE.read_bytes())
-            scene = build_scene(path, directory, Options(experimental_drawing=True))
+            scene = build_scene(path, directory, Options())
             self.assertEqual(scene['source']['kind'], 'drawing')
             self.assertEqual(scene['drawing']['status'], 'experimental_partial')
             self.assertFalse(scene['meshes'])
             self.assertEqual(scene['units'], 'source_units_unverified')
+            self.assertFalse(scene['drawing']['qualified'])
+            self.assertFalse(scene['drawing']['complete'])
+            self.assertIsNone(scene['drawing']['millimeters_per_unit'])
+            self.assertEqual(scene['drawing']['current_state'], 'unverified')
+            from inventor_kit.viewer.drawing import validate_drawing_resources
+            validate_drawing_resources(directory, scene)
+            # The legacy flag and partial-geometry permission must not change
+            # either the published bytes or the physical-unit contract.
+            for options in (Options(experimental_drawing=True), Options(allow_partial=True)):
+                compatible = build_scene(path, directory, options)
+                self.assertEqual(compatible['drawing']['sheets'], scene['drawing']['sheets'])
+                self.assertEqual(compatible['drawing']['images'], scene['drawing']['images'])
+                self.assertEqual(compatible['drawing']['status'], scene['drawing']['status'])
+                self.assertIsNone(compatible['drawing']['millimeters_per_unit'])
             for image in scene['drawing']['images']:
                 self.assertEqual(hashlib.sha256((directory/image['resource']).read_bytes()).hexdigest(), image['sha256'])
             discard_geometry(scene)
             self.assertIsNone(scene['drawing'])
             self.assertTrue(scene['thumbnails'])
-            disabled = build_scene(path, directory, Options())
-            self.assertEqual(disabled['drawing']['status'], 'unavailable')
-            self.assertIsNone(disabled['drawing']['sheets'][0]['resource'])
-            self.assertTrue(any(d['code'] == 'drawing.units_unverified' for d in disabled['diagnostics']))
-            limited = build_scene(path, directory, Options(experimental_drawing=True, max_buffer_bytes=0))
+            with patch('inventor_kit.viewer.drawing.read_drawing', side_effect=AssertionError('Drawing decoder called')):
+                metadata = build_scene(path, directory, Options(metadata_only=True))
+            self.assertIsNone(metadata['drawing'])
+            self.assertEqual(metadata['stages']['geometry'], 'not_attempted')
+            self.assertTrue(metadata['thumbnails'])
+            limited = build_scene(path, directory, Options(max_buffer_bytes=0))
             self.assertIsNone(limited['drawing'])
             self.assertEqual(limited['stages']['geometry'], 'failed')
             self.assertTrue(limited['thumbnails'])
@@ -217,7 +233,7 @@ from pathlib import Path
 p=Path(sys.argv[1])
 assert len(read_drawing_file(p).sheets[0].items)==157
 with TemporaryDirectory() as d:
-    s=build_scene(p,Path(d),Options(experimental_drawing=True))
+    s=build_scene(p,Path(d),Options())
     assert s['drawing']['status']=='experimental_partial', s['diagnostics']
 '''
         subprocess.run([sys.executable, '-c', code, str(SAMPLE)], check=True)

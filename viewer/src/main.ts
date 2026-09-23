@@ -238,7 +238,7 @@ async function poll() {
     if (scene.meshes.length) await render(scene);
     else {
       const title = scene.source.kind === 'drawing'
-        ? (scene.stages.geometry === 'failed' || scene.job_status === 'failed' ? 'Drawing display unavailable' : 'Drawing display not enabled')
+        ? (scene.stages.geometry === 'not_attempted' && scene.job_status !== 'failed' ? 'Document information only' : 'Drawing display unavailable')
         : 'No 3D geometry to display';
       message(title, 'See Read results for the outcome. Available document information and saved previews are shown in the side panel.');
       el('render-status').textContent = scene.job_status === 'failed' ? 'Conversion process failed' : 'Document information';

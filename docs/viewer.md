@@ -40,7 +40,7 @@ python -m inventor_kit.viewer part.ipt --quality fine
 python -m inventor_kit.viewer part.ipt --candidate-id CANDIDATE_ID
 python -m inventor_kit.viewer part.ipt --require-current-state
 python -m inventor_kit.viewer drawing.idw --metadata-only
-python -m inventor_kit.viewer drawing.idw --experimental-drawing
+python -m inventor_kit.viewer drawing.idw
 python -m inventor_kit.viewer assembly.iam
 python -m inventor_kit.viewer assembly.iam --allow-unverified-state
 python -m inventor_kit.viewer assembly.iam --search-root parts --allow-unverified-state --allow-partial
@@ -84,7 +84,7 @@ are assigned by the viewer; Inventor appearance is not decoded.
 The notice **Current Model State is unverified** applies even when a mesh renders
 successfully. Saved previews can show other stored states and are labelled
 separately. Geometry conversion failures retain available properties, previews,
-candidates, and the original diagnostic. IDW has an opt-in [experimental 2D display](drawing.md) via `--experimental-drawing`, without the Python viewer extra. IPN shows document information only; presentation animation is unsupported.
+candidates, and the original diagnostic. Supported IDW files open their [saved 2D display](drawing.md) by default, without the Python viewer extra. This partial display retains unverified units and current state. IPN shows document information only; presentation animation is unsupported.
 See [supported scope](support.md).
 
 `--quality` accepts `draft`, `normal` (default), or `fine`. Their absolute OCCT

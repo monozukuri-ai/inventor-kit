@@ -351,6 +351,7 @@
           "const": "unverified"
         },
         "experimental": {
+          "description": "Whether the drawing decoder remains experimental; independent of CLI flags.",
           "type": "boolean"
         },
         "allow_partial": {

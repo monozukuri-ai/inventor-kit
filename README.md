@@ -1,6 +1,6 @@
 # inventor-kit
 
-Experimental IDW sheets and saved 2D display: [Python API and Viewer](docs/drawing.md).
+IDW saved 2D display opens in the Viewer by default (partial support): [Python API and Viewer](docs/drawing.md).
 
 English | [日本語](README.ja.md)
 

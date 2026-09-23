@@ -279,10 +279,10 @@ test('broken input reports failure without a blank page', async ({ page }) => {
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('IDW stored elements, images and source-unit controls without the 3D bundle', async ({ page }, testInfo) => {
+test('IDW default startup shows stored elements, images and source-unit controls without the 3D bundle', async ({ page }, testInfo) => {
   const scripts: string[] = [];
   page.on('request', request => { if (request.resourceType() === 'script') scripts.push(request.url()); });
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   await expect(page.locator('#cad')).toHaveAttribute('data-mode', 'drawing');
   await expect(page.locator('#drawing-svg [data-kind="polyline"]')).toHaveCount(91);
   await expect(page.locator('#drawing-svg [data-kind="curve"]')).toHaveCount(11);
@@ -293,6 +293,7 @@ test('IDW stored elements, images and source-unit controls without the 3D bundle
   expect(scripts.some(s => s.includes('three-cad-viewer'))).toBe(false);
   const state = await (await page.request.get(url + 'state.json')).json();
   expect(state.drawing.qualified).toBe(false);
+  await expect(page.locator('.notice')).toHaveText('Saved drawing · Partial display · Units and current state unverified');
   expect(state.drawing.millimeters_per_unit).toBeNull();
   for (const image of state.drawing.images) {
     const response = await page.request.get(url + image.resource);
@@ -319,19 +320,59 @@ test('IDW stored elements, images and source-unit controls without the 3D bundle
 });
 
 test('IDW unsupported profile retains previews and a clear unavailable state', async ({ page }) => {
-  await open(page, 'drawings/iacs/Template_IACS.idw', ['--experimental-drawing']);
+  await open(page, 'drawings/iacs/Template_IACS.idw');
   await expect(page.locator('#empty')).toBeVisible();
   await expect(page.locator('#empty h2')).toHaveText('Drawing display unavailable');
   await expect(page.locator('#previews img')).not.toHaveCount(0);
   await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
 });
 
+test('IDW legacy flag still opens the same saved display', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(157);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  expect(state.drawing.qualified).toBe(false);
+  expect(state.drawing.millimeters_per_unit).toBeNull();
+  await expect(page.locator('.notice')).toContainText('Saved drawing · Partial display');
+});
+
+test('IDW metadata-only keeps previews without decoding or fetching drawing resources', async ({ page }) => {
+  const resources: string[] = [];
+  page.on('request', request => { if (/drawing-(sheet|image)-/.test(request.url())) resources.push(request.url()); });
+  const url = await open(page, 'SampleBg.idw', ['--metadata-only']);
+  await expect(page.locator('#empty h2')).toHaveText('Document information only');
+  await expect(page.locator('#previews img')).not.toHaveCount(0);
+  await expect(page.locator('#drawing-svg')).toHaveCount(0);
+  const state = await (await page.request.get(url + 'state.json')).json();
+  expect(state.drawing).toBeNull();
+  expect(state.stages.geometry).toBe('not_attempted');
+  expect(resources).toEqual([]);
+});
+
+test('IDW opens the first available sheet and retains unavailable sheets in the list', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const supported = await storedSheet(page, url, state.drawing.sheets[0]);
+  const unavailable = { ...supported, id: 'missing-first', index: 0, name: 'Unavailable',
+    status: 'unavailable', items: [], omissions: [], views: [], size_in_source_units: null };
+  await mockDrawingSheets(page, state, [unavailable, { ...supported, index: 1 }]);
+  await page.reload();
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(157);
+  await expect(page.locator('#sheet-buttons button')).toHaveText(['Unavailable', 'Blatt']);
+  await expect(page.locator('#sheet-buttons button').nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#sheet-buttons button').first().click();
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  await expect(page.locator('#render-status')).toHaveText('Unavailable · Display unavailable');
+});
+
 test('IDW major23 switches all four saved sheets and colored views', async ({ page }, info) => {
-  const url = await open(page, '_Fishing Rod Assembly.idw', ['--experimental-drawing']);
+  const url = await open(page, '_Fishing Rod Assembly.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   expect(state.drawing.status).toBe('experimental_partial');
   expect(state.drawing.qualified).toBe(false);
-  await expect(page.locator('#sheet-buttons button')).toHaveCount(4);
+  await expect(page.locator('.notice')).toHaveText('Saved drawing · Partial display · Units and current state unverified');
+  await expect(page.locator('#sheet-buttons button')).toHaveText(['1 · Sheet', '2 · Sheet', '3 · Sheet', '4 · Sheet']);
+  expect(state.drawing.sheets.map((s: any) => s.item_count)).toEqual([4257, 2296, 4464, 6922]);
   for (const [i, count] of [4, 9, 8, 6].entries()) {
     await page.locator('#sheet-buttons button').nth(i).click();
     await expect(page.locator('#cad')).toHaveAttribute('data-sheet-id', state.drawing.sheets[i].id);
@@ -346,7 +387,7 @@ test('IDW major23 switches all four saved sheets and colored views', async ({ pa
 });
 
 test('IDW synthetic sheet switches clear stale selection and preserve literal multiline text', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const first = await storedSheet(page, url, state.drawing.sheets[0]);
   const second = structuredClone(first); second.id = 'synthetic-second'; second.name = 'Second';
@@ -376,7 +417,7 @@ test('IDW synthetic sheet switches clear stale selection and preserve literal mu
 });
 
 test('IDW capital-height candidates render at the stored height and preserve spaces', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
   const original = sheet.items.find((i: any) => i.geometry.kind === 'text');
@@ -439,7 +480,7 @@ test('IDW capital-height candidates render at the stored height and preserve spa
 });
 
 test('IDW Tahoma bold and italic retain capital height and change the rendered ink', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
   const original = sheet.items.find((i: any) => i.geometry.kind === 'text');
@@ -478,7 +519,7 @@ test('IDW Tahoma bold and italic retain capital height and change the rendered i
 });
 
 test('IDW loads only the selected sheet and rejects stale responses after switching', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const first = await storedSheet(page, url, state.drawing.sheets[0]);
   const second = structuredClone(first); second.id = 'race-second'; second.name = 'Second';
@@ -506,7 +547,7 @@ test('IDW loads only the selected sheet and rejects stale responses after switch
 });
 
 test('IDW damaged sheet resources fail closed and retain sheet diagnostics', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   await page.route(`**/${state.drawing.sheets[0].resource}`, route => route.fulfill({ body: '{}', contentType: 'application/json' }));
   await page.reload();
@@ -516,7 +557,7 @@ test('IDW damaged sheet resources fail closed and retain sheet diagnostics', asy
 });
 
 test('IDW rejects sheets above the byte ceiling before fetching the payload', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   state.drawing.sheets[0].bytes = 32 * 1024 * 1024 + 1;
   await page.route('**/state.json', route => route.fulfill({ json: state }));
@@ -531,7 +572,7 @@ test('IDW rejects sheets above the byte ceiling before fetching the payload', as
 
 
 test('IDW diameter glyph fallback keeps source text and supports symbol search', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
   const item = structuredClone(sheet.items.find((i: any) => i.geometry.kind === 'text'));
@@ -552,7 +593,7 @@ test('IDW diameter glyph fallback keeps source text and supports symbol search',
 });
 
 test('IDW saved view selection highlights members and retains unknown rotation', async ({ page }) => {
-  const url = await open(page, 'SampleBg.idw', ['--experimental-drawing']);
+  const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
   sheet.views = [{ name: 'Synthetic view', placement_record: sheet.items[0].placement_record,

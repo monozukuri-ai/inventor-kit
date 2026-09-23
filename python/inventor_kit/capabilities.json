@@ -104,17 +104,22 @@
     "api_version": 1,
     "status": "experimental_partial",
     "segment_majors": [
+      23,
       31
     ],
     "rse_database_schema": 31,
     "rse_meta_version": 8,
-    "codec": "zstd",
     "stored_sheet_order": true,
     "physical_units_verified": false,
     "current_state_verified": false,
     "native_accuracy_qualified": false,
     "external_model_loading": false,
-    "viewer_flag": "--experimental-drawing",
-    "scope": "stored document sheet list and unique SM backlinks; selected lines, curves, text, styles and embedded PNG/JPEG; unsupported profiles unavailable"
+    "viewer_flag": null,
+    "scope": "stored document sheet list and unique SM backlinks; selected lines, curves, text, styles and embedded PNG/JPEG; unsupported profiles unavailable",
+    "codecs": [
+      "zlib",
+      "zstd"
+    ],
+    "viewer_default": true
   }
 }
