@@ -10,9 +10,11 @@
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
     "package-lock.json": "c04d64479c3deff3420a10147dc41f694de71fb0154f38d04a210bbae67317a9",
     "package.json": "807b77d4ab1318852c14ab3b59e5f3033a8e3cfba8d5416b1df5532ac29c8917",
+    "scripts/check-drawing-platform.mjs": "950d36b0508289e4ad1701e11ddba386c6ae8d59b23a88073eaccf51e2c39246",
     "scripts/manifest.mjs": "101a4cc3c0c371d17f378ad37b24332920a7637a01e24de2358660f0e8ebfd92",
-    "src/drawing-data.ts": "661bb78a7ae6b87d7bfc8d92cfd4401d494260dedbc4ec61f023817d98abb3f0",
-    "src/drawing.ts": "fe1a29bf1479558fd5d9b4c2cf2d1b24cc53cd46a58a63f9c71e2eb5264aa89d",
+    "src/drawing-data.ts": "bd9d3262fc5737bb0332800aae759bd562e5339e3015a8668979ba2f5b1c8b54",
+    "src/drawing-svg.ts": "905ea88127b3e125aab039e2fa469baf341166d7f72e2d3a62a1699b6bbec2ef",
+    "src/drawing.ts": "0a957c3ea8f22716724efee99058cc7c057ba595e15a6fd9d85b113f8fcbc1a7",
     "src/main.ts": "d30f6e293ecf0837e0431be1cc926675649cbcd213f01081b248b1897c4f676a",
     "src/scene-graph.ts": "60206b9f129fff66f276bdc0eed00946f985d0f08b7bbf580781ff027994f66c",
     "src/style.css": "443e4da08add9c5a9baeba43377bec0da2158878aee57c193d088fc2d3bffa09",
@@ -22,9 +24,9 @@
   "outputs": {
     "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "THIRD_PARTY_LICENSES.txt": "c76f9cf7e6e3cebf8d331a4aec0e25756460820e7596377ac5afcc5d14d0962c",
-    "assets/index-Bj0DJC4B.js": "b8671eda79478a964ebbfd389ce1644b18eb18fb25970f60650fcff448df3add",
+    "assets/index-D9DHzFeU.js": "a4d02e75e01d903b34264b6019d9f8883e0407bc18135faaae1f4dac5f995a83",
     "assets/index-DvesNz8n.css": "149afecdf6c4bc482227ad1f8d7d287d93258cb8cef2d24bf49460241a06f2e8",
     "assets/three-cad-viewer.esm-lXp_aS3t.js": "2179a8d0f2feae3a6041e03314c3e6573f985692f65d74c32871ef3e6c16728a",
-    "index.html": "d1753f691c1f8fbb9b34a1bac80081408632f1c8f1a7dedace775ef24e2081ec"
+    "index.html": "06a34ebea5a8d0842e354c5fa39ae750a033283aa8e42de3185ac6ad12d6030c"
   }
 }

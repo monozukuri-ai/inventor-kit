@@ -20,6 +20,8 @@ unsupported geometry.
 
 v0.4.0 adds [body selection](docs/body-conversion.md) and [IPT/IAM batch conversion](docs/cli.md).
 
+The development version for v0.5.0 adds [IDW sheet inventories and JSON reports](docs/cli.md#idw-reports-and-svg-export-development-version), and [per-sheet SVG export](docs/drawing.md#reports-and-offline-svg-development-version).
+
 ## Installation
 
 Requires Python 3.11 or later, `cq-acis>=0.3.8,<0.4`, and shared model API 2.

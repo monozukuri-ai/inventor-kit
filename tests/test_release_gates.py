@@ -84,14 +84,28 @@ class ReleaseGates(unittest.TestCase):
                                    mesh_buffers_fetched=4, shutdown='passed')
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         for report in reports:
-            for case, status, count in [('drawing', 'experimental_partial', 3), ('partial_drawing', 'experimental_partial', 3)]:
-                report['cases'][case] = dict(status=status, sheet_count=1, resources_fetched=count, qualified=False,
-                    source_sha256='c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e', shutdown='passed')
+            if report['python'].startswith('3.12.'):
+                report['drawing_browser'] = dict(status='passed', engine='chromium', installed_wheel=True,
+                    real_sheets=5, synthetic_controls=1, physical_scale_verified=False, native_font_fidelity_verified=False,
+                    platform={'windows': 'win32', 'macos': 'darwin', 'linux': 'linux'}[report['platform'].split('-')[0]],
+                    architecture='arm64' if report['platform'].endswith('arm64') else 'x64')
+            for case, sheets, count in [('drawing', 1, 3), ('partial_drawing', 1, 3), ('drawing_major23', 4, 27)]:
+                report['cases'][case] = dict(status='experimental_partial', sheet_count=sheets,
+                    resources_fetched=count, svg_exports_checked=sheets, qualified=False,
+                    source_sha256=('e50760e2969eae8bb47565026fa52697d8698ec744b902bdc59fff508b1d8cdc' if sheets == 4
+                                   else 'c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e'), shutdown='passed')
         with tempfile.TemporaryDirectory() as temporary:
             paths = [Path(temporary) / f'{i}.json' for i in range(len(reports))]
             for path, report in zip(paths, reports):
                 path.write_text(json.dumps(report))
             self.assertEqual(viewer_reports(paths, artifacts), 9)
+            browser_report = reports[1]
+            for change in ({}, {'status': 'failed'}, {'platform': 'win32'}, {'installed_wheel': False},
+                           {'physical_scale_verified': True}, {'real_sheets': 4}):
+                altered = dict(browser_report, drawing_browser=(dict(browser_report['drawing_browser'], **change) if change else {}))
+                paths[1].write_text(json.dumps(altered))
+                with self.assertRaises(ValueError): viewer_reports(paths, artifacts)
+            paths[1].write_text(json.dumps(browser_report))
             for bad in (paths[:-1], paths + paths[:1]):
                 with self.assertRaises(ValueError):
                     viewer_reports(bad, artifacts)
@@ -107,6 +121,8 @@ class ReleaseGates(unittest.TestCase):
                     **reports[0]['cases']['part'], 'shutdown': 'failed'}}},
                 {'cases': {**reports[0]['cases'], 'drawing': {
                     **reports[0]['cases']['drawing'], 'status': 'unavailable', 'resources_fetched': 0}}},
+                {'cases': {**reports[0]['cases'], 'drawing_major23': {
+                    **reports[0]['cases']['drawing_major23'], 'svg_exports_checked': 3}}},
             ]
             for mutation in mutations:
                 paths[0].write_text(json.dumps({**reports[0], **mutation}))

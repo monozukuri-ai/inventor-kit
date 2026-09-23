@@ -98,7 +98,8 @@
     "batch": true,
     "report_schema_version": 1,
     "per_input_process": true,
-    "default_timeout_seconds": 120
+    "default_timeout_seconds": 120,
+    "drawing_report_schema_version": 1
   },
   "experimental_drawing": {
     "api_version": 1,
@@ -120,6 +121,10 @@
       "zlib",
       "zstd"
     ],
-    "viewer_default": true
+    "viewer_default": true,
+    "svg_export": true,
+    "svg_renderer_version": 1,
+    "svg_embedded_images": true,
+    "svg_physical_scale_verified": false
   }
 }

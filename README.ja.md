@@ -18,6 +18,8 @@ IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
 
 v0.4.0では[body選択](docs/body-conversion.ja.md)と[IPT/IAMバッチ変換](docs/cli.ja.md)を追加しています。
 
+開発版（v0.5.0向け）では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwのレポートとsvg保存開発版)と[シート単位のSVG保存](docs/drawing.ja.md#レポートとオフラインsvg開発版)を利用できます。
+
 ## インストール
 
 Python 3.11 以降、`cq-acis>=0.3.8,<0.4`、共通モデル API 2 を使用します。

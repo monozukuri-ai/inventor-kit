@@ -34,8 +34,15 @@ export async function loadSheet(source: string, sheet: SheetResource, signal: Ab
       || payload.source_sha256 !== source || payload.sheet_id !== sheet.id
       || payload.units !== 'source_units_unverified' || !Array.isArray(payload.items)
       || !Array.isArray(payload.omissions) || !Array.isArray(payload.sources)
+      || typeof payload.svg !== 'string' || !payload.export_report
+      || payload.export_report.source_sha256 !== source || payload.export_report.selected_sheet_id !== sheet.id
       || payload.items.some((i: any) => typeof i.id !== 'string' || !i.id.startsWith(sheet.id + '/'))) {
     throw new Error('Sheet payload identity or schema mismatch');
+  }
+  const svgBytes = new TextEncoder().encode(payload.svg);
+  const svgHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', svgBytes)), b => b.toString(16).padStart(2, '0')).join('');
+  if (payload.export_report.export?.sha256 !== svgHash || payload.export_report.export?.bytes !== svgBytes.byteLength) {
+    throw new Error('SVG export report integrity mismatch');
   }
   return payload;
 }

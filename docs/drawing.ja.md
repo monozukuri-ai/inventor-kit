@@ -103,14 +103,17 @@ Viewerは既定値を使い、Pythonの`Options`では`drawing_limits`を指定�
 未解釈の表示属性がある場合は該当部分を省略して診断に理由を残します。
 
 対応するArial/Tahoma文字はブラウザーのフォント寸法で高さを調整し、空白・個別の基線と
-対応する太字・斜体を表示へ反映します。フォントがない場合はsans-serifを代替指定します。
+対応する太字・斜体を表示へ反映します。日本語にはローカルのNoto Sans CJK JP・Yu Gothic・Meiryoをsans-serifより先に代替指定します。
 未知の文字配置や高さ補正に対応しないブラウザーでは、未検証の代替表示であることを示します。
 文字幅・字形はインストール済みフォントに依存し、完全な一致は保証しません。
 観測済みのAIGDT `n`はUnicode `⌀`に近似表示し、原文とフォント名をAPIに保持します。
-他の専用記号は対応していません。
+直径記号の代替表示にはローカルの記号用フォントを指定します。他の専用記号は対応していません。
 
 一般的なクリッピング・重なり順・文字整列・寸法や注記の網羅性は未検証です。
-曲線は表示用に分割しますが、APIには元の曲線パラメーターを保持します。
+円・楕円弧は固定分割の折れ線からSVGの楕円弧へ変更し、アフィン変換や解読済みの破線長を反映します。
+投影後にほぼ直線となる楕円は端点と座標の極値を結ぶ線分で表示し、SVG・付属JSONへ記録します。
+この処理の解析的な偏差上限は2e-9原単位で、数値の文字列化・ブラウザー描画の誤差は含みません。
+スプラインは前述の近似表示です。未知の線種maskは未解釈のままで、native線種全般への対応を意味しません。
 major24/26/28/29はこの描画プロファイルの対象外です。
 major23では保存カラー画像の上に対応する輪郭線・注記を重ねます。
 古い保存リビジョンへの参照は同じオブジェクトであることを確認して結び付けますが、過去状態の再現は保証しません。
@@ -141,3 +144,78 @@ Viewerのビュー一覧から、対応する保存要素を選択・強調表�
 キャッシュがない場合は `image_reference` と `cache_bounds` が `None` になります。
 境界と行列は原座標を保持し、切り抜き範囲の確定には使いません。
 `max_views` は解読できた配置数を図面全体で制限します。未知のビュー形式は省略として残ります。
+
+## レポートとオフラインSVG（開発版）
+
+```python
+from inventor_kit import read_drawing_file
+
+drawing = read_drawing_file("drawing.idw")
+report = drawing.report()  # JSON化できる一覧、原文、省略理由
+sheet = drawing.sheets[0]
+detailed = drawing.report(sheet_id=sheet.id, details=True)
+svg = drawing.to_svg(sheet_id=sheet.id, allow_partial=True)  # str
+saved = drawing.export_svg("sheet.svg", sheet_id=sheet.id, allow_partial=True)
+```
+
+`export_svg`はSVGと`.svg.json`を新規作成し、どちらも上書きしません。
+付属JSONは[図面レポートv1](../schemas/drawing-report-v1.schema.json)で、入力・出力のハッシュ、
+原文とfont情報、保存ビュー参照、出典、省略理由を記録します。画像バイト列はSVGに埋め込み、JSONには含めません。
+`to_svg`・`export_svg`は部分出力への明示的な同意が必要です。`max_bytes`は32 MiB以下に制限でき、
+複数シートの文書ではID指定が必要です。表示不能なシートや別入力のIDは`DrawingDisplayError`になります。
+APIの`report()`は辞書を返し、CLIのJSON化はサイズ上限付きで、複数入力のJSONLにも対応します。
+
+Viewer・Python API・CLIは共通のSVG描画処理を使います。
+Viewerの**Save partial SVG**で画像を埋め込んだ選択シートを、**Save report**で出典JSONを保存できます。
+拡大、検索、選択、文字・曲線の非表示操作にかかわらず保存シート全体を出力します。
+Viewerのサーバーを停止した後もネット接続なしで開けます。
+SVGには入力とシートの識別情報を含め、未検証の原座標とピクセルの表示領域を使用します。mmを意味しません。
+フォントは埋め込まないため、インストール済みフォントやブラウザーの高さ補正対応によって表示は変わります。
+XMLで扱えない文字はSVG内のみ置換し、JSONには原文を保持します。
+SVG保存によってmm単位の`render_sheet`が利用可能になるわけではなく、現在状態や注記の意味も未検証です。
+
+## 単位精度と一般線種の検証
+
+[精度測定器](../scripts/measure_drawing_precision.py)は、固定した4単位制御図面について、
+保存座標・APIのcm値・SVGの線座標・native PDFの座標を別々に比較します。
+縮尺合わせや位置合わせは行わず、0.001 mmの判定と実測誤差を記録します。
+既存の400 dpi PDFでは線座標に最大0.028 mm、用紙に最大約0.139 mmの差があり、
+精度基準に使えません。保存座標とAPI値の一致は、この4つの保存入力だけの証拠です。
+一般IDWの物理単位や印刷精度の認定にはなりません。実行には非配布の取得済み制御図面、
+`pdfinfo`、`mutool`が必要です。
+
+```sh
+python scripts/measure_drawing_precision.py --input /path/to/units --output precision.json
+```
+
+[線種採取スクリプト](../scripts/create_drawing_linetype_controls.ps1)は、標準15線種の
+レイヤー継承・個別上書きと、線幅・尺度・線幅連動を分けた38ケースのIDW/API/PDFを新規作成します。
+Windows PowerShell 5.1で、Inventorを起動し既存文書をすべて閉じて実行します。
+既存のIDWやグローバルスタイルは更新しません。取得後の検査も認定とは別です。
+Inventor 2027.1（major31）で38ケースを採取・照合し、実験的decoderに標準15線種の
+レイヤー配列と線幅連動を追加しました。レイヤー・bindingの尺度が観測済みの1である場合に限定します。
+個別指定の保存配列には既に倍率が含まれるため、二重に拡大しません。
+保存IDと[APIのLineTypeEnum](https://help.autodesk.com/cloudhelp/2024/ENU/Inventor-API/files/LineTypeEnum.htm)は
+別の数値体系です。名前や列挙値だけからdash配列を割り当てません。
+
+```powershell
+.\scripts\create_drawing_linetype_controls.ps1 -OutputDirectory C:\Evidence\linetypes-new
+```
+
+```sh
+python scripts/validate_drawing_linetype_controls.py --input /path/to/linetypes-new --output acquisition.json
+```
+
+出力先は新規のパスを指定します。未取得・getter失敗・保存後変更・重複・入力ハッシュ不一致を拒否します。
+採取検査は成功時も`pattern_mapping_qualified=false`を維持します。
+固定した実データでdecoderの公称配列とPDF直線モデルを別に検証します。
+
+```sh
+python scripts/measure_drawing_linetypes.py --input /path/to/linetypes-new --output linetypes.json
+```
+
+native PDFは線の端点に合わせて破線周期・位相を調整します。SVGは公称配列を保持し、
+`dash_phase_and_fit_unverified` を報告します。38ケースのPDF直線モデルは0.01 mm基準で一致しましたが、
+曲線の位相、major23のレイヤー線種、カスタム`.lin`、未観測の尺度、独立holdoutは未検証です。
+スケッチへの既定値の明示設定が実線の上書きを作るため、collectorは継承プロパティに触れません。
+観測済みmajor31の既定線幅値はレイヤー幅を継承し、シート全体を表示不能にする問題も修正しました。

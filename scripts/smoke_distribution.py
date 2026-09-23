@@ -39,7 +39,7 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                 raise AssertionError('Installed viewer did not start')
             with urlopen(url, timeout=5) as response:
                 assert b'Inventor Kit' in response.read()
-            deadline = time.monotonic()+60
+            deadline = time.monotonic()+125
             while True:
                 with urlopen(url+'state.json', timeout=5) as response:
                     scene = json.load(response)
@@ -55,8 +55,9 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                 assert scene['stages']['tessellation'] == 'not_applicable' and not scene['meshes']
                 assert display['status'] == expected and not display['qualified']
                 assert display['source_sha256'] == hashlib.sha256((corpus/file).read_bytes()).hexdigest()
-                assert len(display['sheets']) == 1 and display['sheets'][0]['name'] == 'Blatt'
-                assert display['sheets'][0]['item_count'] == 157 and display['millimeters_per_unit'] is None
+                counts = [4257, 2296, 4464, 6922] if drawing == 'major23' else [157]
+                assert [s['item_count'] for s in display['sheets']] == counts
+                assert display['millimeters_per_unit'] is None
             else:
                 assert scene['stages']['tessellation'] in ('available', 'partial') and len(scene['nodes']) == occurrences
                 assert sum(n['mesh_id'] is not None for n in scene['nodes']) == parts
@@ -81,13 +82,20 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
                     payload = json.loads(body)
                     assert payload['source_sha256'] == display['source_sha256'] and payload['sheet_id'] == descriptor['id']
                     assert len(payload['items']) == descriptor['item_count']
+                    svg = payload['svg'].encode('utf-8')
+                    report = payload['export_report']
+                    assert report['selected_sheet_id'] == descriptor['id']
+                    assert report['source_sha256'] == display['source_sha256']
+                    assert report['export']['sha256'] == hashlib.sha256(svg).hexdigest()
+                    assert report['export']['bytes'] == len(svg)
+                    assert not report['export']['physical_scale_verified']
                     resources += 1
                 for image in display['images']:
                     if image['resource']:
                         with urlopen(url+image['resource'], timeout=5) as response:
                             assert hashlib.sha256(response.read()).hexdigest() == image['sha256']
                         resources += 1
-                assert resources == 3
+                assert resources == (27 if drawing == 'major23' else 3)
         except Exception as error:
             failure = error
         finally:
@@ -113,8 +121,9 @@ def installed_viewer(corpus, file='SamplePart.ipt', options=(), parts=1, occurre
             raise AssertionError(f'Installed viewer shutdown failed: {process.returncode}: {stderr}')
         if list(Path(sessions).iterdir()):
             raise AssertionError('Installed viewer left temporary session data after shutdown')
-    result = ({'status': expected, 'source_sha256': display['source_sha256'], 'sheet_count': 1,
-               'resources_fetched': resources, 'qualified': False, 'shutdown': 'passed'} if drawing else
+    result = ({'status': expected, 'source_sha256': display['source_sha256'], 'sheet_count': len(display['sheets']),
+               'resources_fetched': resources, 'svg_exports_checked': len(display['sheets']),
+               'qualified': False, 'shutdown': 'passed'} if drawing else
               {'displayed_instances': parts, 'occurrences': occurrences, 'omissions': omissions,
                'mesh_buffers_fetched': resources, 'shutdown': 'passed'})
     print(json.dumps({'installed_viewer': 'passed', **result}))
@@ -152,6 +161,13 @@ def installed(corpus):
         scene = build_scene(corpus / 'SampleBg.idw', Path(temporary), Options())
         assert scene['drawing']['status'] == 'experimental_partial' and not scene['meshes']
         assert all((Path(temporary)/i['resource']).is_file() for i in scene['drawing']['images'])
+        output = Path(temporary)/'sheet.svg'
+        exported = drawing.export_svg(output, allow_partial=True)
+        assert hashlib.sha256(output.read_bytes()).hexdigest() == exported['export']['sha256']
+        assert exported['units'] == 'source_units_unverified'
+        cli = subprocess.run([sys.executable, '-I', '-m', 'inventor_kit', str(corpus/'SampleBg.idw'), '--list-sheets'],
+                             capture_output=True, text=True, timeout=30, check=False)
+        assert cli.returncode == 2 and json.loads(cli.stdout)['sheets'][0]['item_count'] == 157
     assert not {'cq_acis', 'cadquery', 'ocp_tessellate', 'OCP'} & sys.modules.keys()
     saved = inventor_kit.inspect_assembly_file(corpus / 'm5-samplebg/Subassembly.iam')
     assembly = inventor_kit.read_assembly_file(corpus / 'm5-samplebg/Subassembly.iam')
@@ -328,11 +344,18 @@ def main():
     parser.add_argument('--installed', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--viewer', action='store_true', help='Install the viewer extra and check its local server and shutdown')
     parser.add_argument('--browser', action='store_true', help='Also run the viewer Playwright suite against the installed package (requires --viewer)')
+    parser.add_argument('--drawing-browser', type=Path, help='Check installed SVGs in Chromium on this OS; save screenshots and font evidence here (requires --viewer)')
     parser.add_argument('--report', type=Path, help='Write a selected public qualification summary (requires --viewer)')
     parser.add_argument('--corpus', type=Path, default=ROOT / 'fixtures/public')
     args = parser.parse_args()
     if args.browser and not args.viewer:
         parser.error('--browser requires --viewer')
+    if args.drawing_browser and not args.viewer:
+        parser.error('--drawing-browser requires --viewer')
+    if args.drawing_browser:
+        args.drawing_browser = args.drawing_browser.resolve()
+        if args.drawing_browser.exists():
+            parser.error('--drawing-browser requires a new evidence directory')
     if args.browser and sys.platform != 'linux':
         parser.error('--browser is qualified on Linux Chromium only')
     if args.report and not args.viewer:
@@ -353,6 +376,7 @@ def main():
                     ('--allow-partial',), parts=1, occurrences=3, omissions=2),
                 'drawing': installed_viewer(args.corpus, 'SampleBg.idw', drawing=True),
                 'partial_drawing': installed_viewer(args.corpus, 'SampleBg.idw', ('--experimental-drawing',), drawing=True),
+                'drawing_major23': installed_viewer(args.corpus, '_Fishing Rod Assembly.idw', drawing='major23'),
             }
             if args.report:
                 from importlib.metadata import version
@@ -423,6 +447,10 @@ def main():
         if args.browser:
             browser_environment = dict(environment, VIEWER_PYTHON=str(python), VIEWER_CWD=str(root), VIEWER_CORPUS=str(args.corpus.resolve()))
             subprocess.run(['npm', 'run', 'test', '--prefix', str(ROOT/'viewer')], cwd=root, env=browser_environment, check=True)
+        if args.drawing_browser:
+            subprocess.run(['node', str(ROOT/'viewer/scripts/check-drawing-platform.mjs'), str(python),
+                str(args.corpus.resolve()), str(args.drawing_browser)], cwd=root, env=environment, check=True)
+            details['drawing_browser'] = json.loads((args.drawing_browser/'browser.json').read_text(encoding='utf-8'))
         print(json.dumps({'dependency_mode': 'local cq-acis release candidate' if args.cq_wheel else 'PyPI',
                           'interpreter_shutdown': 'passed',
                           'bridge_mode': 'staged unpublished crate' if args.bridge_crate else 'registry or prebuilt wheel',

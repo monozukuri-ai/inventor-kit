@@ -5,6 +5,7 @@ from pathlib import Path, PurePosixPath
 from check_license import REQUIRED_NOTICES
 
 ROOT = Path(__file__).resolve().parents[1]
+BUILD_FILES = {'package.json', 'package-lock.json', 'index.html', 'tsconfig.json', 'vite.config.ts', 'LICENSE.txt'}
 
 
 def check_bundle(read, names, prefix, source_prefix=None):
@@ -30,15 +31,21 @@ def check_bundle(read, names, prefix, source_prefix=None):
     actual = {n[len(prefix):] for n in names if n.startswith(prefix)}
     if actual != set(outputs) | {'manifest.json'}:
         raise ValueError('Unlisted viewer asset')
+    if source_prefix is not None:
+        inputs = {n[len(source_prefix):] for n in names if n.startswith(source_prefix)}
+        expected = {n for n in inputs if n.startswith(('src/', 'scripts/')) or n in BUILD_FILES}
+        if expected != set(manifest['inputs']):
+            raise ValueError('Unlisted or missing viewer build input')
     return len(outputs)
 
 
 def main():
     static = ROOT/'python/inventor_kit/viewer/static'
     source = ROOT/'viewer'
-    manifest = json.loads((static/'manifest.json').read_text())
     names = {p.relative_to(ROOT).as_posix() for p in static.rglob('*') if p.is_file()}
-    names.update('viewer/'+n for n in manifest['inputs'] if (source/n).is_file())
+    names.update('viewer/'+n for n in BUILD_FILES if (source/n).is_file())
+    for directory in ('src', 'scripts'):
+        names.update(p.relative_to(ROOT).as_posix() for p in (source/directory).rglob('*') if p.is_file())
     count = check_bundle(lambda n: (ROOT/n).read_bytes(), names, 'python/inventor_kit/viewer/static/', 'viewer/')
     print(f'Viewer assets passed: {count} files; source and bundle hashes match')
 

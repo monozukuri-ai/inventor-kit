@@ -28,7 +28,7 @@ def _freeze(value):
 def _plain(value):
     if isinstance(value, Mapping):
         return {k: _plain(v) for k, v in value.items()}
-    if isinstance(value, tuple):
+    if isinstance(value, (tuple, list)):
         return [_plain(v) for v in value]
     return value
 
@@ -205,6 +205,21 @@ class DrawingDocument:
     sheets: tuple[DrawingSheet, ...]
     images: tuple[DrawingImage, ...]
     diagnostics: tuple[Mapping, ...]
+
+    def report(self, *, sheet_id=None, details=False, list_only=False) -> dict:
+        """Inventory saved sheets, views, text runs and omissions as plain JSON data."""
+        from .drawing_output import drawing_report
+        return drawing_report(self, sheet_id=sheet_id, details=details, list_only=list_only)
+
+    def to_svg(self, *, sheet_id=None, allow_partial=False, max_bytes=32 * 1024 * 1024) -> str:
+        """Self-contained partial saved display in source coordinates, not print units."""
+        from .drawing_output import svg_document
+        return svg_document(self, sheet_id=sheet_id, allow_partial=allow_partial, max_bytes=max_bytes)
+
+    def export_svg(self, path, *, sheet_id=None, allow_partial=False, max_bytes=32 * 1024 * 1024) -> dict:
+        """Write a new SVG and .svg.json provenance report; never overwrite files."""
+        from .drawing_output import export_svg
+        return export_svg(self, path, sheet_id=sheet_id, allow_partial=allow_partial, max_bytes=max_bytes)
 
     def sheet(self, sheet_id: str) -> DrawingSheet:
         """Select by input-bound ID; names may be duplicated or localized."""

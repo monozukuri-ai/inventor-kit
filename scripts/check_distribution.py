@@ -43,7 +43,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
             raise ValueError('Missing ABI3 native extension')
         package_prefix = 'inventor_kit/'
         viewer_sources = None
-        for name in ('drawing.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
             if 'inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python API: {name}')
         metadata = [v for k, v in contents.items() if k.endswith('.dist-info/METADATA')]
@@ -83,7 +83,9 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         license_prefix = prefix
         package_prefix = prefix+'python/inventor_kit/'
         viewer_sources = prefix+'viewer/'
-        for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json', 'schemas/drawing-oracle-v1.schema.json', 'schemas/drawing-scene-v1.schema.json'):
+        if prefix+'tests/data/drawing-linetype-controls.json' not in contents:
+            raise ValueError('Missing native line-style regression manifest')
+        for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json', 'schemas/drawing-oracle-v1.schema.json', 'schemas/drawing-scene-v1.schema.json', 'schemas/drawing-report-v1.schema.json'):
             if prefix + name not in contents:
                 raise ValueError(f'Missing sdist build input: {name}')
         for name in ('mod.rs', 'inventory.rs', 'profile.rs', 'fields.rs', 'sheet.rs', 'sheets.rs', 'geometry.rs', 'text.rs', 'style.rs', 'scene.rs', 'scene_tests.rs', 'appearance.rs', 'images.rs', 'tests.rs'):
@@ -92,7 +94,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         for name in ('mod.rs', 'ufrx.rs', 'records.rs', 'matrix.rs', 'resolve.rs', 'tests.rs'):
             if prefix + 'crates/inventor-core/src/assembly/' + name not in contents:
                 raise ValueError(f'Missing assembly Rust source: {name}')
-        for name in ('drawing.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
             if prefix + 'python/inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python source: {name}')
         for name, content in contents.items():
