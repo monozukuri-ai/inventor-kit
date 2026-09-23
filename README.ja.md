@@ -18,7 +18,9 @@ IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
 
 v0.4.0では[body選択](docs/body-conversion.ja.md)と[IPT/IAMバッチ変換](docs/cli.ja.md)を追加しています。
 
-開発版（v0.5.0向け）では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwのレポートとsvg保存開発版)と[シート単位のSVG保存](docs/drawing.ja.md#レポートとオフラインsvg開発版)を利用できます。
+v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwのレポートとsvg保存)と[シート単位のSVG保存](docs/drawing.ja.md#レポートとオフラインsvg)を追加しています。
+対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
+図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
 
 ## インストール
 

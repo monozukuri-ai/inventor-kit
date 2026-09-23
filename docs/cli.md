@@ -3,7 +3,7 @@
 English | [日本語](cli.ja.md)
 
 The existing single-input inspection syntax remains available. Geometry conversion
-and conversion reports require v0.4.0. The IDW section describes the development version for v0.5.0.
+and conversion reports require v0.4.0 or later. IDW reports and SVG export require v0.5.0 or later.
 
 ```sh
 python -m inventor_kit part.ipt
@@ -58,7 +58,7 @@ duplicate names (including case aliases) are rejected before jobs run. Use separ
 directories for such inputs. Successful earlier batch outputs remain if a later
 input fails. Each STEP has a checked provenance/omission JSON sidecar.
 
-## IDW reports and SVG export (development version)
+## IDW reports and SVG export
 
 ```sh
 python -m inventor_kit drawing.idw --list-sheets

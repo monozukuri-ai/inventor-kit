@@ -20,7 +20,10 @@ unsupported geometry.
 
 v0.4.0 adds [body selection](docs/body-conversion.md) and [IPT/IAM batch conversion](docs/cli.md).
 
-The development version for v0.5.0 adds [IDW sheet inventories and JSON reports](docs/cli.md#idw-reports-and-svg-export-development-version), and [per-sheet SVG export](docs/drawing.md#reports-and-offline-svg-development-version).
+v0.5.0 adds [IDW sheet inventories and JSON reports](docs/cli.md#idw-reports-and-svg-export), and [per-sheet SVG export](docs/drawing.md#reports-and-offline-svg).
+See the [release notes](docs/release-notes-v0.5.0.md) for supported drawing profiles,
+line styles and platform checks. Drawing support remains experimental and partial;
+physical scale and native rendering equivalence are unverified.
 
 ## Installation
 

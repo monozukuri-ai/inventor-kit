@@ -41,8 +41,10 @@ notices in every distribution and in the standalone viewer assets.
 1. In a clean checkout using published dependencies only, pass
    `scripts/check_dependencies.py`, normal CI, corpus checks, and holdout
    validation. Do not carry over `.cargo/config.toml`.
-2. Align the Python package version with both Rust package versions.
-   `scripts/check_release.py` validates the versions.
+2. Align the Python package, both Rust packages and Viewer versions. Refresh
+   `Cargo.lock`, `fuzz/Cargo.lock`, `uv.lock` and `viewer/package-lock.json`, then
+   rebuild the Viewer assets. Run `scripts/check_release.py --tag v<version>`,
+   `scripts/check_license.py` and `scripts/check_viewer_assets.py`.
 3. Manually run the `Python distributions` workflow. It produces four wheel
    variants, an sdist, and viewer qualification reports as artifacts. The `qualify`
    job must pass even for a manual run. Manual runs do not publish to PyPI.
@@ -99,8 +101,8 @@ python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qua
 The prerequisite Linux CI job must also pass Chromium E2E against both an
 installed wheel and a separately rebuilt sdist. It checks bundled assets against
 `npm ci` / asset regeneration using the pinned lockfile and Node baseline. Browser
-checks use software rendering; they do not qualify Windows/macOS browser rendering,
-physical GPUs, or Inventor's current Model State. The [viewer guide](viewer.md)
+checks use software rendering; they do not qualify physical GPUs or Inventor's
+current Model State. The separate platform SVG checks are described below. The [viewer guide](viewer.md)
 describes the scenarios and local commands. Missing binary dependencies or runtime
 failures fail qualification; do not promote an untested platform to supported.
 
@@ -133,7 +135,7 @@ If files for the same version already exist on PyPI, their SHA-256 hashes must
 match. Different content or a lookup failure other than HTTP 404 stops the release.
 On reruns, `skip-existing` is allowed only after this check.
 
-The development distribution workflow additionally requires installed-wheel SVG
+The distribution workflow additionally requires installed-wheel SVG
 checks in Chromium on all four platforms with Python 3.12. It renders five public
 fixture sheets and one synthetic font/dash control, checking bounds, image counts
 and actual Japanese/diameter-symbol fonts. `drawing-browser-*` artifacts contain

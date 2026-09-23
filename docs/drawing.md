@@ -129,7 +129,8 @@ uninterpreted appearance data can omit a branch with a diagnostic reason.
 
 For supported Arial/Tahoma text, the Viewer adjusts saved height using browser
 font metrics, preserves spaces and separate baselines, and applies supported
-bold/italic flags. Japanese text adds local Noto Sans CJK JP, Yu Gothic and Meiryo fallbacks before sans-serif. Unknown layouts and
+bold/italic flags. Japanese text adds local Noto Sans CJK JP, Yu Gothic, Meiryo and
+Hiragino fallbacks before sans-serif. Unknown layouts and
 browsers without the height adjustment use an explicitly unverified fallback.
 Installed fonts affect text width and glyph shape; exact text fidelity is not
 guaranteed. The observed AIGDT `n` glyph is displayed as the approximate Unicode
@@ -166,7 +167,7 @@ Each sheet JSON is limited to 32 MiB. Sheets and images together are limited to
 128 MiB or the lower Viewer buffer limit. The 16 MiB metadata ceiling is separate;
 none of these byte limits promises bounded RSS or elapsed time.
 
-## Reports and offline SVG (development version)
+## Reports and offline SVG
 
 ```python
 from inventor_kit import read_drawing_file

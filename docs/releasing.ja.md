@@ -34,7 +34,10 @@ CLA への明示的な同意を記録してください。
 
 1. 公開依存だけを使うクリーンな checkout で `scripts/check_dependencies.py`、
    通常 CI、コーパスと保留検証を通す。`.cargo/config.toml` を持ち込まない。
-2. Python と二つの Rust パッケージの版をそろえる。`scripts/check_release.py` が版を検査する。
+2. Python・二つの Rust パッケージ・Viewerの版をそろえる。`Cargo.lock`・`fuzz/Cargo.lock`・
+   `uv.lock`・`viewer/package-lock.json`を更新し、Viewerアセットを再生成する。
+   `scripts/check_release.py --tag v<version>`・`scripts/check_license.py`・
+   `scripts/check_viewer_assets.py`を通す。
 3. `Python distributions` workflow を手動実行する。4 種類の wheel と sdist が
    viewer 配布検証レポートとともに artifact に保存される。手動実行でも `qualify` ジョブの
    通過を必須とする。手動実行は PyPI に公開しない。
@@ -87,7 +90,7 @@ python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qua
 前提の Linux CI は、導入した wheel と別途再ビルドした sdist の両方で Chromium E2E を
 必須にします。同梱アセットは、固定した lockfile と Node の基準版による `npm ci`・
 再生成の結果に照合します。ブラウザ試験はソフトウェア描画であり、実機 GPUやInventorの現在のModel Stateの検証ではありません。
-開発版の配布workflowでは、4プラットフォームのPython 3.12 cold installに対して追加の
+配布workflowでは、4プラットフォームのPython 3.12 cold installに対して追加の
 Chromium SVG検査を要求します。公開fixtureの実5シートと合成1ケースを表示し、
 描画範囲・画像数・日本語/直径記号の使用フォントを確認します。PNGとブラウザー版を
 `drawing-browser-*` artifactへ保存します。これはSVGの表示検証で、各OSの3Dブラウザー操作、
