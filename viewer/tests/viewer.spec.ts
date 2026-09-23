@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 
@@ -17,18 +17,37 @@ async function storedSheet(page: Page, url: string, descriptor: any) {
 
 async function mockDrawingSheets(page: Page, state: any, sheets: any[]) {
   const descriptors = [];
+  const images: Record<string, any> = {};
+  for (const image of state.drawing.images) {
+    if (!image.resource) continue;
+    const bytes = await (await page.request.get(new URL(image.resource, page.url()).href)).body();
+    images[image.reference] = { data: bytes.toString('base64'), sha256: image.sha256,
+      mime_type: image.resource.endsWith('.png') ? 'image/png' : 'image/jpeg' };
+  }
   for (const sheet of sheets) {
     const id = sheet.id.startsWith(state.source.sha256 + '/') ? sheet.id : `${state.source.sha256}/sheet-${sheet.id}`;
-    const { items, omissions, sources, views, ...rest } = sheet;
+    const { items, omissions, sources, views, svg, export_report, ...rest } = sheet;
     const descriptor = { ...rest, id, item_count: items.length, omission_count: omissions.length };
     // Keep only descriptor fields in the snapshot, just as the real server does.
     for (const key of ['schema_version', 'scene_kind', 'source_sha256', 'sheet_id', 'units']) delete descriptor[key];
     if (sheet.status === 'unavailable') Object.assign(descriptor, { resource: null, bytes: null, sha256: null });
     else {
-      const payload = { schema_version: 1, scene_kind: 'drawing_sheet', source_sha256: state.source.sha256,
+      const payload: any = { schema_version: 1, scene_kind: 'drawing_sheet', source_sha256: state.source.sha256,
         sheet_id: id, units: 'source_units_unverified', items: items.map((item: any, i: number) => ({ ...item, id: `${id}/test-${i}` })), omissions, sources,
         views: views?.map((v: any) => ({ ...v, id: `${id}/view-${v.placement_record}`,
           item_ids: items.flatMap((item: any, i: number) => item.placement_record === v.placement_record ? [`${id}/test-${i}`] : []) })) };
+      const rendered = spawnSync(python, ['-c', `import sys,json,base64
+from inventor_kit.drawing_output import render_svg
+r=json.load(sys.stdin)
+images={int(k):dict(v,data=base64.b64decode(v['data'])) for k,v in r['images'].items()}
+sys.stdout.write(render_svg(r['sheet'],r['source'],images))`], {
+        input: JSON.stringify({ sheet: { ...sheet, id, items: payload.items }, source: state.source.sha256, images }),
+        encoding: 'utf-8', maxBuffer: 40 * 1024 * 1024,
+      });
+      expect(rendered.status, rendered.stderr).toBe(0);
+      payload.svg = rendered.stdout;
+      payload.export_report = { source_sha256: state.source.sha256, selected_sheet_id: id,
+        export: { sha256: createHash('sha256').update(payload.svg).digest('hex'), bytes: Buffer.byteLength(payload.svg) } };
       const body = JSON.stringify(payload), hash = createHash('sha256').update(body).digest('hex');
       Object.assign(descriptor, { resource: `drawing-sheet-${hash}.json`, bytes: Buffer.byteLength(body), sha256: hash });
       await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
@@ -117,19 +136,25 @@ for (const file of ['SamplePart.ipt', 'Cylinder.ipt', 'INV_nist_ftc_09_asme1_202
     await page.getByRole('button', { name: 'Fit', exact: true }).click();
     const iso = await page.locator('#cad canvas').screenshot();
     const box = (await page.locator('#cad canvas').boundingBox())!;
+    async function drag(dx: number, dy: number) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      for (let step = 1; step <= 10; step++) {
+        await page.mouse.move(box.x + box.width / 2 + dx * step / 10,
+          box.y + box.height / 2 + dy * step / 10);
+        // Let the viewer consume each pointer position before releasing it.
+        // Large software-rendered meshes can lag a burst of synthetic moves.
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+      }
+      await page.mouse.up();
+    }
     await page.keyboard.down('Shift');
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 + 60, { steps: 10 });
-    await page.mouse.up();
+    await drag(120, 60);
     await page.keyboard.up('Shift');
     await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
     await page.getByRole('button', { name: 'Fit', exact: true }).click();
     await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(true);
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 100, box.y + box.height / 2 + 50, { steps: 10 });
-    await page.mouse.up();
+    await drag(100, 50);
     await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
     await page.getByRole('button', { name: 'Fit', exact: true }).click();
     await page.getByRole('button', { name: 'Front', exact: true }).click();
@@ -380,6 +405,36 @@ test('IDW major23 switches all four saved sheets and colored views', async ({ pa
     expect(await page.locator('#drawing-svg [data-kind="text"]').count()).toBeGreaterThan(50);
     expect(await page.locator('#drawing-svg image').count()).toBeGreaterThan(2);
     await expect(page.locator('#drawing-omissions')).toContainText('saved raster images');
+    const saved = await storedSheet(page, url, state.drawing.sheets[i]);
+    const bounds = await page.locator('#drawing-svg').evaluate((svg, saved: any) => {
+      const elements = new Map(Array.from(svg.querySelectorAll<SVGPathElement>('path[data-item-id]')).map(p => [p.dataset.itemId, p]));
+      let worst = 0, checked = 0;
+      for (const item of saved.items) {
+        const g = item.geometry; if (g.kind !== 'curve') continue;
+        const times = [g.start, g.end];
+        for (const axis of [0, 1]) {
+          const phase = Math.atan2(g.v[axis], g.u[axis]);
+          const first = Math.floor((g.start - phase) / Math.PI) + 1;
+          for (let k = first; k < first + 3; k++) {
+            const t = phase + k * Math.PI;
+            if (g.start < t && t < g.end) times.push(t);
+          }
+        }
+        const points = times.map(t => [g.center[0] + g.u[0] * Math.cos(t) + g.v[0] * Math.sin(t),
+          saved.size_in_source_units[1] - g.center[1] - g.u[1] * Math.cos(t) - g.v[1] * Math.sin(t)]);
+        const expected = [Math.min(...points.map(p => p[0])), Math.min(...points.map(p => p[1])),
+          Math.max(...points.map(p => p[0])), Math.max(...points.map(p => p[1]))];
+        const b = elements.get(item.id)!.getBBox(), actual = [b.x, b.y, b.x + b.width, b.y + b.height];
+        worst = Math.max(worst, ...actual.map((v, j) => Math.abs(v - expected[j]) / Math.max(1, ...expected.map(Math.abs))));
+        checked++;
+      }
+      return { worst, checked };
+    }, { size_in_source_units: saved.size_in_source_units,
+      items: saved.items.filter((item: any) => item.geometry.kind === 'curve') });
+    expect(bounds.checked).toBeGreaterThan(0);
+    // Chromium bounds use float precision; exact parametric extrema are the
+    // independent reference. In particular, edge-on arcs must stay bounded.
+    expect(bounds.worst).toBeLessThan(2e-5);
     await page.locator('#drawing-svg').screenshot({ path: info.outputPath(`major23-sheet-${i + 1}.png`) });
   }
   expect(state.drawing.images.filter((i: any) => i.status === 'decoded_rgba_view_cache_unqualified')).toHaveLength(22);
@@ -606,4 +661,123 @@ test('IDW saved view selection highlights members and retains unknown rotation',
   expect(await page.locator('#drawing-svg .drawing-selected').count()).toBeGreaterThan(0);
   await page.locator('#drawing-search').fill('does not exist');
   await expect(page.locator('#drawing-views button')).toHaveCount(1);
+});
+
+test('IDW SVG download is pristine, self-contained and works after the server stops', async ({ page, browser }, info) => {
+  const url = await open(page, 'SampleBg.idw');
+  await expect(page.locator('#drawing-save-svg')).toBeEnabled();
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  await page.locator('#drawing-search').fill('Sample');
+  await page.locator('#drawing-search-results button').first().click();
+  await page.locator('#drawing-zoom').click();
+  await page.locator('#drawing-text').uncheck();
+  const pending = page.waitForEvent('download');
+  await page.locator('#drawing-save-svg').click();
+  const download = await pending;
+  const path = info.outputPath('saved-sheet.svg');
+  await download.saveAs(path);
+  const saved = readFileSync(path, 'utf8');
+  expect(saved).toBe(sheet.svg);
+  expect(saved).not.toContain('drawing-selected');
+  expect(saved).toContain('data:image/png;base64,');
+  const pendingReport = page.waitForEvent('download');
+  await page.locator('#drawing-save-report').click();
+  const reportDownload = await pendingReport;
+  const reportPath = info.outputPath('saved-sheet.svg.json');
+  await reportDownload.saveAs(reportPath);
+  const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+  expect(report.export.sha256).toBe(createHash('sha256').update(saved).digest('hex'));
+  expect(report.units).toBe('source_units_unverified');
+  const child = process_!;
+  const exited = new Promise<number | null>(resolve => child.once('exit', resolve));
+  child.kill('SIGINT'); expect(await exited).toBe(0); process_ = undefined;
+  const offline = await browser.newPage();
+  const requests: string[] = [];
+  await offline.route('http{,s}://**', route => { requests.push(route.request().url()); return route.abort(); });
+  await offline.goto('file://' + path);
+  await expect(offline.locator('svg [data-item-id]')).toHaveCount(157);
+  await expect(offline.locator('svg text')).toHaveCount(53);
+  expect(await offline.locator('svg').getAttribute('viewBox')).toBe('0 0 42 29.7');
+  await offline.locator('svg').screenshot({ path: info.outputPath('saved-sheet.png') });
+  expect(requests).toEqual([]);
+  await offline.close();
+});
+
+test('IDW exact affine arcs preserve dashed lengths and CJK/symbol text in saved output', async ({ page }, info) => {
+  const url = await open(page, 'SampleBg.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  const line = structuredClone(sheet.items.find((i: any) => i.geometry.kind === 'curve'));
+  line.geometry = { kind: 'curve', center: [15, 12, 0], u: [8, 2, 0], v: [3, 5, 0], start: 0, end: Math.PI * 2 };
+  line.style = { width: .12, dash: [.8, .4], rgba: [0, 0, 0, 1], unresolved: [] };
+  const text = structuredClone(sheet.items.find((i: any) => i.geometry.kind === 'text'));
+  text.geometry = { kind: 'text', text: '日本語 ±90°', position: [2, 24, 0], direction: [1, 0, 0], up: [0, 1, 0], raw_flags: 9,
+    font: { family: 'Missing CJK Font', height_candidate: 1, weight_candidate: 400, flags: 0, width_factor: 1 } };
+  sheet.items = [line, text];
+  await mockDrawingSheets(page, state, [sheet]); await page.reload();
+  await expect(page.locator('#drawing-svg path[data-kind="curve"]')).toHaveCount(1);
+  await expect(page.locator('#drawing-svg text')).toHaveAttribute('data-font-fallback', 'system-cjk');
+  const deviation = await page.locator('#drawing-svg path[data-kind="curve"]').evaluate((node: SVGPathElement) => {
+    // Independently invert the saved ellipse basis at sampled browser points.
+    let worst = 0;
+    const length = node.getTotalLength();
+    for (let n = 0; n <= 100; n++) {
+      const point = node.getPointAtLength(length * n / 100);
+      const dx = point.x - 15, dy = 29.7 - point.y - 12;
+      const a = (5 * dx - 3 * dy) / 34, b = (-2 * dx + 8 * dy) / 34;
+      worst = Math.max(worst, Math.abs(a * a + b * b - 1));
+    }
+    return worst;
+  });
+  // Point-at-length is a browser approximation (observed squared-radius error
+  // about 0.00093); serialized conic radii are independently checked with SVD.
+  expect(deviation).toBeLessThan(.002);
+  await expect(page.locator('#drawing-svg path')).toHaveAttribute('stroke-dasharray', '0.8 0.4');
+  const raster = await page.evaluate(async () => {
+    const svg = document.querySelector('#drawing-svg')!.cloneNode(true) as SVGSVGElement;
+    svg.setAttribute('viewBox', '0 0 42 29.7'); svg.setAttribute('width', '1260'); svg.setAttribute('height', '891');
+    const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+    await img.decode(); const c = document.createElement('canvas'); c.width = 1260; c.height = 891;
+    const ctx = c.getContext('2d')!; ctx.drawImage(img, 0, 0);
+    const p = ctx.getImageData(0, 0, c.width, c.height).data;
+    let ink = 0, gaps = 0;
+    for (let n = 0; n < 1000; n++) {
+      const t = 2 * Math.PI * n / 1000;
+      const x = Math.round((15 + 8 * Math.cos(t) + 3 * Math.sin(t)) * 30);
+      const y = Math.round((29.7 - 12 - 2 * Math.cos(t) - 5 * Math.sin(t)) * 30);
+      const offset = (y * c.width + x) * 4;
+      if (p[offset] < 120) ink++; else gaps++;
+    }
+    return { ink, gaps };
+  });
+  expect(raster.ink).toBeGreaterThan(400); expect(raster.gaps).toBeGreaterThan(100);
+  await page.locator('#drawing-svg').screenshot({ path: info.outputPath('affine-dash-cjk.png') });
+});
+
+test('IDW rejects active SVG content even when payload and export hashes match', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const descriptor = state.drawing.sheets[0];
+  const payload = await (await page.request.get(url + descriptor.resource)).json();
+  for (const injected of [
+    '<script>window.drawingInjected=true</script>',
+    '<image href="https://example.invalid/external.png"/>',
+    '<?xml-stylesheet href="https://example.invalid/style.css" type="text/css"?>',
+  ]) {
+    const modified = structuredClone(payload);
+    modified.svg = payload.svg.replace('</svg>', injected + '</svg>');
+    modified.export_report.export.sha256 = createHash('sha256').update(modified.svg).digest('hex');
+    modified.export_report.export.bytes = Buffer.byteLength(modified.svg);
+    const body = JSON.stringify(modified);
+    descriptor.sha256 = createHash('sha256').update(body).digest('hex');
+    descriptor.bytes = Buffer.byteLength(body);
+    await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
+    await page.route('**/state.json', route => route.fulfill({ json: state }));
+    await page.reload();
+    await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+    await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+    await expect(page.locator('#drawing-save-svg')).toBeDisabled();
+    expect(await page.evaluate(() => (window as any).drawingInjected)).toBeUndefined();
+  }
 });

@@ -26,31 +26,48 @@ def failure(path, code, message):
 
 
 def run_job(request, timeout):
+    def failed(code, message):
+        report = failure(request['path'], code, message)
+        if request.get('operation') == 'drawing':
+            report.update(report_type='drawing', units='source_units_unverified', source_sha256=None,
+                          current_state='unverified', qualified=False, snapshot_kind='saved',
+                          reference_freshness='unverified', sheets=[], images=[])
+        return report
     with tempfile.TemporaryDirectory(prefix="inventor-cli-") as temporary:
         result_path = Path(temporary) / "result.json"
-        destination = Path(request["step"]) if request.get("step") else None
+        output_key = 'svg' if request.get('svg') else 'step'
+        destination = Path(request[output_key]) if request.get(output_key) else None
         if destination is not None:
-            request = dict(request, step=str(Path(temporary) / destination.name))
+            request = dict(request, **{output_key: str(Path(temporary) / destination.name)})
         with tempfile.TemporaryFile(mode="w+") as log:
             try:
                 child = subprocess.run([sys.executable, "-m", "inventor_kit._cli_worker", str(result_path)],
                     input=json.dumps(request), text=True, stdout=log, stderr=log, timeout=timeout, check=False)
             except subprocess.TimeoutExpired:
-                return failure(request["path"], "execution.timeout", f"Input exceeded {timeout:g} seconds")
+                return failed("execution.timeout", f"Input exceeded {timeout:g} seconds")
             if child.returncode != 0:
-                return failure(request["path"], "execution.worker_failed", f"Conversion process exited with code {child.returncode}")
-            if not result_path.is_file() or result_path.stat().st_size > 16 * 1024 * 1024:
-                return failure(request["path"], "execution.report_unavailable", "Worker report is missing or exceeds 16 MiB")
+                return failed("execution.worker_failed", f"Conversion process exited with code {child.returncode}")
+            max_report = (96 if request.get('drawing_details') else 16) * 1024 * 1024
+            if not result_path.is_file() or result_path.stat().st_size > max_report:
+                return failed("execution.report_unavailable", "Worker report is missing or exceeds its byte limit")
             try:
                 result = json.loads(result_path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
-                return failure(request["path"], "execution.report_invalid", "Worker produced an invalid JSON report")
+                return failed("execution.report_invalid", "Worker produced an invalid JSON report")
         if destination is not None and result["status"] in ("success", "partial"):
             # Publish only after normal native-process shutdown. A timeout or
             # crash can leave incomplete staged files, never final outputs.
-            staged = Path(request["step"])
+            staged = Path(request[output_key])
             created = []
             try:
+                # The worker knew only its staging path. Record the final name
+                # before publishing a drawing's provenance sidecar.
+                if output_key == 'svg':
+                    from .drawing_output import json_bytes
+                    sidecar = staged.with_suffix(staged.suffix + '.json')
+                    value = json.loads(sidecar.read_text(encoding='utf-8'))
+                    value['export']['path'] = str(destination)
+                    sidecar.write_bytes(json_bytes(value))
                 for source, target in ((staged, destination),
                         (staged.with_suffix(staged.suffix + ".json"), destination.with_suffix(destination.suffix + ".json"))):
                     with source.open("rb") as incoming, target.open("xb") as outgoing:
@@ -70,16 +87,21 @@ def run_job(request, timeout):
 
 
 def main(argv=None):
-    parser = Parser(description="Inspect and convert saved Inventor parts and assemblies")
+    parser = Parser(description="Inspect saved Inventor parts, assemblies and drawings")
     parser.add_argument("paths", nargs="+")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--metadata-only", action="store_true")
     mode.add_argument("--list-candidates", action="store_true")
     mode.add_argument("--list-bodies", action="store_true", help="Report every saved body's conversion result")
     mode.add_argument("--convert", action="store_true", help="Report IPT bodies or saved IAM occurrences")
+    mode.add_argument('--list-sheets', action='store_true', help='List saved IDW sheets and input-bound IDs')
+    mode.add_argument('--drawing-report', action='store_true', help='Report IDW views, raw text runs, sources and omissions')
     output = parser.add_mutually_exclusive_group()
     output.add_argument("--step", type=Path, help="Export a single input to a new STEP and JSON sidecar")
     output.add_argument("--output-dir", type=Path, help="Export each input to a new STEP in this directory")
+    output.add_argument('--svg', type=Path, help='Save one IDW sheet as a new offline SVG and JSON sidecar')
+    parser.add_argument('--sheet-id', help='Select an ID from --list-sheets; required for multi-sheet SVG output')
+    parser.add_argument('--drawing-details', action='store_true', help='Include saved item geometry in the drawing report')
     parser.add_argument("--report", type=Path, help="Save the JSON result to a new file")
     parser.add_argument("--jsonl", action="store_true", help="One JSON object per input on stdout and in --report")
     parser.add_argument("--candidate-id")
@@ -90,6 +112,18 @@ def main(argv=None):
     parser.add_argument("--allow-partial", action="store_true")
     parser.add_argument("--timeout", type=float, default=120, help="Seconds per input, including native conversion")
     args = parser.parse_args(argv)
+    drawing = bool(args.list_sheets or args.drawing_report or args.svg)
+    if drawing and (args.metadata_only or args.list_candidates or args.list_bodies or args.convert or args.step or args.output_dir
+                    or args.candidate_id or args.body_id or args.search_root or args.allow_unverified_state or args.require_current_state):
+        parser.error('Drawing options cannot be combined with metadata, IPT/IAM or STEP options')
+    if not drawing and (args.sheet_id or args.drawing_details):
+        parser.error('--sheet-id/--drawing-details require --drawing-report or --svg')
+    if args.list_sheets and (args.svg or args.sheet_id or args.drawing_details):
+        parser.error('--list-sheets cannot be combined with selection, details or SVG output')
+    if (args.svg or args.sheet_id) and len(args.paths) != 1:
+        parser.error('SVG output and sheet IDs apply to one input')
+    if args.svg and args.svg.suffix.lower() != '.svg':
+        parser.error('--svg output must use .svg')
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be finite and positive")
     if args.step and len(args.paths) != 1:
@@ -103,10 +137,10 @@ def main(argv=None):
     if args.list_bodies and (args.step or args.output_dir):
         parser.error("--list-bodies cannot be combined with STEP output")
     converting = bool(args.convert or args.list_bodies or args.step or args.output_dir or args.body_id)
-    if not converting and (args.allow_partial or args.allow_unverified_state or args.search_root):
+    if not converting and not drawing and (args.allow_partial or args.allow_unverified_state or args.search_root):
         parser.error("Assembly and partial options require --convert or STEP output")
     paths = [Path(p).resolve() for p in args.paths]
-    outputs = [args.step.resolve() if args.step else (args.output_dir.resolve() / (p.stem + ".step")
+    outputs = [args.svg.resolve() if args.svg else args.step.resolve() if args.step else (args.output_dir.resolve() / (p.stem + ".step")
                if args.output_dir else None) for p in paths]
     artifacts = [p for output in outputs if output for p in (output, output.with_suffix(output.suffix + ".json"))]
     if args.report:
@@ -121,16 +155,18 @@ def main(argv=None):
         except OSError as error:
             parser.error(f"Could not create output directory: {error}")
     results = []
-    legacy = len(paths) == 1 and not (args.convert or args.list_bodies or args.body_id or args.output_dir
+    legacy = len(paths) == 1 and not (drawing or args.convert or args.list_bodies or args.body_id or args.output_dir
         or args.jsonl or args.report or args.allow_partial or args.allow_unverified_state or args.search_root)
     for path, output_path in zip(paths, outputs):
-        request = dict(path=str(path), operation="convert" if converting else "inspect",
+        request = dict(path=str(path), operation='drawing' if drawing else "convert" if converting else "inspect",
                        metadata_only=args.metadata_only, list_candidates=args.list_candidates,
                        list_bodies=args.list_bodies, candidate_id=args.candidate_id,
                        require_current_state=args.require_current_state, body_ids=args.body_id,
                        search_roots=[str(Path(p).resolve()) for p in args.search_root],
                        allow_unverified_state=args.allow_unverified_state, allow_partial=args.allow_partial,
-                       step=str(output_path) if output_path else None, legacy_summary=legacy)
+                       step=str(output_path) if output_path and not drawing else None, legacy_summary=legacy,
+                       svg=str(output_path) if output_path and drawing else None, sheet_id=args.sheet_id,
+                       list_sheets=args.list_sheets, drawing_details=args.drawing_details)
         result = run_job(request, args.timeout)
         results.append(result)
         if args.jsonl:

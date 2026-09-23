@@ -5,6 +5,7 @@ import json
 import re
 
 from ..drawing import read_drawing, _plain
+from ..drawing_output import item_dict, source_sheet, render_svg, svg_report
 
 MAX_SHEET_BYTES = 32 * 1024 * 1024
 MAX_DRAWING_BYTES = 128 * 1024 * 1024
@@ -44,6 +45,12 @@ def validate_drawing_resources(directory, scene, limit=MAX_DRAWING_BYTES):
                 or payload['units'] != drawing['units'] or len(payload['items']) != sheet['item_count']
                 or len(payload['omissions']) != sheet['omission_count']):
             raise ValueError('Drawing sheet payload identity/count mismatch')
+        svg = payload['svg'].encode('utf-8')
+        report = payload['export_report']
+        if (report['source_sha256'] != source or report['selected_sheet_id'] != sheet['id']
+                or report['export']['sha256'] != hashlib.sha256(svg).hexdigest()
+                or report['export']['bytes'] != len(svg)):
+            raise ValueError('Drawing SVG report identity mismatch')
         item_ids = [i['id'] for i in payload['items']]
         item_set = set(item_ids)
         if len(item_set) != len(item_ids) or any(not i.startswith(sheet['id'] + '/') for i in item_ids):
@@ -105,13 +112,14 @@ def build_drawing_scene(data, directory, options, scene):
             item_count=len(sheet.items), omission_count=len(sheet.omissions),
             diagnostics=issues, resource=None, bytes=None, sha256=None)
         if publish:
-            items = [dict(id=i.id, geometry=_plain(i.geometry), style=_plain(i.style),
-                source=asdict(i.source), segment_id=i.segment_id, record_ordinal=i.record_ordinal,
-                placement_record=i.placement_record, group_path=list(i.group_path)) for i in sheet.items]
+            items = [item_dict(i) for i in sheet.items]
+            svg = render_svg(source_sheet(doc, sheet), doc.source_sha256,
+                {i.reference: dict(mime_type=i.mime_type,data=i.data,sha256=i.sha256) for i in doc.images})
             payload = dict(schema_version=1, scene_kind='drawing_sheet', source_sha256=doc.source_sha256,
                 sheet_id=sheet.id, units=doc.units, items=items,
                 views=[asdict(v) for v in sheet.views],
-                omissions=[_plain(o) for o in sheet.omissions], sources=[asdict(s) for s in sheet.sources])
+                omissions=[_plain(o) for o in sheet.omissions], sources=[asdict(s) for s in sheet.sources],
+                svg=svg, export_report=svg_report(doc,sheet,svg.encode('utf-8')))
             encoded = sheet_bytes(payload, min(MAX_SHEET_BYTES, limit - total))
             total += len(encoded)
             digest = hashlib.sha256(encoded).hexdigest()

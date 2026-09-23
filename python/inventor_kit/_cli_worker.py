@@ -6,7 +6,47 @@ from pathlib import Path
 import sys
 
 
+def execute_drawing(request):
+    import hashlib
+    import inventor_kit as ik
+    from .cli import failure
+    path = Path(request['path'])
+    result = failure(path, 'execution.not_started', 'Input was not processed')
+    result.update(report_type='drawing', units='source_units_unverified', operation='drawing', source_sha256=None,
+                  current_state='unverified', qualified=False, snapshot_kind='saved', reference_freshness='unverified',
+                  sheets=[], images=[])
+    stage = 'inspection'
+    try:
+        data = ik._file_bytes(path)
+        result['source_sha256'] = hashlib.sha256(data).hexdigest()
+        info = ik.inspect(data, source_id=str(path))
+        result['kind'] = info.metadata.identification.kind
+        if result['kind'] != 'drawing':
+            result.update(status='unsupported', diagnostics=[dict(code='drawing.kind_unsupported', severity='error',
+                message='Drawing options require an identified IDW document.', source=None)])
+            return result
+        doc = ik.read_drawing(data, source_id=str(path))
+        result.update(doc.report(sheet_id=request.get('sheet_id'), details=request.get('drawing_details',False),
+                                 list_only=request.get('list_sheets',False)))
+        result['stages'][stage] = 'available'
+        if request.get('svg'):
+            stage = 'export'
+            exported = doc.export_svg(request['svg'], sheet_id=request.get('sheet_id'),
+                                      allow_partial=request.get('allow_partial',False))
+            result['export'] = exported['export']
+            result['selected_sheet_id'] = exported['selected_sheet_id']
+            result['stages'][stage] = 'available'
+    except Exception as error:
+        result['status'] = 'error'
+        result['stages'][stage] = 'failed'
+        result['diagnostics'] = [dict(d) for d in error.diagnostics] if isinstance(error,ik.DrawingDisplayError) else [
+            dict(code='input.invalid' if stage=='inspection' else 'export.failed', severity='error',message=str(error),source=None)]
+    return result
+
+
 def execute(request):
+    if request.get('operation') == 'drawing':
+        return execute_drawing(request)
     import inventor_kit as ik
     from .cli import failure
     from .conversion import dependency_versions
@@ -18,6 +58,9 @@ def execute(request):
     try:
         doc = ik.inspect_file(path, include_candidates=request["list_candidates"])
         kind = doc.metadata.identification.kind
+        if kind == 'drawing':
+            # A 3D-conversion refusal must not imply that an IDW uses mm.
+            report['units'] = 'source_units_unverified'
         report.update(kind=kind, diagnostics=[], dependencies=dependency_versions(),
                       source_sha256=doc.geometry.source_sha256)
         stages[stage] = "available"
@@ -79,8 +122,9 @@ def execute(request):
 def main():
     request = json.load(sys.stdin)
     report = execute(request)
-    with Path(sys.argv[1]).open("x", encoding="utf-8") as stream:
-        json.dump(report, stream, ensure_ascii=False, allow_nan=False)
+    from .drawing_output import json_bytes
+    with Path(sys.argv[1]).open('xb') as stream:
+        stream.write(json_bytes(report, (96 if request.get('drawing_details') else 16)*1024*1024))
 
 
 if __name__ == "__main__":

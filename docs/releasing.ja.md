@@ -64,7 +64,9 @@ FTC06（2021/2024）は 146 面の主ソリッドが有効で、開いた補助 
 有効ソリッドへの変換を必須とします。
 各 OS 種別・Python 版で `wheel[viewer]` を導入して
 `pip check` を行い、`--no-browser` で起動します。部品・アセンブリ・明示許可した部分部品・部分
-アセンブリの4ケースでシーンとメッシュバッファを取得し、正常終了と一時データ削除を要求します。
+アセンブリの4ケースでシーンとメッシュバッファを取得します。major31 IDWの通常起動・互換flag起動と、
+major23の4シートも検査し、リソースと共通SVG出力のハッシュ、単位未検証・部分対応の状態を確認します。
+全7ケースで正常終了と一時データ削除を要求します。
 sdist は Node なしで再ビルドし、生成した wheel を検査したうえで Linux / Python 3.11 に
 viewer extra とともに導入します。
 インストール検査は依存先も wheel に限定します。`cp310-abi3` は拡張の ABI 下限で、
@@ -84,8 +86,12 @@ python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qua
 
 前提の Linux CI は、導入した wheel と別途再ビルドした sdist の両方で Chromium E2E を
 必須にします。同梱アセットは、固定した lockfile と Node の基準版による `npm ci`・
-再生成の結果に照合します。ブラウザ試験はソフトウェア描画であり、Windows/macOS の
-ブラウザ描画、実機 GPU、Inventor の現在の Model State の検証ではありません。
+再生成の結果に照合します。ブラウザ試験はソフトウェア描画であり、実機 GPUやInventorの現在のModel Stateの検証ではありません。
+開発版の配布workflowでは、4プラットフォームのPython 3.12 cold installに対して追加の
+Chromium SVG検査を要求します。公開fixtureの実5シートと合成1ケースを表示し、
+描画範囲・画像数・日本語/直径記号の使用フォントを確認します。PNGとブラウザー版を
+`drawing-browser-*` artifactへ保存します。これはSVGの表示検証で、各OSの3Dブラウザー操作、
+Safari/WebKit、nativeフォント一致、実寸印刷の認定ではありません。
 シナリオとローカル実行コマンドは [viewer ガイド](viewer.ja.md)を参照してください。
 依存 wheel の不足や実行失敗は配布検証を失敗させます。未検証 OS を対応済みと扱わないでください。
 

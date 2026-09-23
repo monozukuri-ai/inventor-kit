@@ -84,6 +84,15 @@ jobs:
       - name: Test native document reader on Windows
         if: runner.os == 'Windows'
         run: cargo +1.93.0 test -p inventor-core --all-features --locked
+      - name: Parse native capture scripts on Windows (no Inventor execution)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem scripts/create_drawing_*controls.ps1 | ForEach-Object {
+            $captureTokens = $null; $captureErrors = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$captureTokens, [ref]$captureErrors)
+            if ($captureErrors.Count -ne 0) { throw ($captureErrors | Out-String) }
+          }
       - name: Inspect archive and obtain pinned smoke fixtures
         run: |
           python scripts/check_viewer_assets.py
@@ -92,12 +101,30 @@ jobs:
           python scripts/fetch_assembly_samples.py
           python scripts/fetch_drawing_samples.py
           python scripts/check_corpus.py
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.18.0"
+      - name: Prepare Chromium for installed drawing checks
+        run: |
+          npm ci --prefix viewer
+          cd viewer
+          npx playwright install --with-deps chromium
       - name: Cold install, geometry, STEP and viewer checks on Python 3.11 and 3.12
+        # Platform font/rendering evidence is collected from a cold installed wheel.
+        # workflow_dispatch never reaches the publish job below.
         env:
           MINIMUM_PYTHON: ${{ steps.minimum.outputs.python-path }}
         run: |
           python scripts/smoke_distribution.py --wheel dist/*.whl --python "$MINIMUM_PYTHON" --viewer --report qualification/${{ matrix.platform }}-3.11.json
-          python scripts/smoke_distribution.py --wheel dist/*.whl --python python --viewer --report qualification/${{ matrix.platform }}-3.12.json
+          python scripts/smoke_distribution.py --wheel dist/*.whl --python python --viewer --drawing-browser drawing-browser --report qualification/${{ matrix.platform }}-3.12.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: drawing-browser-${{ matrix.platform }}
+          path: |
+            drawing-browser/*.png
+            drawing-browser/browser.json
+          if-no-files-found: warn
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: viewer-platform-${{ matrix.platform }}

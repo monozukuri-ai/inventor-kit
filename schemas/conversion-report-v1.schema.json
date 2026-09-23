@@ -7,7 +7,7 @@
     "schema_version": {"const": 1},
     "kind": {"type": "string"},
     "status": {"enum": ["success", "partial", "unsupported", "error"]},
-    "units": {"const": "mm"},
+    "units": {"enum": ["mm", "source_units_unverified"]},
     "geometry_complete": {"type": "boolean"},
     "selection_complete": {"type": "boolean"},
     "current_state_verified": {"const": false},
@@ -23,6 +23,9 @@
       "additionalProperties": false, "properties": {
         "inspection": {"type": "string"}, "conversion": {"type": "string"}, "export": {"type": "string"}}}
   },
+  "allOf": [{"if": {"properties": {"kind": {"const": "drawing"}}},
+    "then": {"properties": {"units": {"const": "source_units_unverified"}}},
+    "else": {"properties": {"units": {"const": "mm"}}}}],
   "$defs": {
     "body_id": {"type": "string", "pattern": "^body-[a-f0-9]{64}$"},
     "source": {"type": ["object", "null"], "required": ["source_id", "start_offset", "end_offset"],

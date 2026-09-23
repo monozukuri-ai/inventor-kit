@@ -39,6 +39,7 @@ include = [
     {path = "viewer/index.html", format = "sdist"},
     {path = "schemas/viewer-scene-v1.schema.json", format = "sdist"},
     {path = "schemas/drawing-scene-v1.schema.json", format = "sdist"},
+    {path = "schemas/drawing-report-v1.schema.json", format = "sdist"},
     {path = "schemas/conversion-report-v1.schema.json", format = "sdist"},
     {path = "README.ja.md", format = "sdist"},
     {path = "CONTRIBUTING.md", format = "sdist"},

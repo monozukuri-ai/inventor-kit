@@ -74,8 +74,10 @@ while rejecting complete-part conversion because two auxiliary open bodies remai
 CTC04 (2021) must produce one closed, valid solid with all 368 faces.
 Each platform/interpreter also installs `wheel[viewer]`,
 runs `pip check`, starts the local viewer with `--no-browser`, fetches scenes and
-mesh buffers for a part, an assembly, a permitted partial part and a permitted partial assembly, and requires
-normal shutdown with no temporary session data left behind. The sdist is rebuilt
+mesh buffers for a part, an assembly, a permitted partial part and a permitted partial assembly.
+It also checks major31 IDW display with the default and legacy flag, and all four
+major23 sheets: resource hashes, shared SVG exports, unverified units and partial status.
+All seven cases require normal shutdown with no temporary session data left behind. The sdist is rebuilt
 without Node and its wheel is inspected and installed with the viewer extra on
 Linux/Python 3.11. Installation checks require wheels for dependencies as well.
 `cp310-abi3` denotes the extension's minimum ABI; the package's supported Python
@@ -130,3 +132,11 @@ The release workflow checks the complete set of four platforms and the sdist.
 If files for the same version already exist on PyPI, their SHA-256 hashes must
 match. Different content or a lookup failure other than HTTP 404 stops the release.
 On reruns, `skip-existing` is allowed only after this check.
+
+The development distribution workflow additionally requires installed-wheel SVG
+checks in Chromium on all four platforms with Python 3.12. It renders five public
+fixture sheets and one synthetic font/dash control, checking bounds, image counts
+and actual Japanese/diameter-symbol fonts. `drawing-browser-*` artifacts contain
+PNGs and browser/version evidence. These checks do not qualify platform-specific
+3D browser interaction, Safari/WebKit, native font fidelity or physical printing.
+`workflow_dispatch` runs qualification without publishing a release.

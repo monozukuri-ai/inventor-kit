@@ -11,6 +11,19 @@ from drawing_oracle_contract import identity
 
 
 class UnitEvidence(unittest.TestCase):
+    def test_precision_measurement_keeps_pdf_rounding_separate_from_api_units(self):
+        from measure_drawing_precision import pdf_line, measurement
+        trace = '''<document><page mediabox="0 0 842 595"><layer>
+          <stroke_path transform="1 0 0 -1 0 595"><moveto x="65.16" y="116.28"/>
+          <lineto x="275.04" y="215.46"/></stroke_path></layer></page></document>'''
+        result, paper = pdf_line(trace, [23, 41, 97, 76])
+        self.assertFalse(result['passed'])
+        self.assertAlmostEqual(result['max_error_mm'], .028)
+        self.assertFalse(measurement(paper, [297, 210])['passed'])
+        self.assertTrue(measurement([23, 41, 97, 76], [23, 41, 97, 76])['passed'])
+        with self.assertRaises(ValueError): pdf_line(trace.replace('lineto', 'moveto'), [23, 41, 97, 76])
+        with self.assertRaises(ValueError): measurement([float('nan')], [0])
+
     def test_only_explicit_unchanged_saved_state_is_admitted(self):
         state = dict(dirty=False, requires_update=False, defer_updates=False, needs_migrating=False,
                      sheet_status=[0], revision='synthetic-revision', file_save_counter=1)

@@ -62,8 +62,10 @@ sys.meta_path.insert(0, NoGeometry())
                     time.sleep(.03)
                 self.assertEqual(result['job_status'], 'finished')
                 self.assertEqual(result['source']['kind'], 'drawing')
-                self.assertEqual(result['drawing']['status'], 'unavailable')
+                self.assertEqual(result['drawing']['status'], 'experimental_partial')
                 self.assertTrue(result['drawing']['sheets'])
+                self.assertTrue(result['drawing']['sheets'][0]['resource'])
+                self.assertIsNone(result['drawing']['millimeters_per_unit'])
             finally:
                 if child.poll() is None:
                     child.send_signal(signal.CTRL_BREAK_EVENT if os.name == 'nt' else signal.SIGINT)
@@ -108,17 +110,18 @@ sys.meta_path.insert(0, NoGeometry())
             finally:
                 server.shutdown(); server.server_close(); thread.join()
 
-    def test_strict_and_partial_requests_preserve_reasons_without_publishing_unknown_units(self):
+    def test_default_and_partial_requests_publish_source_units_without_claiming_mm(self):
         with tempfile.TemporaryDirectory() as temporary:
             for partial in (False, True):
                 scene = build_scene(ROOT/'fixtures/public/SampleBg.idw', Path(temporary), Options(allow_partial=partial))
                 jsonschema.validate(scene, SCHEMA)
-                self.assertEqual(scene['drawing']['status'], 'unavailable')
+                self.assertEqual(scene['drawing']['status'], 'experimental_partial')
                 self.assertTrue(scene['drawing']['sheets'])
-                self.assertTrue(all(s['resource'] is None for s in scene['drawing']['sheets']))
-                self.assertFalse(scene['drawing']['images'])
-                self.assertTrue(any(d['code'] == 'drawing.units_unverified' for d in scene['diagnostics']))
-                self.assertFalse(list(Path(temporary).glob('drawing-*')))
+                self.assertTrue(all(s['resource'] for s in scene['drawing']['sheets']))
+                self.assertTrue(scene['drawing']['images'])
+                self.assertEqual(scene['drawing']['units'], 'source_units_unverified')
+                self.assertIsNone(scene['drawing']['millimeters_per_unit'])
+                self.assertFalse(scene['drawing']['qualified'])
 
     def test_worker_commits_drawing_only_after_successful_exit(self):
         for target in (None, drawing_failure):

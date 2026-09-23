@@ -129,16 +129,21 @@ uninterpreted appearance data can omit a branch with a diagnostic reason.
 
 For supported Arial/Tahoma text, the Viewer adjusts saved height using browser
 font metrics, preserves spaces and separate baselines, and applies supported
-bold/italic flags. Missing fonts use a sans-serif fallback. Unknown layouts and
+bold/italic flags. Japanese text adds local Noto Sans CJK JP, Yu Gothic and Meiryo fallbacks before sans-serif. Unknown layouts and
 browsers without the height adjustment use an explicitly unverified fallback.
 Installed fonts affect text width and glyph shape; exact text fidelity is not
 guaranteed. The observed AIGDT `n` glyph is displayed as the approximate Unicode
 `⌀`, while original text and font remain available through the API. Other legacy
-symbols are not mapped.
+symbols are not mapped. The Unicode diameter fallback selects local symbol fonts.
 
 General clipping, draw order, text alignment and annotation coverage remain
-unverified. Curves are sampled for display; the API retains their original
-parameters. Major24/26/28/29 are outside this drawing profile.
+unverified. Circular and elliptical arcs use SVG ellipse arcs, including affine
+placements and decoded dash lengths, without fixed polyline subdivision. Stored
+splines still use the approximation described above. Nearly degenerate projected
+ellipses use line segments through endpoints and coordinate extrema, recorded in
+the SVG and sidecar. Their analytic deviation is at most 2e-9 source units,
+excluding serialization and browser rasterization error. Unknown line-pattern masks
+remain unresolved; they are not interpreted as newly supported native line types. Major24/26/28/29 are outside this drawing profile.
 For major23, supported saved vector edges and annotations overlay the color cache.
 Historical target contexts require matching object identity; this does not reconstruct historical state.
 Unknown sketch states, cross-segment display children and missing images remain explicit omissions.
@@ -160,3 +165,72 @@ being made available.
 Each sheet JSON is limited to 32 MiB. Sheets and images together are limited to
 128 MiB or the lower Viewer buffer limit. The 16 MiB metadata ceiling is separate;
 none of these byte limits promises bounded RSS or elapsed time.
+
+## Reports and offline SVG (development version)
+
+```python
+from inventor_kit import read_drawing_file
+
+drawing = read_drawing_file("drawing.idw")
+report = drawing.report()  # JSON-compatible inventory, raw text and omissions
+sheet = drawing.sheets[0]
+detailed = drawing.report(sheet_id=sheet.id, details=True)
+svg = drawing.to_svg(sheet_id=sheet.id, allow_partial=True)  # str
+saved = drawing.export_svg("sheet.svg", sheet_id=sheet.id, allow_partial=True)
+```
+
+`export_svg` creates a new SVG and `.svg.json` sidecar without overwriting either.
+The JSON follows [drawing report v1](../schemas/drawing-report-v1.schema.json),
+including input and output hashes, original text/font data, saved view references,
+sources and omissions. Embedded image bytes are in the SVG, not the JSON.
+`to_svg` and `export_svg` require explicit partial opt-in, accept `max_bytes` up to
+32 MiB and require a sheet ID for documents with more than one sheet. Unavailable
+sheets and foreign-input IDs raise `DrawingDisplayError`. API `report()` returns
+a dictionary; CLI serialization is bounded and supports batch JSONL.
+
+The Viewer, Python API and CLI share this SVG renderer. **Save partial SVG**
+downloads the selected sheet with images embedded; **Save report** downloads its
+provenance JSON. Export includes the full saved sheet even after zooming,
+searching, selection or hiding text/curves. It can be opened after the Viewer
+server stops, without network access. The SVG identifies the source and sheet,
+and uses a pixel viewport over unverified source coordinates, with no mm claim.
+Fonts are not embedded; installed fonts and browser font-metric support still
+affect the result. XML-incompatible characters are replaced only in the SVG;
+the JSON preserves the original string. Saving SVG does not enable the separate
+millimeter `render_sheet` API or qualify current state or annotation semantics.
+
+## Unit precision and general line-style evidence
+
+[measure_drawing_precision.py](../scripts/measure_drawing_precision.py) checks the
+four pinned unit controls against API cm values, SVG line coordinates and native
+PDF vectors separately, without fitting scale or position. It records errors at
+a 0.001 mm threshold. The existing 400 dpi PDFs differ by up to 0.028 mm in line
+coordinates and about 0.139 mm in paper size, so they cannot serve as that precision
+reference. Saved/API agreement applies only to these snapshots, not general IDW
+units or printer calibration. The private controls, `pdfinfo` and `mutool` are required.
+
+```sh
+python scripts/measure_drawing_precision.py --input /path/to/units --output precision.json
+```
+
+[create_drawing_linetype_controls.ps1](../scripts/create_drawing_linetype_controls.ps1)
+creates 38 new IDW/API/PDF specimens covering 15 built-in patterns through layer
+inheritance and entity overrides, plus isolated weight, scale and weight-dependent
+scaling controls. Use Windows PowerShell 5.1 with Inventor running and all existing
+documents closed. It does not update existing IDW files or global styles.
+**Native execution and the general pattern mapping remain unqualified.** Saved
+pattern IDs are distinct from [API enum values](https://help.autodesk.com/cloudhelp/2024/ENU/Inventor-API/files/LineTypeEnum.htm);
+names and enum values alone do not establish dash arrays.
+
+```powershell
+.\scripts\create_drawing_linetype_controls.ps1 -OutputDirectory C:\Evidence\linetypes-new
+```
+
+```sh
+python scripts/validate_drawing_linetype_controls.py --input /path/to/linetypes-new --output acquisition.json
+```
+
+Use new output paths. The acquisition gate rejects failed/missing getters, changed
+saved state, duplicate cases and mismatched source hashes. A pass still reports
+`pattern_mapping_qualified=false`; pattern IDs, dash lengths, phase and scaling
+must be compared with native evidence before unknown layer styles are admitted.

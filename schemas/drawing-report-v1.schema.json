@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Saved drawing report v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_type",
+    "kind",
+    "status",
+    "units",
+    "source_sha256",
+    "complete",
+    "qualified",
+    "current_state",
+    "snapshot_kind",
+    "reference_freshness",
+    "sheets",
+    "images",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "report_type": {
+      "const": "drawing"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "partial",
+        "unsupported",
+        "error"
+      ]
+    },
+    "source_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "units": {
+      "const": "source_units_unverified"
+    },
+    "length_unit": {
+      "type": "null"
+    },
+    "millimeters_per_unit": {
+      "type": "null"
+    },
+    "complete": {
+      "const": false
+    },
+    "qualified": {
+      "const": false
+    },
+    "current_state": {
+      "const": "unverified"
+    },
+    "current_state_verified": {
+      "const": false
+    },
+    "snapshot_kind": {
+      "const": "saved"
+    },
+    "reference_freshness": {
+      "const": "unverified"
+    },
+    "sheet_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "selected_sheet_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sheets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "index",
+          "name",
+          "status",
+          "size_in_source_units",
+          "content_coverage",
+          "item_count",
+          "view_count",
+          "omission_count",
+          "diagnostics"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}/sheet-"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "experimental_partial",
+              "unavailable"
+            ]
+          },
+          "content_coverage": {
+            "const": "unknown"
+          },
+          "item_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "view_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "omission_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text_runs": {
+            "type": "array"
+          },
+          "omissions": {
+            "type": "array"
+          },
+          "views": {
+            "type": "array"
+          },
+          "items": {
+            "type": "array"
+          },
+          "diagnostics": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ]
+      }
+    },
+    "export": {
+      "type": "object",
+      "required": [
+        "format",
+        "sha256",
+        "bytes",
+        "physical_scale_verified",
+        "renderer_version"
+      ],
+      "properties": {
+        "format": {
+          "const": "svg"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 33554432
+        },
+        "physical_scale_verified": {
+          "const": false
+        },
+        "renderer_version": {
+          "const": 1
+        }
+      }
+    }
+  }
+}

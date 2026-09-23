@@ -75,7 +75,11 @@ class CLI(unittest.TestCase):
         self.assertFalse(report['current_state_verified'])
         result = self.cli(CORPUS / 'SampleBg.idw', '--convert')
         self.assertEqual(result.returncode, 3)
-        self.assertEqual(json.loads(result.stdout)['kind'], 'drawing')
+        report = json.loads(result.stdout)
+        self.assertEqual(report['kind'], 'drawing')
+        self.assertEqual(report['units'], 'source_units_unverified')
+        import jsonschema
+        jsonschema.validate(report, json.loads((ROOT/'schemas/conversion-report-v1.schema.json').read_text()))
 
     def test_timeout_and_crash_cannot_publish_staged_step(self):
         with tempfile.TemporaryDirectory() as temporary:

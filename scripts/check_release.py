@@ -76,19 +76,34 @@ def viewer_reports(paths, artifacts):
             raise ValueError('Viewer qualification did not pass with published dependencies')
         if report['dependencies']['ocp-tessellate'] != '3.5.1':
             raise ValueError('Viewer qualification used an unexpected tessellator')
+        if key[1] == '3.12':
+            browser = report.get('drawing_browser', {})
+            os_name = {'windows': 'win32', 'macos': 'darwin', 'linux': 'linux'}[platform.split('-')[0]]
+            architecture = 'arm64' if platform.endswith('arm64') else 'x64'
+            if (browser.get('status') != 'passed' or browser.get('engine') != 'chromium'
+                    or browser.get('platform') != os_name or browser.get('architecture') != architecture
+                    or browser.get('installed_wheel') is not True or browser.get('real_sheets') != 5
+                    or browser.get('synthetic_controls') != 1
+                    or browser.get('physical_scale_verified') is not False
+                    or browser.get('native_font_fidelity_verified') is not False):
+                raise ValueError('Missing installed drawing browser qualification for this OS')
         cases = report['cases']
-        if set(cases) != {'part', 'assembly', 'partial_assembly', 'partial_part', 'drawing', 'partial_drawing'}:
+        if set(cases) != {'part', 'assembly', 'partial_assembly', 'partial_part', 'drawing', 'partial_drawing', 'drawing_major23'}:
             raise ValueError('Missing viewer qualification scenario')
         for case, counts in [('part', (1, 1, 0)), ('assembly', (1, 1, 0)), ('partial_assembly', (5, 7, 2)), ('partial_part', (1, 3, 2))]:
             result = cases[case]
             if (tuple(result[k] for k in ('displayed_instances', 'occurrences', 'omissions')) != counts
                     or result['mesh_buffers_fetched'] <= 0 or result['shutdown'] != 'passed'):
                 raise ValueError('Viewer qualification scenario failed')
-        for case, status, resources in [('drawing', 'experimental_partial', 3), ('partial_drawing', 'experimental_partial', 3)]:
+        for case, status, resources in [('drawing', 'experimental_partial', 3), ('partial_drawing', 'experimental_partial', 3), ('drawing_major23', 'experimental_partial', 27)]:
             result = cases[case]
-            if (result['status'] != status or result['sheet_count'] != 1 or result['resources_fetched'] != resources
+            sheets = 4 if case == 'drawing_major23' else 1
+            source_sha256 = ('e50760e2969eae8bb47565026fa52697d8698ec744b902bdc59fff508b1d8cdc' if case == 'drawing_major23'
+                             else 'c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e')
+            if (result['status'] != status or result['sheet_count'] != sheets or result['resources_fetched'] != resources
+                    or result.get('svg_exports_checked') != sheets
                     or result['qualified'] is not False or result['shutdown'] != 'passed'
-                    or result['source_sha256'] != 'c3c67d06f5193688305376cc4e45565cfda250750806af6edeedba7c9559f88e'):
+                    or result['source_sha256'] != source_sha256):
                 raise ValueError('Drawing viewer qualification scenario failed')
         found.add(key)
     if found != set(expected):

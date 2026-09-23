@@ -1,5 +1,6 @@
 /** Partial stored IDW display in source units. No 3D renderer dependency. */
 import { loadSheet, type SheetResource } from './drawing-data';
+import { parseDrawingSvg } from './drawing-svg';
 type Point = [number, number, number];
 type Font = { family: string; height_candidate: number; weight_candidate: number; width_factor: number | null; flags: number };
 type Geometry =
@@ -10,7 +11,8 @@ type Geometry =
 type Item = { id: string; geometry: Geometry; style: { rgba: number[] | null; width: number | null; dash: number[] | null }; source: unknown };
 type SavedView = { id: string; name: string; item_ids: string[]; image_reference: number | null };
 type Sheet = { id: string; index: number; name: string; status: string; size_in_source_units: [number, number] | null;
-  items: Item[]; views?: SavedView[]; omissions: unknown[]; diagnostics: string[]; sources: unknown[] };
+  items: Item[]; views?: SavedView[]; omissions: unknown[]; diagnostics: string[]; sources: unknown[];
+  svg?: string; export_report?: any };
 type Descriptor = Omit<Sheet, 'items' | 'omissions' | 'sources'> & SheetResource & { item_count: number; omission_count: number };
 export type DrawingScene = { status: string; sheet_status: string; units: string; qualified: false; complete: false;
   source_sha256: string; experimental: boolean; sheets: Descriptor[];
@@ -29,30 +31,25 @@ const NS = 'http://www.w3.org/2000/svg';
 const label = (tag: string, value: string) => { const e = document.createElement(tag); e.textContent = value; return e; };
 const details = (value: unknown) => { const d = document.createElement('details'); d.append(label('summary', 'Source details'), label('pre', JSON.stringify(value, null, 2))); return d; };
 
-// A stored family is one literal name, not a CSS family list. Keep the native
-// sans-serif families sans-serif when absent; never fetch external fonts.
-function fontFamily(font: Font | null): string {
-  if (!font) return 'sans-serif';
-  const name = font.family.replace(/[\x00-\x1f\x7f"\\]/g, c => `\\${c.charCodeAt(0).toString(16)} `);
-  const fallback = /^(arial|tahoma)$/i.test(font.family) ? ', sans-serif' : '';
-  return `"${name}"${fallback}`;
-}
-
 export function showDrawing(data: DrawingScene): () => void {
   let stopped = false, sheet: Sheet | undefined, selected: string | null = null;
   let request = 0, controller: AbortController | undefined;
+  let template: SVGSVGElement | undefined;
   const capHeightSupported = CSS.supports('font-size-adjust', 'cap-height 1');
   let view = [0, 0, 1, 1], drag: { x: number; y: number; origin: number[] } | null = null;
   const svg = document.createElementNS(NS, 'svg'); svg.id = 'drawing-svg'; svg.setAttribute('aria-label', 'Saved 2D drawing');
   const controls = document.createElement('div'); controls.id = 'drawing-controls';
   const fit = label('button', 'Fit sheet') as HTMLButtonElement; fit.id = 'drawing-fit';
   const zoom = label('button', 'Zoom in') as HTMLButtonElement; zoom.id = 'drawing-zoom';
+  const saveSvg = label('button', 'Save partial SVG') as HTMLButtonElement; saveSvg.id = 'drawing-save-svg';
+  const saveReport = label('button', 'Save report') as HTMLButtonElement; saveReport.id = 'drawing-save-report';
+  saveSvg.disabled = saveReport.disabled = true;
   const texts = document.createElement('input'); texts.type = 'checkbox'; texts.checked = true; texts.id = 'drawing-text';
   const curves = document.createElement('input'); curves.type = 'checkbox'; curves.checked = true; curves.id = 'drawing-curves';
   const search = document.createElement('input'); search.type = 'search'; search.id = 'drawing-search'; search.placeholder = 'Search drawing text'; search.setAttribute('aria-label', 'Search drawing text');
   const textLabel = label('label', ' Text'); textLabel.prepend(texts);
   const curveLabel = label('label', ' Curves'); curveLabel.prepend(curves);
-  controls.append(fit, zoom, textLabel, curveLabel, search);
+  controls.append(fit, zoom, textLabel, curveLabel, saveSvg, saveReport, search);
   el('cad').replaceChildren(controls, svg);
   el('cad').dataset.mode = 'drawing';
   el('tree-title').textContent = 'Sheets'; el('body-count').textContent = String(data.sheets.length);
@@ -72,9 +69,6 @@ export function showDrawing(data: DrawingScene): () => void {
   const viewList = document.createElement('div'); viewList.id = 'drawing-views'; el('body-list').append(viewList);
   const sheetLabel = (s: { name: string; index: number }) => !s.name ? `Sheet ${s.index + 1}`
     : data.sheets.filter(other => other.name === s.name).length > 1 ? `${s.index + 1} · ${s.name}` : s.name;
-  function node<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number>, parent: SVGElement = svg) {
-    const e = document.createElementNS(NS, tag); for (const [key, value] of Object.entries(attrs)) e.setAttribute(key, String(value)); parent.append(e); return e;
-  }
   const viewBox = () => svg.setAttribute('viewBox', view.join(' '));
   function reset() {
     const size = sheet?.size_in_source_units;
@@ -97,62 +91,38 @@ export function showDrawing(data: DrawingScene): () => void {
   }
   function draw() {
     svg.replaceChildren();
-    if (!sheet?.size_in_source_units || sheet.status === 'unavailable') return;
-    const [W, H] = sheet.size_in_source_units;
-    node('rect', { x: 0, y: 0, width: W, height: H, fill: 'white', stroke: '#b8c4cf', 'stroke-width': .035 });
-    for (const item of sheet.items) {
-      const g = item.geometry, style = item.style;
-      const color = style.rgba?.every(c => c >= 0 && c <= 1) ? `rgba(${style.rgba.slice(0, 3).map(c => Math.round(c * 255)).join(',')},${style.rgba[3]})` : '#111';
-      let e: SVGElement;
-      if (g.kind === 'image') {
-        const image = data.images.find(i => i.reference === g.reference);
-        if (!image?.resource || !/^drawing-image-\d+\.(png|jpg)$/.test(image.resource)) continue;
-        e = node('image', { href: image.resource, width: 1, height: 1, preserveAspectRatio: 'none',
-          transform: `matrix(${g.u[0]} ${-g.u[1]} ${g.v[0]} ${-g.v[1]} ${g.origin[0]} ${H - g.origin[1]})` });
-      } else if (g.kind === 'text') {
-        if (!texts.checked) continue;
-        const d = g.direction, u = g.up, f = g.font, factor = f?.width_factor ?? 1, symbolFallback = diameterFallback(g);
-        e = node('text', { transform: `matrix(${d[0] * factor} ${-d[1] * factor} ${-u[0]} ${u[1]} ${g.position[0]} ${H - g.position[1]})`,
-          'font-family': symbolFallback ? 'sans-serif' : fontFamily(f), 'font-size': f?.height_candidate ?? .25, 'font-weight': f?.weight_candidate ?? 400,
-          'font-style': f?.flags === 1 ? 'italic' : 'normal', fill: color });
-        // Native regular/rotated/multiline controls and separate Tahoma bold
-        // and italic controls support capital height as a candidate. Each
-        // stored run keeps its own baseline; no line spacing is inferred.
-        const measuredFont = symbolFallback || (f !== null && (
-          (/^(arial|tahoma)$/i.test(f.family) && f.flags === 0 && f.weight_candidate === 400)
-          || (/^tahoma$/i.test(f.family) && ((f.flags === 0 && f.weight_candidate === 700)
-            || (f.flags === 1 && f.weight_candidate === 400)))));
-        const capitalHeight = capHeightSupported && measuredFont && f !== null && g.raw_flags === 9
-          && Number.isFinite(f.height_candidate) && f.height_candidate > 0 && !/[\r\n]/.test(g.text);
-        e.style.fontSizeAdjust = capitalHeight ? 'cap-height 1' : 'none';
-        e.dataset.fontSizing = capitalHeight ? 'capital-height-candidate' : 'unverified-em-fallback';
-        if (symbolFallback) { e.dataset.symbolFallback = 'AIGDT:n->U+2300'; e.dataset.rawText = g.text; }
-        // Run positions include leading/trailing spaces, including space-only runs.
-        e.style.whiteSpace = 'pre';
-        displayedText(g).split(/\r\n|\n|\r/).forEach((line, index) => { node('tspan', { x: 0, dy: index ? '1.2em' : 0 }, e).textContent = line; });
-      } else {
-        if (g.kind === 'curve' && !curves.checked) continue;
-        let points: Point[];
-        if (g.kind === 'curve') {
-          const n = Math.max(8, Math.ceil((g.end - g.start) * 128 / (2 * Math.PI)));
-          points = Array.from({ length: n + 1 }, (_, i) => {
-            const a = g.start + (g.end - g.start) * i / n;
-            return g.center.map((c, j) => c + g.u[j] * Math.cos(a) + g.v[j] * Math.sin(a)) as Point;
-          });
-        } else points = g.points;
-        e = node('polyline', { points: points.map(p => `${p[0]},${H - p[1]}`).join(' '), fill: 'none', stroke: color,
-          'stroke-width': style.width ?? .035, 'stroke-dasharray': (style.dash ?? []).join(' '), 'stroke-linejoin': 'round' });
+    if (!template || !sheet) return;
+    for (const child of Array.from(template.childNodes)) svg.append(document.importNode(child, true));
+    const items = new Map(sheet.items.map(i => [i.id, i]));
+    svg.querySelectorAll<SVGElement>('[data-item-id]').forEach(e => {
+      const item = items.get(e.dataset.itemId!)!;
+      if ((item.geometry.kind === 'text' && !texts.checked) || (item.geometry.kind === 'curve' && !curves.checked)) {
+        e.remove(); return;
       }
-      e.dataset.itemId = item.id; e.dataset.kind = g.kind; e.classList.toggle('drawing-selected', item.id === selected);
+      if (!capHeightSupported && item.geometry.kind === 'text') {
+        e.style.fontSizeAdjust = 'none'; e.dataset.fontSizing = 'unverified-em-fallback';
+      }
+      e.classList.toggle('drawing-selected', item.id === selected);
       e.addEventListener('click', () => select(item));
-    }
+    });
     viewBox();
   }
+  function download(body: string, suffix: string, type: string) {
+    if (!sheet) return;
+    const url = URL.createObjectURL(new Blob([body], { type }));
+    const anchor = document.createElement('a'); anchor.href = url;
+    anchor.download = `${data.source_sha256.slice(0, 12)}-sheet-${sheet.index + 1}.${suffix}`;
+    anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  saveSvg.onclick = () => { if (sheet?.svg) download(sheet.svg, 'svg', 'image/svg+xml'); };
+  saveReport.onclick = () => { if (sheet?.export_report) download(JSON.stringify(sheet.export_report, null, 2), 'svg.json', 'application/json'); };
   function present(s: Sheet) {
     sheet = s; selected = null; drag = null;
+    template = s.svg ? parseDrawingSvg(s.svg, data.source_sha256, s.id, s.items) : undefined;
     el('cad').dataset.sheetId = s.id;
     el('selected').textContent = 'No drawing element selected';
-    el('selection-info').replaceChildren(label('h2', sheetLabel(s)), details({ ...s, items: undefined }));
+    el('selection-info').replaceChildren(label('h2', sheetLabel(s)), details({ ...s, items: undefined,
+      svg: undefined, export_report: undefined }));
     tree.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sheetId === s.id)));
     viewList.replaceChildren();
     for (const v of s.views ?? []) {
@@ -181,7 +151,8 @@ export function showDrawing(data: DrawingScene): () => void {
     }
     for (const issue of s.diagnostics) omissions.append(label('p', issue));
     for (const image of data.images.filter(i => !i.resource)) omissions.append(label('p', `Image ${image.reference}: ${image.diagnostic ?? image.status}`));
-    const available = s.status !== 'unavailable' && s.size_in_source_units !== null;
+    const available = s.status !== 'unavailable' && s.size_in_source_units !== null && template !== undefined;
+    saveSvg.disabled = !available; saveReport.disabled = !s.export_report;
     svg.style.display = available ? '' : 'none'; fit.disabled = zoom.disabled = !available;
     el('empty').hidden = available;
     if (!available) { el('empty').querySelector('h2')!.textContent = 'Sheet display unavailable'; el('empty').querySelector('p')!.textContent = 'The stored sheet could not be linked to supported display elements. See Read results.'; }
@@ -194,13 +165,14 @@ export function showDrawing(data: DrawingScene): () => void {
   async function choose(descriptor: Descriptor) {
     controller?.abort(); controller = new AbortController();
     const generation = ++request;
-    sheet = undefined; selected = null; drag = null;
+    sheet = undefined; template = undefined; selected = null; drag = null;
+    saveSvg.disabled = saveReport.disabled = true;
     svg.replaceChildren(); results.replaceChildren(); omissions.replaceChildren(); viewList.replaceChildren();
     el('selected').textContent = 'No drawing element selected';
     el('selection-info').replaceChildren();
     el('cad').dataset.rendered = 'false'; el('cad').dataset.displayed = '0';
     tree.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sheetId === descriptor.id)));
-    const unavailable = { ...descriptor, items: [], omissions: [], sources: [], status: 'unavailable' };
+    const unavailable = { ...descriptor, items: [], omissions: [], sources: [], status: 'unavailable', svg: undefined, export_report: undefined };
     if (!descriptor.resource) { present(unavailable); return; }
     fit.disabled = zoom.disabled = true; el('empty').hidden = false;
     el('empty').querySelector('h2')!.textContent = 'Loading sheet';
@@ -212,7 +184,8 @@ export function showDrawing(data: DrawingScene): () => void {
       if (payload.items.length !== descriptor.item_count || payload.omissions.length !== descriptor.omission_count) {
         throw new Error('Sheet payload counts differ from descriptor');
       }
-      present({ ...descriptor, items: payload.items, views: payload.views, omissions: payload.omissions, sources: payload.sources });
+      present({ ...descriptor, items: payload.items, views: payload.views, omissions: payload.omissions, sources: payload.sources,
+        svg: payload.svg, export_report: payload.export_report });
     } catch (error) {
       if (stopped || generation !== request) return;
       present({ ...unavailable, diagnostics: [...descriptor.diagnostics, `Sheet resource unavailable: ${String(error)}`] });
