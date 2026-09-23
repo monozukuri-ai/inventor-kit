@@ -218,8 +218,11 @@ creates 38 new IDW/API/PDF specimens covering 15 built-in patterns through layer
 inheritance and entity overrides, plus isolated weight, scale and weight-dependent
 scaling controls. Use Windows PowerShell 5.1 with Inventor running and all existing
 documents closed. It does not update existing IDW files or global styles.
-**Native execution and the general pattern mapping remain unqualified.** Saved
-pattern IDs are distinct from [API enum values](https://help.autodesk.com/cloudhelp/2024/ENU/Inventor-API/files/LineTypeEnum.htm);
+The 38 controls were captured and checked in Inventor 2027.1 (major31). The
+experimental decoder now supports nominal arrays for all 15 built-in layer
+patterns when the observed layer and binding scales are 1, including width-based
+scaling. Explicit arrays already contain entity scale and are not scaled twice.
+Saved pattern IDs are distinct from [API enum values](https://help.autodesk.com/cloudhelp/2024/ENU/Inventor-API/files/LineTypeEnum.htm);
 names and enum values alone do not establish dash arrays.
 
 ```powershell
@@ -232,5 +235,18 @@ python scripts/validate_drawing_linetype_controls.py --input /path/to/linetypes-
 
 Use new output paths. The acquisition gate rejects failed/missing getters, changed
 saved state, duplicate cases and mismatched source hashes. A pass still reports
-`pattern_mapping_qualified=false`; pattern IDs, dash lengths, phase and scaling
-must be compared with native evidence before unknown layer styles are admitted.
+`pattern_mapping_qualified=false`; acquisition alone never admits a decoder.
+The separate pinned regression check is:
+
+```sh
+python scripts/measure_drawing_linetypes.py --input /path/to/linetypes-new --output linetypes.json
+```
+
+Native PDF endpoints adjust dash period and phase to fit each line. SVG retains
+nominal arrays and reports `dash_phase_and_fit_unverified`; it does not reproduce
+that fitting. The 38 straight-line PDF comparisons pass a 0.01 mm measurement
+threshold, but curve phase, major23 layer patterns, custom `.lin`, non-unit layer
+scales and independent holdouts remain unqualified. Setting a sketch default
+explicitly can create a continuous override; the collector leaves inherited
+properties untouched. The observed major31 default-width sentinel now preserves
+the layer width instead of making the sheet unavailable.

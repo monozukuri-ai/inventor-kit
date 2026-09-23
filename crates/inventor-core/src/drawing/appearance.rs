@@ -149,6 +149,13 @@ pub(super) fn apply<'a>(
                 }
                 style.dash = if word(layer, "line_pattern")? == 0x6dc4 {
                     Some(vec![])
+                } else if target.registry.major == 31 && scale == 1. {
+                    let dash = layer_dashes(layer)?;
+                    rse::charge(work, dash.as_ref().map_or(0, Vec::len))?;
+                    if dash.is_none() {
+                        style.unresolved.push("layer_dash_pattern_not_decoded");
+                    }
+                    dash
                 } else {
                     style.unresolved.push("layer_dash_pattern_not_decoded");
                     None
@@ -158,10 +165,18 @@ pub(super) fn apply<'a>(
                 let mask = word(attr, "stroke_mask")?;
                 if mask == 8 {
                     let width = floats(attr, "stroke_width", 1)?[0] as f64;
-                    if width <= 0. {
+                    // A default sketch style writes -1 for inherited width.
+                    // Admit only the complete major31 tuple observed in native
+                    // controls; other nonpositive values still fail closed.
+                    let inherited = width == -1.
+                        && segment.registry.major == 31
+                        && default_sketch_stroke(attr)?;
+                    if width <= 0. && !inherited {
                         return Err(error("invalid stroke override width"));
                     }
-                    style.width = Some(width);
+                    if !inherited {
+                        style.width = Some(width);
+                    }
                     let FieldValue::F64(dashes) = field(attr, "stroke_dashes")? else {
                         return Err(error("invalid stroke dashes"));
                     };
@@ -188,9 +203,64 @@ pub(super) fn apply<'a>(
             _ => style.unresolved.push("attribute_semantics_not_decoded"),
         }
     }
+    style
+        .unresolved
+        .retain(|v| *v != "dash_phase_and_fit_unverified");
+    if style.dash.as_ref().is_some_and(|v| !v.is_empty()) {
+        style.unresolved.push("dash_phase_and_fit_unverified");
+    }
     style.unresolved.sort_unstable();
     style.unresolved.dedup();
     Ok(style)
+}
+// Nominal pattern lengths measured from the paired native major31 layer and
+// override controls. PDF export adjusts periods and phase to fit each curve;
+// these arrays preserve the nominal stored style, not that fitting algorithm.
+fn layer_dashes(layer: &PayloadObservation) -> Result<Option<Vec<f64>>> {
+    if doubles(layer, "layer_scale", 1)? != [1.]
+        || !matches!(field(layer, "layer_flag_b")?, FieldValue::U8(1))
+        || !matches!(field(layer, "layer_flag_c")?, FieldValue::U8(0))
+    {
+        return Ok(None);
+    }
+    let base = match field(layer, "layer_flag_a")? {
+        FieldValue::U8(0) => 0.038_f32 as f64,
+        FieldValue::U8(1) => doubles(layer, "layer_width", 1)?[0],
+        _ => return Ok(None),
+    };
+    let pattern: &[f64] = match word(layer, "line_pattern")? {
+        28101 => &[12., 3.],
+        28102 => &[12., 12.],
+        28103 => &[24., 3., 0.5, 3.],
+        28104 => &[24., 3., 0.5, 3., 0.5, 3.],
+        28105 => &[24., 3., 0.5, 3., 0.5, 3., 0.5, 3.],
+        28106 => &[0.5, 3.],
+        28107 => &[24., 3., 6., 3.],
+        28108 => &[24., 3., 6., 3., 6., 3.],
+        28109 => &[12., 3., 0.5, 3., 0.5, 3.],
+        28110 => &[12., 3., 0.5, 3.],
+        28111 => &[12., 3., 12., 3., 0.5, 3.],
+        28112 => &[12., 3., 12., 3., 0.5, 3., 0.5, 3.],
+        28113 => &[12., 3., 0.5, 3., 0.5, 3., 0.5, 3.],
+        28114 => &[12., 3., 12., 3., 0.5, 3., 0.5, 3., 0.5, 3.],
+        _ => return Ok(None),
+    };
+    let dash: Vec<_> = pattern.iter().map(|v| v * base).collect();
+    if dash.iter().any(|v| !v.is_finite() || *v <= 0.) {
+        return Err(error("invalid layer dash lengths"));
+    }
+    Ok(Some(dash))
+}
+fn default_sketch_stroke(o: &PayloadObservation) -> Result<bool> {
+    Ok(matches!(field(o, "stroke_flags")?, FieldValue::U16(0))
+        && matches!(field(o, "stroke_mode")?, FieldValue::U16(1))
+        && matches!(field(o, "stroke_pattern")?, FieldValue::U16(u16::MAX))
+        && matches!(field(o, "stroke_byte")?, FieldValue::U8(0))
+        && matches!(field(o, "stroke_list_type")?, FieldValue::U16(2))
+        && matches!(field(o, "stroke_dashes")?, FieldValue::F64(v) if v.is_empty())
+        && floats(o, "stroke_parameters", 3)? == [-10000., 1., -0.038]
+        && word(o, "stroke_pattern_copy")? == u32::MAX
+        && word(o, "stroke_kind")? == 6)
 }
 fn floats<'a>(o: &'a PayloadObservation, name: &str, n: usize) -> Result<&'a [f32]> {
     match field(o, name)? {

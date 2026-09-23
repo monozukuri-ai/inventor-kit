@@ -10,10 +10,19 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
 import validate_drawing_linetype_controls as controls
+import measure_drawing_linetypes as measurement
 from drawing_oracle_contract import identity
 
 
 class LineCapture(unittest.TestCase):
+    def test_pdf_line_model_is_separate_from_nominal_svg_and_rejects_bad_lengths(self):
+        self.assertEqual(measurement.fitted_line_segments(0, 12, [2, 2]),
+                         [[0, 1], [3, 5], [7, 9], [11, 12]])
+        self.assertEqual(measurement.fitted_line_segments(0, 12, []), [[0, 12]])
+        for dash in ([2, 0], [2, -1], [float('nan'), 2], [2], [1e-8, 1e-8]):
+            with self.subTest(dash=dash), self.assertRaises(ValueError):
+                measurement.fitted_line_segments(0, 12, dash)
+
     def test_acquisition_rejects_missing_cases_mutation_and_style_mismatches(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -710,16 +710,17 @@ fn fonts_use_stored_identifier_and_reject_duplicates() {
 }
 
 fn attach_attribute(doc: &mut DrawingInventory, ordinal: usize, attribute: PayloadObservation) {
+    let attribute_id = attribute.record_ordinal as u32;
     let o = &mut doc.segments[1].observations[ordinal];
     o.fields.push(FieldObservation {
         name: "attribute_reference",
-        value: w(101),
+        value: w(attribute_id),
         source: source(),
     });
     doc.segments[1].observations.push(observation(
-        100,
+        attribute_id as usize - 1,
         "display_attributes_candidate",
-        vec![("attribute_entry", w(102))],
+        vec![("attribute_entry", w(attribute_id + 1))],
     ));
     doc.segments[1].observations.push(attribute);
 }
@@ -809,6 +810,112 @@ fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
     assert!(style
         .unresolved
         .contains(&"layer_revision_binding_unverified"));
+    let layer_fields = &mut d.segments[2].observations[0].fields;
+    for (name, value) in [
+        ("layer_scale", FieldValue::F64(vec![1.])),
+        ("layer_flag_a", FieldValue::U8(0)),
+        ("layer_flag_b", FieldValue::U8(1)),
+        ("layer_flag_c", FieldValue::U8(0)),
+    ] {
+        layer_fields.push(FieldObservation {
+            name,
+            value,
+            source: source(),
+        });
+    }
+    let pinned: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../tests/data/drawing-linetype-controls.json"
+    ))
+    .unwrap();
+    // Golden nominal arrays captured independently from native entity overrides.
+    // A non-unit binding scale remains unqualified for these layer patterns.
+    for pattern in pinned["patterns"].as_array().unwrap().iter().skip(1) {
+        d.segments[2].observations[0].fields[5].value =
+            w(pattern["layer_pattern"].as_u64().unwrap() as u32);
+        assert!(
+            experimental_scene(&d, &Limits::default()).spaces[0].items[0]
+                .style
+                .dash
+                .is_none()
+        );
+        d.segments[1].observations[3].fields[3].value = FieldValue::F32(vec![1.]);
+        let result = experimental_scene(&d, &Limits::default());
+        let actual = result.spaces[0].items[0].style.dash.as_ref().unwrap();
+        let expected = pattern["nominal_dash_source_units"].as_array().unwrap();
+        assert_eq!(actual.len(), expected.len());
+        for (a, b) in actual.iter().zip(expected) {
+            assert!((a - b.as_f64().unwrap()).abs() < 1e-12);
+        }
+        d.segments[1].observations[3].fields[3].value = FieldValue::F32(vec![2.]);
+    }
+    d.segments[2].observations[0].fields[5].value = w(28110);
+    d.segments[1].observations[3].fields[3].value = FieldValue::F32(vec![1.]);
+    d.segments[2].observations[0].fields[7].value = FieldValue::U8(1);
+    assert_eq!(
+        experimental_scene(&d, &Limits::default()).spaces[0].items[0]
+            .style
+            .dash,
+        Some(vec![0.36, 0.09, 0.015, 0.09])
+    );
+    d.segments[2].observations[0].fields[7].value = FieldValue::U8(2);
+    assert!(
+        experimental_scene(&d, &Limits::default()).spaces[0].items[0]
+            .style
+            .dash
+            .is_none()
+    );
+    d.segments[2].observations[0].fields[5].value = w(28100);
+    d.segments[1].observations[3].fields[3].value = FieldValue::F32(vec![2.]);
+    // Native major31 default sketch setters retain the layer width but
+    // introduce a continuous override, even over a noncontinuous layer.
+    attach_attribute(
+        &mut d,
+        1,
+        observation(
+            103,
+            "stroke_override_candidate",
+            vec![
+                ("stroke_mask", w(8)),
+                ("stroke_width", FieldValue::F32(vec![-1.])),
+                ("stroke_flags", FieldValue::U16(0)),
+                ("stroke_mode", FieldValue::U16(1)),
+                ("stroke_pattern", FieldValue::U16(u16::MAX)),
+                ("stroke_byte", FieldValue::U8(0)),
+                ("stroke_list_type", FieldValue::U16(2)),
+                ("stroke_dashes", FieldValue::F64(vec![])),
+                (
+                    "stroke_parameters",
+                    FieldValue::F32(vec![-10000., 1., -0.038]),
+                ),
+                ("stroke_pattern_copy", w(u32::MAX)),
+                ("stroke_kind", w(6)),
+            ],
+        ),
+    );
+    let inherited = experimental_scene(&d, &Limits::default());
+    assert_eq!(inherited.spaces[0].items[0].style.width, Some(0.06));
+    assert_eq!(inherited.spaces[0].items[0].style.dash, Some(vec![]));
+    for (name, value) in [
+        ("stroke_width", FieldValue::F32(vec![-2.])),
+        ("stroke_kind", w(7)),
+        ("stroke_pattern_copy", w(28102)),
+        (
+            "stroke_parameters",
+            FieldValue::F32(vec![-10000., 2., -0.038]),
+        ),
+    ] {
+        let stroke = d.segments[1].observations.last_mut().unwrap();
+        let field = stroke.fields.iter_mut().find(|f| f.name == name).unwrap();
+        let original = std::mem::replace(&mut field.value, value);
+        assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+        let stroke = d.segments[1].observations.last_mut().unwrap();
+        stroke
+            .fields
+            .iter_mut()
+            .find(|f| f.name == name)
+            .unwrap()
+            .value = original;
+    }
     // Duplicated object keys cannot be resolved by first-match or by label.
     d.segments[2].observations.push(observation(
         8,

@@ -70,8 +70,12 @@ foreach($case in $lineCases) {
             $l=$sk.SketchLines.AddByTwoPoints($lineTG.CreatePoint2d(2.3,4.1),$lineTG.CreatePoint2d(24.7,4.1))
             $c=$sk.SketchCircles.AddByCenterRadius($lineTG.CreatePoint2d(15,12),3.1)
             foreach($e in @($l,$c)) {
-                $e.Layer=$layer;$e.LineType=37648;$e.LineScale=[double]$case.scale
-                if($case.mode -eq 'override'){$e.LineType=$case.pattern;$e.LineWeight=[double]$case.weight}
+                $e.Layer=$layer
+                # Even assigning the default LineType/LineScale can create a
+                # continuous sketch override. Leave inherited styles untouched.
+                if($case.mode -eq 'override') {
+                    $e.LineType=$case.pattern;$e.LineWeight=[double]$case.weight;$e.LineScale=[double]$case.scale
+                }
             }
         } finally {$sk.ExitEdit()}
         $doc.Update();$path=Join-Path $lineRoot ($case.name+'.idw');$doc.SaveAs($path,$false)

@@ -83,6 +83,8 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         license_prefix = prefix
         package_prefix = prefix+'python/inventor_kit/'
         viewer_sources = prefix+'viewer/'
+        if prefix+'tests/data/drawing-linetype-controls.json' not in contents:
+            raise ValueError('Missing native line-style regression manifest')
         for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json', 'schemas/drawing-oracle-v1.schema.json', 'schemas/drawing-scene-v1.schema.json', 'schemas/drawing-report-v1.schema.json'):
             if prefix + name not in contents:
                 raise ValueError(f'Missing sdist build input: {name}')

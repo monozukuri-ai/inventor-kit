@@ -1,0 +1,674 @@
+{
+  "schema_version": 1,
+  "scope": "major31 generated regression controls; nominal styles only",
+  "qualified_oracle": false,
+  "capture_sha256": "44785ce56cbdd3552fb7fe6ba3db83d0956cfd81e1d46efc132092d4a74fb6e5",
+  "collector": {
+    "sha256": "dbfbd0e291b7bcb8c83523960a75be60ba448588a77cf67ca5cceba8295dd12a",
+    "file_name": "InventorKitLinetypes_20260923_124700.ps1",
+    "bytes": 8058
+  },
+  "patterns": [
+    {
+      "api_enum": 37633,
+      "layer_pattern": 28100,
+      "nominal_dash_source_units": []
+    },
+    {
+      "api_enum": 37634,
+      "layer_pattern": 28102,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.4559999853372574
+      ]
+    },
+    {
+      "api_enum": 37635,
+      "layer_pattern": 28104,
+      "nominal_dash_source_units": [
+        0.9119999706745148,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37636,
+      "layer_pattern": 28106,
+      "nominal_dash_source_units": [
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37637,
+      "layer_pattern": 28108,
+      "nominal_dash_source_units": [
+        0.9119999706745148,
+        0.11399999633431435,
+        0.2279999926686287,
+        0.11399999633431435,
+        0.2279999926686287,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37638,
+      "layer_pattern": 28110,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37639,
+      "layer_pattern": 28112,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435,
+        0.4559999853372574,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37640,
+      "layer_pattern": 28114,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435,
+        0.4559999853372574,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37641,
+      "layer_pattern": 28101,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37642,
+      "layer_pattern": 28103,
+      "nominal_dash_source_units": [
+        0.9119999706745148,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37643,
+      "layer_pattern": 28105,
+      "nominal_dash_source_units": [
+        0.9119999706745148,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37644,
+      "layer_pattern": 28107,
+      "nominal_dash_source_units": [
+        0.9119999706745148,
+        0.11399999633431435,
+        0.2279999926686287,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37645,
+      "layer_pattern": 28109,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37646,
+      "layer_pattern": 28111,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435,
+        0.4559999853372574,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    },
+    {
+      "api_enum": 37647,
+      "layer_pattern": 28113,
+      "nominal_dash_source_units": [
+        0.4559999853372574,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435,
+        0.01899999938905239,
+        0.11399999633431435
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "case": "layer-37633",
+      "source": {
+        "sha256": "24766c1f0ed3cd25bf47b108899d74d22ff234f0382b7dda92cccf8a4ed356b1",
+        "file_name": "layer-37633.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "f79e43e82b3db378e46cc322b82ee7cfb2153b8e0239220da917d67882c315ed",
+        "file_name": "layer-37633.pdf",
+        "bytes": 1246
+      }
+    },
+    {
+      "case": "override-37633",
+      "source": {
+        "sha256": "5d3eb7a82104fc1f85f2fa283628216ffbd1e786595b82bd86da23eb1f2f4934",
+        "file_name": "override-37633.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "5b57d95c60e95f5c85003047b3102c0bf38bbeace1bba9f33fa50e6221c0c564",
+        "file_name": "override-37633.pdf",
+        "bytes": 1249
+      }
+    },
+    {
+      "case": "layer-37634",
+      "source": {
+        "sha256": "e3a06d5aa5c7837230ecc8daf467415ff8025db21bb9a9ab8c49e84a37d0dfa8",
+        "file_name": "layer-37634.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "4cdb239ae75e85e2ecbff28af6ad1b15df782582852f5d2863676abadc0c35b0",
+        "file_name": "layer-37634.pdf",
+        "bytes": 1894
+      }
+    },
+    {
+      "case": "override-37634",
+      "source": {
+        "sha256": "a5ded6c48229aeb45ce2dd26de3678f731053ab28f0dd3ed85292a952674a0b8",
+        "file_name": "override-37634.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "355d12dba8435f2986d322928d4da25128df54934f83e382c8a23e77bea035cf",
+        "file_name": "override-37634.pdf",
+        "bytes": 1897
+      }
+    },
+    {
+      "case": "layer-37635",
+      "source": {
+        "sha256": "8aac261842035fbf016ed26886b4ba89dc6b7ba23c3a698da5020d140305bb67",
+        "file_name": "layer-37635.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "b883c9e93cb25fa192dde3232caf0bfdcdde3fa19746d4780fe0a9fe9a7190c9",
+        "file_name": "layer-37635.pdf",
+        "bytes": 2636
+      }
+    },
+    {
+      "case": "override-37635",
+      "source": {
+        "sha256": "560ecbf950883bcdeeaf9191f7826b6f00c5134d4c895d44f948dbf5724d6604",
+        "file_name": "override-37635.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "51cf5d0dcbe561e34ddf581987b2706b0669e2fb120b52a297e588b000627504",
+        "file_name": "override-37635.pdf",
+        "bytes": 2639
+      }
+    },
+    {
+      "case": "layer-37636",
+      "source": {
+        "sha256": "1da83983b90c79558b45a016af56bd490336ddfdd8950fe3c0d100f738d1cbb1",
+        "file_name": "layer-37636.idw",
+        "bytes": 338432
+      },
+      "pdf": {
+        "sha256": "8edc40bd748ef2e73e514a5b1fb5a0abe93923961387db63222f70e650955c28",
+        "file_name": "layer-37636.pdf",
+        "bytes": 4720
+      }
+    },
+    {
+      "case": "override-37636",
+      "source": {
+        "sha256": "54bc53e124c50bb151be95f86ea4862f0592bd648e59156e72872d7abe7c9387",
+        "file_name": "override-37636.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "5bf2f9cdf44ae0ca1659e4fff2bef78561a5d3886f982d375d4e51f2226b7afb",
+        "file_name": "override-37636.pdf",
+        "bytes": 4723
+      }
+    },
+    {
+      "case": "layer-37637",
+      "source": {
+        "sha256": "7c9b92bc054752da201d641cc12046a56577bc4116d90fbdae6bad7b39dff2cf",
+        "file_name": "layer-37637.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "34c57637676dbed316fb4212091d85f10938be46f80aae062f26d6262d4f1dd0",
+        "file_name": "layer-37637.pdf",
+        "bytes": 2392
+      }
+    },
+    {
+      "case": "override-37637",
+      "source": {
+        "sha256": "1ccb5990acc2764dd00461f0683935969912f25cd6f5e4ec125aacdfd905a608",
+        "file_name": "override-37637.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "95bb2cde221051fc14a1e668aa7c5460dda143683b3ba1aab7960e95d50c8851",
+        "file_name": "override-37637.pdf",
+        "bytes": 2395
+      }
+    },
+    {
+      "case": "layer-37638",
+      "source": {
+        "sha256": "2f265382f51dee5bb2deaab829f317b7e646d0125d05773c58eb31a39afcb0a1",
+        "file_name": "layer-37638.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "766a96df3cd24ebe480a99abad20f9275be70c10f4640ce37a38e0e20f3fcc0b",
+        "file_name": "layer-37638.pdf",
+        "bytes": 2914
+      }
+    },
+    {
+      "case": "override-37638",
+      "source": {
+        "sha256": "91a2e88ffb4aba3e62b2fd753919f479dbd26a7950d5622da192f3fd7bc056c4",
+        "file_name": "override-37638.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "bc394585f2c2a3d00a92eccce259edd89cf5e43b14d8b2c5610a5605a954e2c8",
+        "file_name": "override-37638.pdf",
+        "bytes": 2917
+      }
+    },
+    {
+      "case": "layer-37639",
+      "source": {
+        "sha256": "80ece29c7fcd28e010e6abe1e8ee565f22bd5bd14d4f55505ae7331d25c11e38",
+        "file_name": "layer-37639.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "021f11920d72ba1bf4f242a65e03fa12356694a6ff44b21c4931bcb39503012e",
+        "file_name": "layer-37639.pdf",
+        "bytes": 2987
+      }
+    },
+    {
+      "case": "override-37639",
+      "source": {
+        "sha256": "dda863372ceab656120b399287d585a5a321e5d8e4ad0aa34baff60df16fb522",
+        "file_name": "override-37639.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "242e0682c7d34b14cca9eeccc8e34bff0f5566d3f8e60dda7cebf6e4ba725fe6",
+        "file_name": "override-37639.pdf",
+        "bytes": 2990
+      }
+    },
+    {
+      "case": "layer-37640",
+      "source": {
+        "sha256": "ad0ea71078651539a28ac63d54bdf945b99be75376b45e90a54ecf5c9967fd5c",
+        "file_name": "layer-37640.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "a7fddfb71fbe3e8df4b1acd1db15a0500fb22f2b47dd340dab6d3aed95943640",
+        "file_name": "layer-37640.pdf",
+        "bytes": 3145
+      }
+    },
+    {
+      "case": "override-37640",
+      "source": {
+        "sha256": "d67d26d149b217f317e3cefb42af6a4bc172e1f122bc7d72dfc656fd4e42e324",
+        "file_name": "override-37640.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "40ed1a237368bbdd63d1b7495c4ed19b933cc04c60ecacbcbee1598f92e19d6a",
+        "file_name": "override-37640.pdf",
+        "bytes": 3148
+      }
+    },
+    {
+      "case": "layer-37641",
+      "source": {
+        "sha256": "223dae499cb4514dc75cfa9cd77926c91df8af0fb869a9c6697a0de8186cf6d7",
+        "file_name": "layer-37641.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "6c648ba2d2520651efd38686faf30ccb56af5708caa251b97e395ddf1d9870a4",
+        "file_name": "layer-37641.pdf",
+        "bytes": 2363
+      }
+    },
+    {
+      "case": "override-37641",
+      "source": {
+        "sha256": "0304f11cdea1e5e20fa34c41931085ead33aebc99c83aa64c8a886c6e4305650",
+        "file_name": "override-37641.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "3bbfb376e907b50d68574720ddc4ecbe3203505184aad50017850d4fb3d411ae",
+        "file_name": "override-37641.pdf",
+        "bytes": 2366
+      }
+    },
+    {
+      "case": "layer-37642",
+      "source": {
+        "sha256": "121af29cb08cdae80b4e59867b41930b47d8f63f05bc7fc4ec2bb55b5b0d717d",
+        "file_name": "layer-37642.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "15bdbda6a81b8d8e188e057fac46757b099e0e8edb50f9c5f91327224e7b0b2b",
+        "file_name": "layer-37642.pdf",
+        "bytes": 2344
+      }
+    },
+    {
+      "case": "override-37642",
+      "source": {
+        "sha256": "1ef1f1d32676be687c543d96a51c345ea3d501ac832fa9f0a645974f67cee422",
+        "file_name": "override-37642.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "d0ab2adddb5255892826a324f43646909b74ff55f7c34a69710a96275ba32c77",
+        "file_name": "override-37642.pdf",
+        "bytes": 2347
+      }
+    },
+    {
+      "case": "layer-37643",
+      "source": {
+        "sha256": "e05e64c5330325535e0d45cf7862f061c363a870d834552db0cd868bfe9663a6",
+        "file_name": "layer-37643.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "7fc80f73c8cc1275c884ee196372e5326f89b4d20e1e9533fbffd244d839ec4a",
+        "file_name": "layer-37643.pdf",
+        "bytes": 2916
+      }
+    },
+    {
+      "case": "override-37643",
+      "source": {
+        "sha256": "7295d38771a49bf0a282473910b77b707e7f5cd5ac6ea57497b41bf556e3e5c7",
+        "file_name": "override-37643.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "77b01f3955a4adde1e816c8aa406b6a5fe110c5e3938fc8f24faec35aa82b6e5",
+        "file_name": "override-37643.pdf",
+        "bytes": 2919
+      }
+    },
+    {
+      "case": "layer-37644",
+      "source": {
+        "sha256": "f67e900587acebc191e78fb1332815a533dde6dd735dcf7b35cddaea0bce6b25",
+        "file_name": "layer-37644.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "58eb9ef6c2247cfc1fcac7343338c0b0516af0c6b93fc805e5b385dc3b559a17",
+        "file_name": "layer-37644.pdf",
+        "bytes": 2260
+      }
+    },
+    {
+      "case": "override-37644",
+      "source": {
+        "sha256": "1899146aff3b2faf77480dba73d2760ed1f16c9fcffe80414149f70683594d1c",
+        "file_name": "override-37644.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "f5d94ce95e425771ca3d3759e736b1bb990beddadc24a390d04d67247fc300bb",
+        "file_name": "override-37644.pdf",
+        "bytes": 2263
+      }
+    },
+    {
+      "case": "layer-37645",
+      "source": {
+        "sha256": "e06b1f6fec3266ba0a1efebf667b608e939e78abcb0926da8cabc1f63006af3d",
+        "file_name": "layer-37645.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "a27a5373d513333a2e1f7bd4a007c1524d0e925166050989f5025679d9fc2c45",
+        "file_name": "layer-37645.pdf",
+        "bytes": 3243
+      }
+    },
+    {
+      "case": "override-37645",
+      "source": {
+        "sha256": "11ff65b1db90e8e18155b43c4bf7f9075e8974938f5b43b61f3cfe27725d4795",
+        "file_name": "override-37645.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "124583b6f21127db50324a7cdd65c6e021a305717ce5a3e9eff6ca6a64e6254a",
+        "file_name": "override-37645.pdf",
+        "bytes": 3246
+      }
+    },
+    {
+      "case": "layer-37646",
+      "source": {
+        "sha256": "49d8466cd48e99d2c13b7b6d717c1b87259585e16efb3e880df82a4d8cd60337",
+        "file_name": "layer-37646.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "bbbb9dc8a827f077745b3180b61de09547823a07519a57ebbc781f286a01125a",
+        "file_name": "layer-37646.pdf",
+        "bytes": 2718
+      }
+    },
+    {
+      "case": "override-37646",
+      "source": {
+        "sha256": "58cc2250381f097e6a817fb7a41807813ccf41ae451e8a5305bb0ae654d1e708",
+        "file_name": "override-37646.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "0a850d5e3bfc27b43485dfecd1fa15b16518b3e39738fc5c2c84b883ba8ced90",
+        "file_name": "override-37646.pdf",
+        "bytes": 2721
+      }
+    },
+    {
+      "case": "layer-37647",
+      "source": {
+        "sha256": "f8f87f5414dc7eab5b2532f5fdaecbe939642d7b2e87db347064d47c48746d13",
+        "file_name": "layer-37647.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "db9cec201b1ba02b01ceb6ba0b9b0d8213dfb6daeb7827be1bd737158cd31e6e",
+        "file_name": "layer-37647.pdf",
+        "bytes": 3408
+      }
+    },
+    {
+      "case": "override-37647",
+      "source": {
+        "sha256": "3b1c67b2621c4a3207069bb51da34bd9ef9cbe87f9d82166f842f24513c73ca3",
+        "file_name": "override-37647.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "976f452cc5804415832e9d2b841a1e1256dffaf7177b2e6f10156102fd32202c",
+        "file_name": "override-37647.pdf",
+        "bytes": 3411
+      }
+    },
+    {
+      "case": "scale-37634",
+      "source": {
+        "sha256": "46ae1543c320bc4779896a0a1c6974a271f2a6bb1cdaadf7f81a7f4f7965ffa1",
+        "file_name": "scale-37634.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "9b3bda3930365591fb115731c440f738199b9d03feb6bafe583669fc19bd30c7",
+        "file_name": "scale-37634.pdf",
+        "bytes": 1647
+      }
+    },
+    {
+      "case": "weight-37634",
+      "source": {
+        "sha256": "ea50e5fbe9cfc24c2802bb15fcadb8fb0490f6fe1758e26bc2a07f6c1afd9a55",
+        "file_name": "weight-37634.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "ff52c818e72a4155827c971575d8e9a61c7dc5b28b98bf175c118d2980bed4d4",
+        "file_name": "weight-37634.pdf",
+        "bytes": 1896
+      }
+    },
+    {
+      "case": "by-weight-37634",
+      "source": {
+        "sha256": "ed5c70f39873f16b48346472b171bf27ebe00c89e0d922d0fec32b4ac461d439",
+        "file_name": "by-weight-37634.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "a7767507d57a495566aed064be76f3be930de052231837a3a63fab32fa935a92",
+        "file_name": "by-weight-37634.pdf",
+        "bytes": 2171
+      }
+    },
+    {
+      "case": "by-weight-double-37634",
+      "source": {
+        "sha256": "28555d31ef0363e7db62bcae3129a96a1b10f463c58adfa2e5971f97565e0b29",
+        "file_name": "by-weight-double-37634.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "5b5c3878306fd1a2328a2c53b692545bd5a0ce797117b22f5e2dbe1345b5263a",
+        "file_name": "by-weight-double-37634.pdf",
+        "bytes": 1752
+      }
+    },
+    {
+      "case": "scale-37638",
+      "source": {
+        "sha256": "0fff4ac7050842a5892171667219b3f1206066827ada249a0050ba52c9ec7d44",
+        "file_name": "scale-37638.idw",
+        "bytes": 339456
+      },
+      "pdf": {
+        "sha256": "8c84f38528e94cc0b6c8f4502d2bcadee418e1dc775bc21f2f1000a053f7bcd0",
+        "file_name": "scale-37638.pdf",
+        "bytes": 2246
+      }
+    },
+    {
+      "case": "weight-37638",
+      "source": {
+        "sha256": "084781c8712e555133f237d0f733e0bbb1dd0a4ff96ec8545e846cdf7e3c43ad",
+        "file_name": "weight-37638.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "b5005d714a7671fab75f01618b05946379d019ebcf71c00cf20ce10ddd253f74",
+        "file_name": "weight-37638.pdf",
+        "bytes": 2916
+      }
+    },
+    {
+      "case": "by-weight-37638",
+      "source": {
+        "sha256": "1e6d667b10c88bba49026a361cff23ea16d02bd5e902973094cff581e8f6857c",
+        "file_name": "by-weight-37638.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "b823610920db07eab39dcd46696a9cd59614f9adafa61992a0bd436974816d12",
+        "file_name": "by-weight-37638.pdf",
+        "bytes": 3671
+      }
+    },
+    {
+      "case": "by-weight-double-37638",
+      "source": {
+        "sha256": "2ae1c71951df625d9ee1a3d3ea45b910a89d4ae9690c8f8ed0a850ae0e93231a",
+        "file_name": "by-weight-double-37638.idw",
+        "bytes": 338944
+      },
+      "pdf": {
+        "sha256": "6b89ef803d786308ce91cce1fb08e93b2e6364334b8455e1355e7ec14aaeb571",
+        "file_name": "by-weight-double-37638.pdf",
+        "bytes": 2611
+      }
+    }
+  ]
+}

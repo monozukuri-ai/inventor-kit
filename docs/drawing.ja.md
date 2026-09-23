@@ -192,7 +192,9 @@ python scripts/measure_drawing_precision.py --input /path/to/units --output prec
 レイヤー継承・個別上書きと、線幅・尺度・線幅連動を分けた38ケースのIDW/API/PDFを新規作成します。
 Windows PowerShell 5.1で、Inventorを起動し既存文書をすべて閉じて実行します。
 既存のIDWやグローバルスタイルは更新しません。取得後の検査も認定とは別です。
-**nativeでの採取・線種対応表の確定は未実施**で、一般線種の解読済み対応を意味しません。
+Inventor 2027.1（major31）で38ケースを採取・照合し、実験的decoderに標準15線種の
+レイヤー配列と線幅連動を追加しました。レイヤー・bindingの尺度が観測済みの1である場合に限定します。
+個別指定の保存配列には既に倍率が含まれるため、二重に拡大しません。
 保存IDと[APIのLineTypeEnum](https://help.autodesk.com/cloudhelp/2024/ENU/Inventor-API/files/LineTypeEnum.htm)は
 別の数値体系です。名前や列挙値だけからdash配列を割り当てません。
 
@@ -205,5 +207,15 @@ python scripts/validate_drawing_linetype_controls.py --input /path/to/linetypes-
 ```
 
 出力先は新規のパスを指定します。未取得・getter失敗・保存後変更・重複・入力ハッシュ不一致を拒否します。
-成功時も`pattern_mapping_qualified=false`です。native結果から線種ID、dash長、位相、尺度の
-対応を検証するまでは、未知のレイヤー線種を未解読として残します。
+採取検査は成功時も`pattern_mapping_qualified=false`を維持します。
+固定した実データでdecoderの公称配列とPDF直線モデルを別に検証します。
+
+```sh
+python scripts/measure_drawing_linetypes.py --input /path/to/linetypes-new --output linetypes.json
+```
+
+native PDFは線の端点に合わせて破線周期・位相を調整します。SVGは公称配列を保持し、
+`dash_phase_and_fit_unverified` を報告します。38ケースのPDF直線モデルは0.01 mm基準で一致しましたが、
+曲線の位相、major23のレイヤー線種、カスタム`.lin`、未観測の尺度、独立holdoutは未検証です。
+スケッチへの既定値の明示設定が実線の上書きを作るため、collectorは継承プロパティに触れません。
+観測済みmajor31の既定線幅値はレイヤー幅を継承し、シート全体を表示不能にする問題も修正しました。
