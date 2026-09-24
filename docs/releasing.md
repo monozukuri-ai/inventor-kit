@@ -101,6 +101,10 @@ python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qua
 The prerequisite Linux CI job must also pass Chromium E2E against both an
 installed wheel and a separately rebuilt sdist. It checks bundled assets against
 `npm ci` / asset regeneration using the pinned lockfile and Node baseline. Browser
+fixture generation uses the Python invoking `smoke_distribution.py`, which needs
+the `validation` extra (including `olefile`). The script sets
+`VIEWER_FIXTURE_PYTHON` for this preparation; `VIEWER_PYTHON` still points to the
+clean installed `wheel[viewer]` environment for all product execution. Browser
 checks use software rendering; they do not qualify physical GPUs or Inventor's
 current Model State. The separate platform SVG checks are described below. The [viewer guide](viewer.md)
 describes the scenarios and local commands. Missing binary dependencies or runtime
