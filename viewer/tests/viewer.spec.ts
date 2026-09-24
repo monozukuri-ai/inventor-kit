@@ -8,6 +8,9 @@ import { unpackSheetPayload } from '../src/drawing-data';
 
 const root = resolve(import.meta.dirname, '../..');
 const python = process.env.VIEWER_PYTHON || resolve(root, '.venv/bin/python');
+// Synthetic CFB inputs need validation-only dependencies. The Viewer and SVG
+// renderer must still run with the isolated product interpreter above.
+const fixturePython = process.env.VIEWER_FIXTURE_PYTHON || python;
 const corpus = process.env.VIEWER_CORPUS || resolve(root, 'fixtures/public');
 let process_: ChildProcess | undefined;
 let errors: string[] = [];
@@ -350,7 +353,7 @@ test('IDW unsupported profile retains previews and a clear unavailable state', a
   const directory = mkdtempSync(resolve(tmpdir(), 'idw-unsupported-'));
   try {
     const source = resolve(directory, 'synthetic-major25.idw');
-    const made = spawnSync(python, ['-c', `import sys
+    const made = spawnSync(fixturePython, ['-c', `import sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 from drawing_fixture_helpers import with_segment_major

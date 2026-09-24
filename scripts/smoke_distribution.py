@@ -445,7 +445,10 @@ def main():
         if args.viewer:
             details = json.loads((root/'installed.json').read_text(encoding='utf-8'))
         if args.browser:
-            browser_environment = dict(environment, VIEWER_PYTHON=str(python), VIEWER_CWD=str(root), VIEWER_CORPUS=str(args.corpus.resolve()))
+            # Only synthetic fixture construction uses the invoking validation
+            # environment (olefile). Keep installed product execution isolated.
+            browser_environment = dict(environment, VIEWER_PYTHON=str(python),
+                VIEWER_FIXTURE_PYTHON=sys.executable, VIEWER_CWD=str(root), VIEWER_CORPUS=str(args.corpus.resolve()))
             subprocess.run(['npm', 'run', 'test', '--prefix', str(ROOT/'viewer')], cwd=root, env=browser_environment, check=True)
         if args.drawing_browser:
             subprocess.run(['node', str(ROOT/'viewer/scripts/check-drawing-platform.mjs'), str(python),

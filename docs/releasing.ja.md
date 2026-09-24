@@ -89,7 +89,10 @@ python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qua
 
 前提の Linux CI は、導入した wheel と別途再ビルドした sdist の両方で Chromium E2E を
 必須にします。同梱アセットは、固定した lockfile と Node の基準版による `npm ci`・
-再生成の結果に照合します。ブラウザ試験はソフトウェア描画であり、実機 GPUやInventorの現在のModel Stateの検証ではありません。
+再生成の結果に照合します。合成入力の作成は`smoke_distribution.py`を起動したPythonで行うため、
+この環境には`olefile`を含む`validation` extraが必要です。スクリプトが設定する
+`VIEWER_FIXTURE_PYTHON`は入力作成専用で、製品の実行にはクリーンな`wheel[viewer]`環境の
+`VIEWER_PYTHON`を使います。ブラウザ試験はソフトウェア描画であり、実機 GPUやInventorの現在のModel Stateの検証ではありません。
 配布workflowでは、4プラットフォームのPython 3.12 cold installに対して追加の
 Chromium SVG検査を要求します。公開fixtureの実5シートと合成1ケースを表示し、
 描画範囲・画像数・日本語/直径記号の使用フォントを確認します。PNGとブラウザー版を
