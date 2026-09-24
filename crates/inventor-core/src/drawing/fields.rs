@@ -103,9 +103,14 @@ impl<'a, 'b> Fields<'a, 'b> {
     pub fn floats(&mut self, name: &'static str, count: usize) -> Result<()> {
         rse::charge(self.work, count)?;
         let start = self.r.pos;
+        let bytes = self.r.take(
+            count
+                .checked_mul(4)
+                .ok_or_else(|| Error("drawing float array length overflow".into()))?,
+        )?;
         let mut values = Vec::with_capacity(count);
-        for _ in 0..count {
-            let v = f32::from_le_bytes(self.r.take(4)?.try_into().unwrap());
+        for chunk in bytes.chunks_exact(4) {
+            let v = f32::from_le_bytes(chunk.try_into().unwrap());
             if !v.is_finite() {
                 return Err(Error("non-finite drawing field".into()));
             }
@@ -124,9 +129,14 @@ impl<'a, 'b> Fields<'a, 'b> {
     pub fn doubles(&mut self, name: &'static str, count: usize) -> Result<()> {
         rse::charge(self.work, count)?;
         let start = self.r.pos;
+        let bytes = self.r.take(
+            count
+                .checked_mul(8)
+                .ok_or_else(|| Error("drawing double array length overflow".into()))?,
+        )?;
         let mut values = Vec::with_capacity(count);
-        for _ in 0..count {
-            let v = f64::from_le_bytes(self.r.take(8)?.try_into().unwrap());
+        for chunk in bytes.chunks_exact(8) {
+            let v = f64::from_le_bytes(chunk.try_into().unwrap());
             if !v.is_finite() {
                 return Err(Error("non-finite drawing field".into()));
             }
@@ -149,9 +159,10 @@ impl<'a, 'b> Fields<'a, 'b> {
             self.require(self.profile.reference_flags)?;
         }
         let start = self.r.pos;
+        let bytes = self.r.take(count * 4)?;
         let mut values = Vec::with_capacity(count);
-        for _ in 0..count {
-            values.push(self.r.u32()?);
+        for chunk in bytes.chunks_exact(4) {
+            values.push(u32::from_le_bytes(chunk.try_into().unwrap()));
         }
         self.add(name, start, FieldValue::U32(values));
         Ok(())
@@ -241,6 +252,10 @@ pub(super) fn decode(
             decoder = super::sheet::point_marker;
             "stored_point_marker_candidate"
         }
+        ("DlSheetDlSegmentType", "41305114-11d2-6450-6000-b4856c2387b0") if major == 26 => {
+            decoder = super::sheet::point_marker;
+            "stored_point_marker_candidate"
+        }
         ("DlSheetSmSegmentType", "5741c02f-4467-1e22-0ba3-53bd0da0bc81") => {
             decoder = super::sheet::image;
             "stored_image_candidate"
@@ -280,7 +295,9 @@ pub(super) fn decode(
         }
         (
             "DlSheetSmSegmentType",
-            "f5a6ed7a-11d4-7c69-6000-69b782b6fbb0" | "35ecb98a-419c-f0d7-262b-dc98b8750e13",
+            "f5a6ed7a-11d4-7c69-6000-69b782b6fbb0"
+            | "35ecb98a-419c-f0d7-262b-dc98b8750e13"
+            | "d8727ce0-11d5-d313-1000-1198b78b7ab5",
         ) if major == 26 => {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
@@ -395,6 +412,10 @@ pub(super) fn decode(
             decoder = super::geometry::triangles;
             "stored_triangles_candidate"
         }
+        ("DlSheetDlSegmentType", "a79eacd2-11d1-c281-6000-a38ab46bceb0") if major == 26 => {
+            decoder = super::geometry::triangles;
+            "stored_triangles_candidate"
+        }
         (
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
             "a79eacc7-11d1-c281-6000-a38ab46bceb0",
@@ -406,14 +427,22 @@ pub(super) fn decode(
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
             "a79eaccd-11d1-c281-6000-a38ab46bceb0",
         ) => {
-            decoder = super::geometry::circle;
+            decoder = if kind == "DlSheetSmSegmentType" && matches!(profile.major, 26 | 28) {
+                super::geometry::annotation_circle
+            } else {
+                super::geometry::circle
+            };
             "stored_circle_candidate"
         }
         (
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
             "a79eaccc-11d1-c281-6000-a38ab46bceb0",
         ) => {
-            decoder = super::geometry::arc;
+            decoder = if kind == "DlSheetSmSegmentType" && profile.major == 26 {
+                super::geometry::annotation_arc
+            } else {
+                super::geometry::arc
+            };
             "stored_arc_candidate"
         }
         (
@@ -470,6 +499,8 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::geometry::line,
         super::geometry::circle,
         super::geometry::arc,
+        super::geometry::annotation_circle,
+        super::geometry::annotation_arc,
         super::geometry::ellipse,
         super::spline::fields,
     ] {

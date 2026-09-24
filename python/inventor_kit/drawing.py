@@ -51,6 +51,7 @@ class DrawingLimits:
     max_image_bytes: int = 16 * 1024 * 1024
     max_image_pixels: int = 16_777_216
     max_output_bytes: int = 96 * 1024 * 1024
+    max_field_values: int = 1_000_000
 
     def __post_init__(self):
         for field in fields(self):
@@ -275,6 +276,9 @@ class DrawingDocument:
 def _decode(raw):
     if raw['api_version'] != 1:
         raise ValueError('Unsupported drawing API version')
+    wire_version = raw.get('wire_version', 1)
+    if type(wire_version) is not int or wire_version not in (1, 2):
+        raise ValueError('Unsupported drawing transport version')
     preview, index = raw['preview'], raw['sheets']
     spaces = {s['segment_id']: s for s in preview['spaces']}
     diagnostics = list(raw['diagnostics'])
@@ -289,9 +293,25 @@ def _decode(raw):
         items, placement_items = [], {}
         if space is not None:
             used.add(sheet['space_segment'])
+            styles = None
+            if wire_version == 2:
+                table = space.get('styles')
+                if (not isinstance(table, list) or len(table) > len(space['items'])
+                        or len(table) > DrawingLimits().max_display_items
+                        or any(not isinstance(style, dict) for style in table)):
+                    raise ValueError('Invalid drawing transport style table')
+                styles = tuple(_freeze(style) for style in table)
             for i in space['items']:
                 item_id = f"{sheet_id}/{i['segment_id']}/{i['placement_record']}/{i['record_ordinal']}"
-                items.append(DrawingItem(item_id, _freeze(i['geometry']), _freeze(i['style']),
+                if styles is not None:
+                    style_index = i.get('style_index')
+                    if ('style' in i or type(style_index) is not int
+                            or not 0 <= style_index < len(styles)):
+                        raise ValueError('Invalid drawing transport style reference')
+                    style = styles[style_index]
+                else:
+                    style = _freeze(i['style'])
+                items.append(DrawingItem(item_id, _freeze(i['geometry']), style,
                     SourceSpan(**i['source']), i['segment_id'], i['record_ordinal'],
                     i['placement_record'], tuple(i['group_path']), tuple(map(tuple, i['transform']))))
                 placement_items.setdefault(i['placement_record'], []).append(item_id)

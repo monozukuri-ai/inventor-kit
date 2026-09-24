@@ -6,6 +6,9 @@ use std::io::{self, Write};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DrawingLimits {
+    /// Scalar payload values, reference entries and UTF-16 code units decoded
+    /// across the document. Independent of container record framing work.
+    pub max_field_values: usize,
     pub max_sheets: usize,
     pub max_views: usize,
     pub max_display_items: usize,
@@ -20,6 +23,7 @@ pub struct DrawingLimits {
 impl Default for DrawingLimits {
     fn default() -> Self {
         Self {
+            max_field_values: 1_000_000,
             max_sheets: 256,
             max_views: 4096,
             max_display_items: 100_000,
@@ -44,6 +48,7 @@ impl DrawingLimits {
             )+};
         }
         check!(
+            max_field_values,
             max_sheets,
             max_views,
             max_display_items,

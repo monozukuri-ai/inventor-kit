@@ -105,7 +105,7 @@ def _family(name):
 
 def text_presentation(g):
     font = g.get('font')
-    symbol = bool(font and g['text'] == 'n' and g['raw_flags'] == 9
+    symbol = bool(font and g['text'] in ('n', 'x') and g['raw_flags'] == 9
                   and font['family'].lower() == 'aigdt' and font['flags'] == 0 and font['weight_candidate'] == 400)
     family = font['family'] if font else ''
     cjk = bool(re.search(r'[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef]', g['text']))
@@ -116,12 +116,20 @@ def text_presentation(g):
         fallbacks = ['DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2']
     names = ([] if symbol or not family else [family]) + fallbacks
     css = ', '.join([_family(n) for n in dict.fromkeys(names)] + ['sans-serif'])
-    measured = bool(font and (symbol or
-        (family.lower() in ('arial', 'tahoma') and font['flags'] == 0 and font['weight_candidate'] == 400) or
-        (family.lower() == 'tahoma' and (font['flags'], font['weight_candidate']) in ((0, 700), (1, 400)))))
+    # Major24 Template_IACS: native PDF glyph heights confirm cap-height
+    # sizing. Vafle families use Arial in that PDF; local shape remains a
+    # font fallback, not an assertion that the original font is installed.
+    measured_styles = {
+        'arial': ((0, 400),), 'tahoma': ((0, 400), (0, 700), (1, 400)),
+        'isocp': ((0, 400),), 'isocp_iv25': ((0, 400), (0, 700)),
+        'vafle vut': ((0, 400),), 'vafle light vut': ((0, 400),),
+    }
+    measured = bool(font and (symbol or (font['flags'], font['weight_candidate'])
+                             in measured_styles.get(family.lower(), ())))
     capital = bool(measured and g['raw_flags'] == 9 and font['height_candidate'] > 0
                    and not re.search(r'[\r\n]', g['text']))
-    return dict(text='⌀' if symbol else g['text'], family=css, capital=capital, symbol=symbol, cjk=cjk)
+    display = {'n': '⌀', 'x': '↧'}[g['text']] if symbol else g['text']
+    return dict(text=display, family=css, capital=capital, symbol=symbol, cjk=cjk)
 
 
 def _curve(g, height):
@@ -175,6 +183,58 @@ def _curve(g, height):
     for i in range(1, steps+1):
         parts.append(f'A {_number(major)} {_number(minor)} {_number(angle)} 0 {int(determinant > 0)} ' + point(start+span*i/steps))
     return ' '.join(parts), None
+
+
+def _straight_dash(g, dash, major):
+    """Observed straight-line fitting, leaving the nominal source style intact.
+
+    Major31 controls establish the standard patterns on long lines. The
+    preserved major26/28/29 PDFs establish hidden lines, including the short
+    thirds rule; major24 establishes only short projection-symbol lines.
+    Curves, sampled splines and unobserved patterns keep nominal dashes.
+    """
+    if not dash or g['kind'] != 'polyline' or len(g['points']) != 2:
+        return None
+    patterns = (
+        (12, 3), (12, 12), (24, 3, .5, 3), (24, 3, .5, 3, .5, 3),
+        (24, 3, .5, 3, .5, 3, .5, 3), (.5, 3), (24, 3, 6, 3),
+        (24, 3, 6, 3, 6, 3), (12, 3, .5, 3, .5, 3), (12, 3, .5, 3),
+        (12, 3, 12, 3, .5, 3), (12, 3, 12, 3, .5, 3, .5, 3),
+        (12, 3, .5, 3, .5, 3, .5, 3), (12, 3, 12, 3, .5, 3, .5, 3, .5, 3),
+    ) if major == 31 else (((12, 3),) if major in (26, 28, 29)
+                           else (((5, 1, 1, 1),) if major == 24 else ()))
+    if not any(len(p) == len(dash) and all(math.isclose(v / dash[0], x / p[0], rel_tol=1e-7)
+                                         for v, x in zip(dash, p)) for p in patterns):
+        return None
+    length = math.dist(g['points'][0][:2], g['points'][1][:2])
+    period = sum(dash)
+    if not math.isfinite(length) or not math.isfinite(period):
+        raise ValueError('Non-finite drawing dash fitting')
+    if length == 0:
+        return None
+    if length < period:
+        # No short major31 controls were captured. Do not infer that branch
+        # from the older profiles or from long-line observations alone.
+        if major not in (24, 26, 28, 29) or length / 3 == 0:
+            return None
+        return [length / 3, length / 3], 0., 'short-line-thirds'
+    if major == 24:
+        return None
+    ratio = length / period
+    # Do not add fitting for extreme repetition counts or numerical boundaries.
+    # Half-period ties have not been observed; keep them nominal.
+    if not math.isfinite(ratio) or ratio * len(dash) >= 100000:
+        return None
+    if abs(ratio - math.floor(ratio) - .5) < 1e-10:
+        return None
+    periods = max(1, round(ratio))
+    if periods * len(dash) >= 100000:
+        return None
+    scale = (length / periods) / period
+    fitted = [v * scale for v in dash]
+    if any(v <= 0 or not math.isfinite(v) for v in fitted) or fitted[0] / 2 == 0:
+        return None
+    return fitted, fitted[0] / 2, 'whole-period-half-dash-ends'
 
 
 def render_svg(sheet, source_sha256, images, *, max_bytes=MAX_SVG_BYTES):
@@ -261,7 +321,7 @@ def render_svg(sheet, source_sha256, images, *, max_bytes=MAX_SVG_BYTES):
                 'style': 'white-space:pre;'+('font-size-adjust:cap-height 1' if p['capital'] else 'font-size-adjust:none'),
                 'data-font-sizing': 'capital-height-candidate' if p['capital'] else 'unverified-em-fallback'})
             if p['symbol']:
-                attrs.update({'data-symbol-fallback':'AIGDT:n->U+2300','data-raw-text':g['text']})
+                attrs.update({'data-symbol-fallback':f"AIGDT:{g['text']}->U+{ord(p['text']):04X}",'data-raw-text':g['text']})
             if p['cjk']:
                 attrs['data-font-fallback'] = 'system-cjk'
             if _xml(g['text']) != g['text']:
@@ -292,12 +352,23 @@ def render_svg(sheet, source_sha256, images, *, max_bytes=MAX_SVG_BYTES):
             if stroke is not None and stroke <= 0:
                 raise ValueError('Invalid drawing stroke width')
             dash = style.get('dash') or []
-            if any(v <= 0 for v in dash) or len(dash)%2:
+            if any(isinstance(v, bool) or not isinstance(v, (int, float))
+                   or not math.isfinite(v) or v <= 0 for v in dash) or len(dash)%2:
                 raise ValueError('Invalid drawing dash sequence')
+            if dash:
+                fitted = _straight_dash(g, dash, sheet.get('segment_majors', {}).get(item.get('segment_id')))
+                attrs['data-dash-rendering'] = 'nominal-unverified'
+                if fitted is not None:
+                    dash, offset, mode = fitted
+                    attrs.update({'stroke-dashoffset': _number(offset), 'data-dash-rendering': mode})
             attrs.update(fill='none', stroke=color, **{'stroke-width':_number(.035 if stroke is None else stroke),
                 'stroke-dasharray':' '.join(_number(v) for v in dash) or 'none', 'stroke-linejoin':'round', 'stroke-linecap':'butt'})
             if g['kind']=='curve':
                 attrs['d'], projection_error = _curve(g, height)
+                if g.get('filled') is True:
+                    # The saved arc closes by a chord. A sector's separate
+                    # triangle remains its own independently owned item.
+                    attrs.update(fill=color, stroke='none', d=attrs['d']+' Z')
                 if projection_error is not None:
                     attrs['data-curve-rendering'] = 'near-degenerate-line-projection'
                     attrs['data-projection-error-bound'] = _number(projection_error)
@@ -313,6 +384,7 @@ def render_svg(sheet, source_sha256, images, *, max_bytes=MAX_SVG_BYTES):
 
 def source_sheet(doc, sheet):
     return dict(id=sheet.id, name=sheet.name, status=sheet.status, size_in_source_units=sheet.size_in_source_units,
+        segment_majors={s.id: s.major for s in doc.metadata.segments},
         items=[item_dict(i) for i in sheet.items])
 
 
@@ -359,5 +431,10 @@ def svg_report(doc, sheet, data, path=None):
         near_degenerate_curves=dict(count=data.count(b'data-curve-rendering="near-degenerate-line-projection"'),
             method='line segments through endpoints and coordinate extrema',
             analytic_error_bound_source_units=2e-9, excludes='serialization and browser rasterization error'),
+        dash_rendering=dict(
+            whole_period_lines=data.count(b'data-dash-rendering="whole-period-half-dash-ends"'),
+            short_lines=data.count(b'data-dash-rendering="short-line-thirds"'),
+            nominal_unverified=data.count(b'data-dash-rendering="nominal-unverified"'),
+            qualification='observed profiles only; nominal source styles and unresolved flags retained'),
         text_replacement='XML 1.0 controls become U+FFFD; original text remains in text_runs')
     return report

@@ -94,6 +94,8 @@ pub enum DisplayGeometry {
         v: [f64; 3],
         start: f64,
         end: f64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        filled: Option<bool>,
     },
     Text {
         text: String,
@@ -731,12 +733,21 @@ fn geometry_budgeted(
             let center = transform(m, &v[..3], 1.)?;
             let u = transform(m, &axis.map(|x| x * radius), 0.)?;
             let v = transform(m, &minor_axis.map(|x| x * minor_radius), 0.)?;
+            let filled = if o.fields.iter().any(|f| f.name == "filled_conic_candidate") {
+                if !matches!(field(o, "filled_conic_candidate")?, FieldValue::U8(1)) {
+                    return Err(error("unsupported stored conic fill"));
+                }
+                Some(true)
+            } else {
+                None
+            };
             Ok(Some(DisplayGeometry::Curve {
                 center,
                 u,
                 v,
                 start,
                 end,
+                filled,
             }))
         }
         _ => Ok(None),

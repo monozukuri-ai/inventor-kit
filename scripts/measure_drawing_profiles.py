@@ -16,6 +16,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 from drawing_corpus import drawing_rows
+from measure_drawing_linetypes import fitted_line_segments, svg_line_segments
 
 PT_TO_MM = 25.4 / 72
 
@@ -66,11 +67,119 @@ def triangle_distance(a, b):
     return min(max(math.dist(p, q) for p, q in zip(a, ordered)) for ordered in permutations(b))
 
 
+def filled_conics(sheet, paths, box):
+    """Match native polygon vertices to analytic disks/arc segments, without fitting.
+
+    The PDF tessellates observed circles in 8 or 12 steps and quarter-arcs in 4 steps.
+    Cyclic vertex order is immaterial for a closed circle. No coordinate,
+    radius, phase or scale is adjusted to minimize the distance.
+    """
+    native = []
+    for node in paths:
+        if (len(node) not in (6, 10, 14) or node[0].tag != 'moveto' or node[-1].tag != 'closepath'
+                or any(n.tag != 'lineto' for n in list(node)[1:-1])):
+            continue
+        a,b,c,d,e,f = map(float, node.attrib['transform'].split())
+        require(all(map(math.isfinite, (a,b,c,d,e,f))), 'Invalid filled conic transform')
+        points = []
+        for child in list(node)[:-1]:
+            x,y = float(child.attrib['x']),float(child.attrib['y'])
+            require(math.isfinite(x) and math.isfinite(y), 'Invalid filled conic vertex')
+            points.append([(a*x+c*y+e-box[0])*PT_TO_MM, (box[3]-b*x-d*y-f)*PT_TO_MM])
+        if len(points) in (9, 13):
+            require(points[0] == points[-1], 'Unclosed native disk')
+            points.pop()
+        native.append(points)
+    curves = [i for i in sheet.items if i.geometry['kind'] == 'curve' and i.geometry.get('filled')]
+    used, matches = set(), []
+    for item in curves:
+        g = item.geometry
+        closed = abs(g['end'] - g['start'] - 2*math.pi) < 1e-9
+        candidates = []
+        for index, points in enumerate(native):
+            count = len(points)
+            if index in used or (count not in (8, 12) if closed else count != 5):
+                continue
+            steps = count if closed else 4
+            predicted = [[10*(g['center'][axis] + g['u'][axis]*math.cos(t) + g['v'][axis]*math.sin(t))
+                          for axis in range(2)]
+                         for t in (g['start']+(g['end']-g['start'])*k/steps for k in range(count))]
+            orders = [points, list(reversed(points))]
+            if closed:
+                orders = [order[k:]+order[:k] for order in orders for k in range(count)]
+            distance = min(max(math.dist(p,q) for p,q in zip(predicted, order)) for order in orders)
+            candidates.append((distance,index))
+        if candidates:
+            distance,index = min(candidates)
+            if distance <= .05:
+                used.add(index)
+                matches.append(dict(item_id=item.id, native_path=index, closed=closed, max_vertex_error_mm=distance))
+    return dict(saved_count=len(curves), native_candidate_count=len(native), matched_count=len(matches),
+                unmatched_saved_count=len(curves)-len(matches), unmatched_native_count=len(native)-len(used),
+                matches=matches, max_vertex_error_mm=max((m['max_vertex_error_mm'] for m in matches),default=None))
+
+
 def point_segment_distance(p, a, b):
     direction = [y-x for x,y in zip(a,b)]
     length2 = sum(x*x for x in direction)
     t = 0 if length2 == 0 else min(1, max(0, sum((x-y)*v for x,y,v in zip(p,a,direction))/length2))
     return math.dist(p, [x+t*v for x,v in zip(a,direction)])
+
+
+def hidden_line_patterns(sheet, trace, box, svg):
+    """Check the observed 4:1 nominal layer pattern against long native lines.
+
+    Check both the independent PDF model and the serialized SVG strokes.
+    Unmatched saved edges remain explicit (not proof of absence).
+    """
+    native = []
+    for fragment in re.findall(r'<stroke_path\b[^>]*>.*?</stroke_path>', trace, re.S):
+        node = ET.fromstring(fragment)
+        if [p.tag for p in node] != ['moveto', 'lineto']:
+            continue
+        a,b,c,d,e,f = map(float, node.attrib['transform'].split())
+        require(all(map(math.isfinite, (a,b,c,d,e,f))), 'Invalid native stroke transform')
+        points = []
+        for child in node:
+            x,y = float(child.attrib['x']),float(child.attrib['y'])
+            require(math.isfinite(x) and math.isfinite(y), 'Invalid native stroke vertex')
+            points.append([(a*x+c*y+e-box[0])*PT_TO_MM, (box[3]-b*x-d*y-f)*PT_TO_MM])
+        native.append(points)
+    nodes = {n.get('data-item-id'): n for n in svg if n.get('data-item-id')}
+    rows = []
+    for item in sheet.items:
+        g, dash = item.geometry, item.style['dash']
+        if (g['kind'] != 'polyline' or len(g['points']) != 2 or not dash or len(dash) != 2
+                or abs(dash[0]/dash[1]-4) > 1e-9):
+            continue
+        start,end = [[v*10 for v in p[:2]] for p in g['points']]
+        length = math.dist(start,end)
+        if length < 10:
+            continue
+        u = [(e-b)/length for b,e in zip(start,end)]
+        along = lambda p: sum((v-b)*w for v,b,w in zip(p,start,u))
+        off = lambda p: abs((p[0]-start[0])*u[1]-(p[1]-start[1])*u[0])
+        intervals = []
+        for p,q in native:
+            lo,hi = sorted([along(p),along(q)])
+            if max(off(p),off(q)) < .05 and lo >= -.05 and hi <= length+.05 and hi-lo > .05:
+                intervals.append([lo,hi])
+        predicted = fitted_line_segments(0,length,[v*10 for v in dash])
+        intervals.sort()
+        error = (max(abs(a-b) for ps,qs in zip(predicted,intervals) for a,b in zip(ps,qs))
+                 if len(predicted) == len(intervals) else None)
+        rendered = svg_line_segments(nodes[item.id], scale=10)
+        svg_error = (max(abs(a-b) for ps,qs in zip(rendered,intervals) for a,b in zip(ps,qs))
+                     if len(rendered) == len(intervals) else None)
+        rows.append(dict(item_id=item.id, nominal_dash_source_units=list(dash), length_mm=length,
+                         predicted_intervals=predicted, native_intervals=intervals,
+                         max_endpoint_error_mm=error, matched=error is not None and error <= .05,
+                         svg_intervals=rendered, svg_max_endpoint_error_mm=svg_error,
+                         svg_matched=svg_error is not None and svg_error <= .05))
+    matched = [r for r in rows if r['matched']]
+    return dict(eligible_saved_lines=len(rows), matched_count=len(matched), unmatched_count=len(rows)-len(matched),
+                max_endpoint_error_mm=max((r['max_endpoint_error_mm'] for r in matched),default=None), rows=rows,
+                svg_phase_and_fitting_matches_pdf=all(r['svg_matched'] for r in rows) if rows else None)
 
 
 def colored_lines(sheet, trace, box):
@@ -183,13 +292,16 @@ def measure(root):
                 max_vertex_error_mm=max((m['max_vertex_error_mm'] for m in matches), default=None)),
             pdf_trace_envelope=envelope, display_items=len(sheet.items),
             colored_straight_lines=colored_lines(sheet, trace, box),
+            filled_conics=filled_conics(sheet, fills, box),
+            hidden_line_patterns=hidden_line_patterns(sheet, trace, box, ET.fromstring(doc.to_svg(allow_partial=True))),
             omissions=dict(Counter(o['reason'] for o in sheet.omissions))))
     require(len(rows) == 5, 'Expected five profile captures')
     return dict(schema_version=1, status='measured', qualified=False, native_capture=identity(root/'profiles.native.json'),
         inventor_version=capture['version'], results=rows,
         limitations=['All captures have dirty=true; several require migration and have missing external models.',
             'Sources were preserved and before/after API state matched; current model state is not qualified.',
-            'Paper/view positions and saved triangle vertices only; fonts, all curves, visibility and complete content are not qualified.',
+            'Paper/view positions, saved triangles, observed filled conics and a long hidden-line subset only; fonts, other curves, visibility and complete content are not qualified.',
+            'Hidden-line PDF and serialized SVG fitting are compared for long straight lines only; source styles keep nominal arrays.',
             'PDF export rounding is reported as measured error, not used to fit source coordinates.'])
 
 

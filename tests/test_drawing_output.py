@@ -1,5 +1,6 @@
 """Real drawing outputs, source identity, isolation, and bounded SVG publication."""
 from dataclasses import replace
+import copy
 import hashlib
 import json
 import math
@@ -152,8 +153,9 @@ sys.meta_path.insert(0,NoGeometry())
         text=dict(kind='text',text='日本語 <script>\x00\n±90°',position=[1,2,0],direction=[1,0,0],up=[0,1,0],raw_flags=9,font=font)
         curve=dict(kind='curve',center=[5,5,0],u=[2,1,0],v=[1,3,0],start=0,end=2*math.pi)
         symbol=dict(text, text='n',font=dict(font,family='AIGDT'))
+        depth=dict(symbol, text='x')
         sheet=dict(id='test',name='Test',status='experimental_partial',size_in_source_units=[10,10],
-            items=[dict(id=str(i),geometry=g,style=style) for i,g in enumerate((text,curve,symbol))])
+            items=[dict(id=str(i),geometry=g,style=style) for i,g in enumerate((text,curve,symbol,depth))])
         xml=ET.fromstring(render_svg(sheet,'a'*64,{}))
         line=xml.find('s:path',NS)
         self.assertEqual(line.attrib['stroke-dasharray'],'0.5 0.1')
@@ -170,6 +172,100 @@ sys.meta_path.insert(0,NoGeometry())
         self.assertEqual(texts[0].find('s:tspan',NS).text,'日本語 <script>\ufffd')
         self.assertEqual(texts[1].find('s:tspan',NS).text,'⌀')
         self.assertEqual(texts[1].attrib['data-raw-text'],'n')
+        self.assertEqual(texts[2].find('s:tspan',NS).text,'↧')
+        self.assertEqual(texts[2].attrib['data-symbol-fallback'],'AIGDT:x->U+21A7')
+        self.assertEqual(texts[2].attrib['data-raw-text'],'x')
+
+    def test_straight_dash_fitting_preserves_source_and_rotated_or_reversed_endpoints(self):
+        style = dict(width=.02, rgba=[0,0,0,1], dash=[2.,2.],
+                     unresolved=['dash_phase_and_fit_unverified'])
+        sheet = dict(id='test', status='experimental_partial', size_in_source_units=[30,30],
+                     segment_majors={'segment':31})
+        for start, end in [([1,1,0],[13,1,0]), ([13,1,0],[1,1,0]),
+                           ([1,1,0],[1,13,0]), ([1,1,0],[8.2,10.6,0])]:
+            item = dict(id='line', segment_id='segment',
+                        geometry=dict(kind='polyline',points=[start,end]),style=style)
+            original = copy.deepcopy(item)
+            node = ET.fromstring(render_svg(dict(sheet,items=[item]),'a'*64,{})).find('s:polyline',NS)
+            self.assertEqual(node.get('stroke-dasharray'),'2 2')
+            self.assertEqual(node.get('stroke-dashoffset'),'1')
+            self.assertEqual(node.get('data-dash-rendering'),'whole-period-half-dash-ends')
+            self.assertEqual(item, original)
+            points = [list(map(float,p.split(','))) for p in node.get('points').split()]
+            self.assertEqual(points, [[p[0],30-p[1]] for p in (start,end)])
+
+    def test_dash_fitting_is_limited_to_observed_profiles_and_straight_geometry(self):
+        line = dict(kind='polyline',points=[[1,1,0],[2.2,1,0]])
+        sheet = dict(id='test',status='experimental_partial',size_in_source_units=[30,30])
+        def node(g=line, dash=(4.,1.), major=26):
+            item = dict(id='line',segment_id='s',geometry=g,style=dict(dash=dash))
+            svg = ET.fromstring(render_svg(dict(sheet,items=[item],segment_majors={'s':major}), 'a'*64, {}))
+            return svg.find('.//*[@data-item-id]')
+        for major in (26,28,29):
+            n = node(major=major)
+            self.assertEqual(n.get('stroke-dasharray'),'0.4 0.4')
+            self.assertEqual(n.get('stroke-dashoffset'),'0')
+            self.assertEqual(n.get('data-dash-rendering'),'short-line-thirds')
+        self.assertEqual(node(dash=(5.,1.,1.,1.),major=24).get('data-dash-rendering'),'short-line-thirds')
+        unknown = [dict(major=23),dict(major=None),dict(major=31),dict(dash=(3.,1.)),
+            dict(g=dict(line,points=[[1,1,0],[8.5,1,0]])),  # Half-period tie.
+            dict(g=dict(line,points=[[1,1,0],[1,1,0]])),
+            dict(g=dict(line,points=[[1,1,0],[1.6,1,0],[2.2,1,0]])),
+            dict(g=dict(kind='curve',center=[1,1,0],u=[1,0,0],v=[0,1,0],start=0,end=math.pi)),
+            dict(g=dict(line,points=[[1,1,0],[10,1,0]]),dash=(5.,1.,1.,1.),major=24),
+            dict(dash=(4e-300,1e-300)),dict(dash=(4.,1e-300))]
+        for kwargs in unknown:
+            with self.subTest(kwargs=kwargs):
+                n = node(**kwargs)
+                self.assertEqual(n.get('data-dash-rendering'),'nominal-unverified')
+                self.assertNotIn('stroke-dashoffset',n.attrib)
+        for dash in ((0.,1.),(1.,),(-1.,2.),(float('nan'),1.),(float('inf'),1.),(True,1.)):
+            with self.subTest(dash=dash), self.assertRaises(ValueError): node(dash=dash)
+
+    def test_real_major_profiles_supply_svg_fit_metadata_without_mutating_nominal_styles(self):
+        for name, count in [('iacs/Template_IACS',2),('versions/Toys-R-Us-Rex',14),('versions/RespiraWorks',21)]:
+            doc = ik.read_drawing_file(ROOT/'fixtures/public/drawings'/(name+'.idw'))
+            before = doc.report(details=True)
+            data = doc.to_svg(allow_partial=True)
+            svg = ET.fromstring(data)
+            fitted = [n for n in svg if n.get('data-dash-rendering') in
+                      ('short-line-thirds','whole-period-half-dash-ends')]
+            self.assertEqual(len(fitted),count)
+            self.assertEqual(doc.report(details=True),before)
+            from inventor_kit.drawing_output import svg_report
+            report = svg_report(doc,doc.sheets[0],data.encode())
+            self.assertEqual(report['export']['dash_rendering']['short_lines']+
+                             report['export']['dash_rendering']['whole_period_lines'],count)
+            jsonschema.validate(report,SCHEMA)
+
+    def test_cap_height_and_symbol_profiles_remain_bounded(self):
+        from inventor_kit.drawing_output import text_presentation
+        font=dict(family='ISOCP', height_candidate=.25, weight_candidate=400, flags=0)
+        g=dict(kind='text', text='H', raw_flags=9, font=font)
+        for family, weight in [('ISOCP',400),('ISOCP_IV25',400),('ISOCP_IV25',700),
+                               ('Vafle VUT',400),('Vafle Light VUT',400)]:
+            self.assertTrue(text_presentation(dict(g,font=dict(font,family=family,weight_candidate=weight)))['capital'])
+        for changed in [dict(family='Unmeasured'),dict(flags=2),dict(weight_candidate=700),dict(height_candidate=0)]:
+            self.assertFalse(text_presentation(dict(g,font=dict(font,**changed)))['capital'])
+        for text in ['x', 'n']:
+            symbol=dict(g,text=text,font=dict(font,family='AIGDT'))
+            self.assertTrue(text_presentation(symbol)['symbol'])
+            for changed in [dict(text=text+'1'),dict(raw_flags=10),dict(font=font),
+                            dict(font=dict(symbol['font'],flags=1))]:
+                value=dict(symbol,**changed)
+                self.assertFalse(text_presentation(value)['symbol'])
+                self.assertEqual(text_presentation(value)['text'],value['text'])
+
+    def test_filled_arc_closes_by_chord_and_has_no_outline(self):
+        g=dict(kind='curve', center=[2,3,0], u=[1,0,0], v=[0,1,0], start=0, end=math.pi/2, filled=True)
+        sheet=dict(id='filled',name='Origin',status='experimental_partial',size_in_source_units=[10,10],
+                   items=[dict(id='segment',geometry=g,style=dict(rgba=[0,0,0,1],width=.02,dash=[],unresolved=[]))])
+        node=ET.fromstring(render_svg(sheet,'a'*64,{})).find('s:path',NS)
+        self.assertEqual(node.attrib['fill'],'rgb(0,0,0)')
+        self.assertEqual(node.attrib['stroke'],'none')
+        self.assertTrue(node.attrib['d'].startswith('M 3 7 A '))
+        self.assertTrue(node.attrib['d'].endswith(' 2 6 Z'))
+        self.assertNotIn('L ',node.attrib['d'])  # no invented center/radial segment
 
     def test_saved_triangles_fill_indexed_vertices_and_reject_invalid_geometry(self):
         geometry = dict(kind='triangles', vertices=[[1., 2., 0.], [4., 2., 0.], [1., 5., 0.]], indices=[2, 0, 1])

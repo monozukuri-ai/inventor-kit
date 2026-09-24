@@ -17,7 +17,7 @@ mod text;
 use crate::document::{Diagnostic, DocumentInfo, SegmentInfo, SourceSpan};
 pub use appearance::DisplayStyle;
 pub use images::{read_embedded_images, read_embedded_images_with_limits, EmbeddedImage};
-pub use inventory::inspect;
+pub use inventory::{inspect, inspect_with_limits};
 pub use limits::{DrawingLimits, DrawingOutputBuffer};
 pub use revisions::{Revision, RevisionTable};
 pub use scene::{
@@ -53,7 +53,7 @@ pub struct Usage {
     pub expanded_bytes: usize,
     /// Registry, identity, Meta-table, record and trailer collection work.
     pub work_items: usize,
-    /// Typed payload values have a separate per-document max_records allowance;
+    /// Typed payload values use DrawingLimits::max_field_values per document;
     /// dense display fields cannot starve subsequent segment framing.
     pub field_work_items: usize,
 }

@@ -1,4 +1,4 @@
-//! Observed major23 stored B-splines, not model regeneration or exact rendering.
+//! Observed major23/26/28 stored B-splines, not model regeneration or exact rendering.
 use super::{fields::Fields, FieldValue, PayloadObservation};
 use crate::{rse, Error, Result};
 
@@ -221,6 +221,29 @@ mod tests {
             SourceSpan::stream("synthetic", "/B", 0, b.len()),
             work,
         )
+    }
+    #[test]
+    fn spline_profiles_share_exact_arrays_and_reject_malformed_payloads() {
+        let b = wire(&[1., std::f64::consts::FRAC_1_SQRT_2, 1.]);
+        for major in [23, 26, 28] {
+            let o = parse(&b, major, &mut 1000).unwrap().unwrap();
+            assert_eq!(o.proposed_role, "stored_bspline_candidate");
+            for end in 0..b.len() {
+                assert!(parse(&b[..end], major, &mut 1000).is_err());
+            }
+            for offset in [58, 118, 154] {
+                let mut bad = b.clone();
+                bad[offset..offset + 8].copy_from_slice(&f64::NAN.to_le_bytes());
+                assert!(parse(&bad, major, &mut 1000).is_err());
+            }
+            let mut extra = b.clone();
+            extra.push(0);
+            assert!(parse(&extra, major, &mut 1000).is_err());
+            assert!(parse(&b, major, &mut 0).is_err());
+        }
+        for major in [24, 29, 31] {
+            assert!(parse(&b, major, &mut 1000).unwrap().is_none());
+        }
     }
     #[test]
     fn rational_quarter_circle_and_wire_rejections() {

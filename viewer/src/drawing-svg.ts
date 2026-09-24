@@ -5,7 +5,7 @@ const attrs = new Set(['xmlns', 'viewBox', 'width', 'height', 'role', 'aria-labe
   'data-renderer-version', 'id', 'x', 'y', 'fill', 'stroke', 'stroke-width', 'href', 'preserveAspectRatio', 'transform',
   'opacity', 'data-item-id', 'data-kind', 'data-style-state', 'font-family', 'font-size', 'font-weight', 'font-style',
   'style', 'data-font-sizing', 'data-symbol-fallback', 'data-raw-text', 'data-font-fallback', 'data-text-replacement',
-  'dy', 'd', 'points', 'stroke-dasharray', 'stroke-linejoin', 'stroke-linecap',
+  'dy', 'd', 'points', 'stroke-dasharray', 'stroke-dashoffset', 'data-dash-rendering', 'stroke-linejoin', 'stroke-linecap',
   'data-curve-rendering', 'data-projection-error-bound']);
 
 export function parseDrawingSvg(source: string, sourceHash: string, sheetId: string,

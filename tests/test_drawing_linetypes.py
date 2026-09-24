@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
@@ -15,6 +16,18 @@ from drawing_oracle_contract import identity
 
 
 class LineCapture(unittest.TestCase):
+    def test_serialized_svg_evaluator_observes_offset_and_short_line_gaps(self):
+        node = ET.fromstring('<polyline points="1,2 13,2" stroke-dasharray="2 2" stroke-dashoffset="1"/>')
+        self.assertEqual(measurement.svg_line_segments(node),[[0,1],[3,5],[7,9],[11,12]])
+        node.set('stroke-dashoffset','-3')
+        self.assertEqual(measurement.svg_line_segments(node),[[0,1],[3,5],[7,9],[11,12]])
+        node.set('points','1,2 1,5')
+        node.set('stroke-dasharray','1 1'); node.set('stroke-dashoffset','0')
+        self.assertEqual(measurement.svg_line_segments(node),[[0,1],[2,3]])
+        for dash in ('nan 1','1 0','1','1e-12 1e-12'):
+            node.set('stroke-dasharray',dash)
+            with self.subTest(dash=dash), self.assertRaises(ValueError): measurement.svg_line_segments(node)
+
     def test_pdf_line_model_is_separate_from_nominal_svg_and_rejects_bad_lengths(self):
         self.assertEqual(measurement.fitted_line_segments(0, 12, [2, 2]),
                          [[0, 1], [3, 5], [7, 9], [11, 12]])

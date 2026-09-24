@@ -104,8 +104,48 @@ class DrawingAPI(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'drawing.*hard limit'):
             _inventor.read_drawing(b'', 'invalid', None, '{"max_sheets":257}')
 
+    def test_shared_native_styles_preserve_legacy_document_and_reject_bad_references(self):
+        import copy
+        import json
+        from inventor_kit import _inventor
+        from inventor_kit.drawing import _decode
+        encoded = _inventor.read_drawing(SAMPLE.read_bytes(), 'test', None, None)
+        raw = json.loads(encoded)
+        self.assertEqual(raw['wire_version'], 2)
+        legacy = copy.deepcopy(raw)
+        del legacy['wire_version']
+        for space in legacy['preview']['spaces']:
+            styles = space.pop('styles')
+            for item in space['items']:
+                item['style'] = styles[item.pop('style_index')]
+        decoded = _decode(raw)
+        self.assertEqual(decoded, _decode(legacy))
+        items = decoded.sheets[0].items
+        self.assertLess(len({id(i.style) for i in items}), len(items))
+        with self.assertRaises(TypeError):
+            items[0].style['visible'] = False
+        for bad_index in [-1, len(raw['preview']['spaces'][0]['styles']), True, '0', None]:
+            bad = copy.deepcopy(raw)
+            bad['preview']['spaces'][0]['items'][0]['style_index'] = bad_index
+            with self.assertRaisesRegex(ValueError, 'transport style reference'):
+                _decode(bad)
+        bad = copy.deepcopy(raw)
+        bad['preview']['spaces'][0]['items'][0]['style'] = {}
+        with self.assertRaisesRegex(ValueError, 'transport style reference'):
+            _decode(bad)
+        bad = copy.deepcopy(raw)
+        bad['preview']['spaces'][0]['styles'] = None
+        with self.assertRaisesRegex(ValueError, 'transport style table'):
+            _decode(bad)
+        for version in [0, 3, True, 2.0]:
+            with self.assertRaisesRegex(ValueError, 'transport version'):
+                _decode(dict(raw, wire_version=version))
+        with self.assertRaisesRegex(ValueError, 'output byte limit'):
+            _inventor.read_drawing(SAMPLE.read_bytes(), 'test', None,
+                json.dumps({'max_output_bytes': len(encoded.encode()) - 1}))
+
     def test_native_drawing_budgets_drop_uncommitted_display_and_keep_metadata(self):
-        for field in ('max_sheets', 'max_display_items', 'max_polyline_points', 'max_text_bytes',
+        for field in ('max_field_values', 'max_sheets', 'max_display_items', 'max_polyline_points', 'max_text_bytes',
                       'max_reference_visits', 'max_nesting_depth'):
             with self.subTest(field=field):
                 doc = read_drawing_file(SAMPLE, drawing_limits=DrawingLimits(**{field:0}))

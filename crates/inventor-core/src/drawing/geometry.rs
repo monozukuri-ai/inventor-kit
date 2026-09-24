@@ -60,17 +60,7 @@ pub(super) fn points(f: &mut Fields<'_, '_>) -> Result<()> {
         return Err(Error("unsupported drawing point list".into()));
     }
     f.point_type()?;
-    rse::charge(f.work, n * 3)?;
-    let start = f.r.pos;
-    let mut values = Vec::with_capacity(n * 3);
-    for _ in 0..n * 3 {
-        let v = f32::from_le_bytes(f.r.take(4)?.try_into().unwrap());
-        if !v.is_finite() {
-            return Err(Error("non-finite drawing point field".into()));
-        }
-        values.push(v);
-    }
-    f.add("xyz_points_candidate", start, FieldValue::F32(values));
+    f.floats("xyz_points_candidate", n * 3)?;
     if f.r.u8()? != 0 {
         return Err(Error("unknown drawing point list suffix".into()));
     }
@@ -97,18 +87,38 @@ pub(super) fn line(f: &mut Fields<'_, '_>) -> Result<()> {
     f.r.finish()
 }
 pub(super) fn circle(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.display_header()?;
-    f.doubles("circle_center_normal_radius", 7)?;
-    if f.r.u8()? != 0 {
-        return Err(Error("unknown circle suffix".into()));
-    }
-    f.r.finish()
+    conic(f, false, false)
 }
 pub(super) fn arc(f: &mut Fields<'_, '_>) -> Result<()> {
+    conic(f, true, false)
+}
+
+// Selected for observed SM disks (major26/28) and circular segments (major26).
+// Native PDFs confirm filled disks and arcs closed by the chord, not two radii.
+pub(super) fn annotation_circle(f: &mut Fields<'_, '_>) -> Result<()> {
+    conic(f, false, true)
+}
+pub(super) fn annotation_arc(f: &mut Fields<'_, '_>) -> Result<()> {
+    conic(f, true, true)
+}
+fn conic(f: &mut Fields<'_, '_>, arc: bool, allow_fill: bool) -> Result<()> {
     f.display_header()?;
-    f.doubles("arc_center_normal_axis_radius_angles", 12)?;
-    if f.r.u8()? != 0 {
-        return Err(Error("unknown arc suffix".into()));
+    let (name, count) = if arc {
+        ("arc_center_normal_axis_radius_angles", 12)
+    } else {
+        ("circle_center_normal_radius", 7)
+    };
+    f.doubles(name, count)?;
+    let start = f.r.pos;
+    match f.r.u8()? {
+        0 => (),
+        1 if allow_fill => f.add("filled_conic_candidate", start, FieldValue::U8(1)),
+        _ => {
+            return Err(Error(format!(
+                "unknown {} suffix",
+                if arc { "arc" } else { "circle" }
+            )))
+        }
     }
     f.r.finish()
 }

@@ -26,6 +26,18 @@ fn opaque(source: SourceSpan, reason: &'static str) -> OpaqueRegion {
 /// No external references are followed. Original metadata remains available for
 /// unsupported majors and ambiguous databases.
 pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<DrawingInventory> {
+    inspect_with_limits(data, source_id, limits, &DrawingLimits::default())
+}
+
+/// Inspect with a separately bounded typed-payload allowance. Container record
+/// and decompression limits are unchanged; every decoded scalar is still charged.
+pub fn inspect_with_limits(
+    data: &[u8],
+    source_id: &str,
+    limits: &Limits,
+    drawing: &DrawingLimits,
+) -> Result<DrawingInventory> {
+    drawing.validate()?;
     let summary = crate::inspect(data, source_id, limits)?.summary;
     let mut out = DrawingInventory {
         api_version: 1,
@@ -54,7 +66,7 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<DrawingI
     }
     let mut file = cfb::CompoundFile::open(Cursor::new(data)).map_err(|e| Error(e.to_string()))?;
     let mut work = limits.max_records;
-    let mut field_work = limits.max_records;
+    let mut field_work = drawing.max_field_values;
     let mut expanded = limits.max_total_inflated_bytes;
     let result = scan(
         &mut file,
@@ -66,7 +78,7 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<DrawingI
         &mut out,
     );
     out.usage.work_items = limits.max_records - work;
-    out.usage.field_work_items = limits.max_records - field_work;
+    out.usage.field_work_items = drawing.max_field_values - field_work;
     out.usage.expanded_bytes = limits.max_total_inflated_bytes - expanded;
     if let Err(e) = result {
         out.diagnostics.push(diagnostic(

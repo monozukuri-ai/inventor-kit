@@ -91,7 +91,17 @@ pub(super) fn apply<'a>(
         style.sources.push(attr.source.clone());
         match attr.proposed_role {
             "display_boolean_candidate" => {
-                if word(attr, "attribute_mask")? == 4 {
+                let mask = word(attr, "attribute_mask")?;
+                // Native major28 curve visibility corroborates this exact DL
+                // tuple (including inherited attributes). Other profiles and
+                // unobserved mask=2 values keep their unresolved semantics.
+                let hidden_curve = segment.registry.major == 28
+                    && segment.registry.kind == "DlSheetDlSegmentType"
+                    && mask == 2
+                    && matches!(field(attr, "attribute_boolean")?, FieldValue::U8(0));
+                if hidden_curve {
+                    style.visible = false;
+                } else if mask == 4 {
                     let FieldValue::U8(b) = field(attr, "attribute_boolean")? else {
                         return Err(error("invalid visibility attribute"));
                     };
@@ -149,8 +159,8 @@ pub(super) fn apply<'a>(
                 }
                 style.dash = if word(layer, "line_pattern")? == 0x6dc4 {
                     Some(vec![])
-                } else if target.registry.major == 31 && scale == 1. {
-                    let dash = layer_dashes(layer)?;
+                } else if scale == 1. {
+                    let dash = layer_dashes(layer, target.registry.major)?;
                     rse::charge(work, dash.as_ref().map_or(0, Vec::len))?;
                     if dash.is_none() {
                         style.unresolved.push("layer_dash_pattern_not_decoded");
@@ -220,7 +230,20 @@ pub(super) fn apply<'a>(
 // Nominal pattern lengths measured from the paired native major31 layer and
 // override controls. PDF export adjusts periods and phase to fit each curve;
 // these arrays preserve the nominal stored style, not that fitting algorithm.
-fn layer_dashes(layer: &PayloadObservation) -> Result<Option<Vec<f64>>> {
+pub(super) fn layer_dashes(layer: &PayloadObservation, major: u8) -> Result<Option<Vec<f64>>> {
+    // Source-preserved PDFs corroborate only the hidden-line pattern for
+    // these intermediate profiles: ANSI fixed base (26), ISO by weight
+    // (28/29). Do not promote the other major31 patterns or flag variants.
+    if major != 31
+        && (!matches!(major, 26 | 28 | 29)
+            || word(layer, "line_pattern")? != 28101
+            || !matches!(
+                (major, field(layer, "layer_flag_a")?),
+                (26, FieldValue::U8(0)) | (28 | 29, FieldValue::U8(1))
+            ))
+    {
+        return Ok(None);
+    }
     if doubles(layer, "layer_scale", 1)? != [1.]
         || !matches!(field(layer, "layer_flag_b")?, FieldValue::U8(1))
         || !matches!(field(layer, "layer_flag_c")?, FieldValue::U8(0))

@@ -323,18 +323,29 @@ fn major23_list_variants_and_annotation_layouts_are_exact() {
     balloon.push(1);
     word(&mut balloon, 9);
     let ty = "025e3388-4cbb-8851-7d1c-b0876dcb2a07";
-    assert_eq!(
-        parse(23, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
+    for major in [23, 26, 28] {
+        assert_eq!(
+            parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
+                .unwrap()
+                .unwrap()
+                .proposed_role,
+            "sheet_local_display_candidate"
+        );
+        for n in 0..balloon.len() {
+            assert!(parse(major, "DlSheetSmSegmentType", ty, &balloon[..n], &mut 100).is_err());
+        }
+        let mut bad = balloon.clone();
+        bad.push(0);
+        assert!(parse(major, "DlSheetSmSegmentType", ty, &bad, &mut 100).is_err());
+        bad = balloon.clone();
+        bad[31] = 2;
+        assert!(parse(major, "DlSheetSmSegmentType", ty, &bad, &mut 100).is_err());
+        assert!(parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 0).is_err());
+    }
+    for major in [24, 29, 31] {
+        assert!(parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
             .unwrap()
-            .unwrap()
-            .proposed_role,
-        "sheet_local_display_candidate"
-    );
-    assert!(parse(31, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
-        .unwrap()
-        .is_none());
-    for n in 0..balloon.len() {
-        assert!(parse(23, "DlSheetSmSegmentType", ty, &balloon[..n], &mut 100).is_err());
+            .is_none());
     }
 }
 #[test]
@@ -721,11 +732,18 @@ fn saved_triangle_batches_require_exact_profile_indices_and_auxiliary_layout() {
             };
             let o = parse(major, &b, &mut 100).unwrap().unwrap();
             assert_eq!(o.proposed_role, "stored_triangles_candidate");
+            let dl = |bytes: &[u8], work: &mut usize| {
+                observed_major(major, "DlSheetDlSegmentType", TRIANGLES_TYPE, bytes, work)
+            };
+            assert_eq!(dl(&b, &mut 100).unwrap().is_some(), major == 26);
             assert!(
                 matches!(&o.fields.last().unwrap().value, FieldValue::U32(v) if v == &(0..count).collect::<Vec<_>>())
             );
             for n in 0..b.len() {
                 assert!(parse(major, &b[..n], &mut 100).is_err());
+                if major == 26 {
+                    assert!(dl(&b[..n], &mut 100).is_err());
+                }
             }
             for (offset, value) in [
                 (30, 9),
@@ -744,6 +762,9 @@ fn saved_triangle_batches_require_exact_profile_indices_and_auxiliary_layout() {
                     parse(major, &bad, &mut 100).is_err(),
                     "major {major} offset {offset}"
                 );
+                if major == 26 {
+                    assert!(dl(&bad, &mut 100).is_err());
+                }
             }
             for other in [26, 28, 29] {
                 if (other == 26) != (major == 26) {
@@ -754,8 +775,14 @@ fn saved_triangle_batches_require_exact_profile_indices_and_auxiliary_layout() {
                 assert!(parse(other, &b, &mut 100).unwrap().is_none());
             }
             assert!(parse(major, &b, &mut 0).is_err());
+            if major == 26 {
+                assert!(dl(&b, &mut 0).is_err());
+            }
             b.push(0);
             assert!(parse(major, &b, &mut 100).is_err());
+            if major == 26 {
+                assert!(dl(&b, &mut 100).is_err());
+            }
         }
     }
 }
@@ -1249,6 +1276,31 @@ fn typed_fields_require_framed_unique_owners_and_fail_without_partial_observatio
     let d = read(&good);
     assert_eq!(d.segments[0].observations.len(), 1);
     assert_eq!(d.sheet_count, None);
+    // A numeric/text-field ceiling must not consume record framing allowance.
+    let required = d.usage.field_work_items;
+    assert!(required > 1);
+    for cap in [0, required - 1, required] {
+        let drawing = DrawingLimits {
+            max_field_values: cap,
+            ..Default::default()
+        };
+        let bounded = inspect_with_limits(&good, "test", &Limits::default(), &drawing).unwrap();
+        assert_eq!(bounded.usage.field_work_items, cap);
+        assert_eq!(bounded.usage.work_items, d.usage.work_items);
+        assert_eq!(
+            bounded.segments[0].records.len(),
+            d.segments[0].records.len()
+        );
+        assert_eq!(
+            bounded.segments[0].observations.len(),
+            usize::from(cap == required)
+        );
+    }
+    let drawing = DrawingLimits {
+        max_field_values: 1_000_001,
+        ..Default::default()
+    };
+    assert!(inspect_with_limits(&[], "invalid", &Limits::default(), &drawing).is_err());
     let duplicated = mutate(&good, |c| {
         let m = get(c, "/RSeStorage/Mone");
         put(c, "/RSeStorage/Mduplicate", &m);
@@ -1440,5 +1492,71 @@ fn annotation_local_wire_variants_are_exact_and_bounded() {
         b[31] = 1;
         b.push(0);
         assert!(observed("DlSheetSmSegmentType", kind, &b, &mut 100).is_err());
+    }
+}
+
+#[test]
+fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts() {
+    let mut placement = vec![0; 15];
+    for n in [0x30000003, 0, 12] {
+        word(&mut placement, n);
+    }
+    placement.push(1);
+    word(&mut placement, 13);
+    placement.extend(0x8421u16.to_le_bytes());
+    placement.extend(0x7bdeu16.to_le_bytes());
+    placement.push(1);
+    word(&mut placement, 13);
+    let mut local = vec![0; 15];
+    for n in [0x30000003, 0, 0x80000018, 7] {
+        word(&mut local, n);
+    }
+    local.push(1);
+    let mut external = local.clone();
+    word(&mut external, 7);
+    for (kind, bytes, role) in [
+        (
+            "d8727ce0-11d5-d313-1000-1198b78b7ab5",
+            &local,
+            "sheet_local_display_candidate",
+        ),
+        (
+            "6589a70e-11d1-a4a7-6000-2fa5602d6bb0",
+            &placement,
+            "sheet_placement_candidate",
+        ),
+        (
+            "69c12b31-11d2-1c34-6000-1c9feb49cdb0",
+            &placement,
+            "sheet_placement_candidate",
+        ),
+        (
+            "4e52b139-11d1-d3ba-6000-46bead9287b0",
+            &placement,
+            "sheet_local_transformed_display_candidate",
+        ),
+        (
+            "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86",
+            &external,
+            "sheet_external_display_candidate",
+        ),
+    ] {
+        let parse =
+            |b: &[u8], work: &mut usize| observed_major(26, "DlSheetSmSegmentType", kind, b, work);
+        assert_eq!(parse(bytes, &mut 100).unwrap().unwrap().proposed_role, role);
+        for n in 0..bytes.len() {
+            assert!(parse(&bytes[..n], &mut 100).is_err());
+        }
+        let mut extra = bytes.clone();
+        extra.push(0);
+        assert!(parse(&extra, &mut 100).is_err());
+        assert!(parse(bytes, &mut 0).is_err());
+        for major in [24, 29, 31] {
+            assert!(
+                observed_major(major, "DlSheetSmSegmentType", kind, bytes, &mut 100)
+                    .unwrap()
+                    .is_none()
+            );
+        }
     }
 }

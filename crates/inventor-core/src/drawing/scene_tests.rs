@@ -561,6 +561,144 @@ fn exact_line_circle_arc_fields_reject_truncation_extra_bytes_and_nonfinite() {
 }
 
 #[test]
+fn filled_annotation_conics_require_observed_sm_profiles_and_keep_chord_intervals() {
+    for (typ, values) in [
+        (
+            "a79eaccd-11d1-c281-6000-a38ab46bceb0",
+            vec![1., 2., 0., 0., 0., 1., 0.0625],
+        ),
+        (
+            "a79eaccc-11d1-c281-6000-a38ab46bceb0",
+            vec![
+                1.,
+                2.,
+                0.,
+                0.,
+                0.,
+                1.,
+                1.,
+                0.,
+                0.,
+                0.25,
+                0.,
+                std::f64::consts::FRAC_PI_2,
+            ],
+        ),
+    ] {
+        let mut b = vec![0; 26];
+        for v in &values {
+            b.extend(v.to_le_bytes());
+        }
+        b.push(1);
+        let decode = |kind: &str, major: u8, data: &[u8], work: &mut usize| {
+            super::super::fields::decode(kind, major.into(), typ, 0, data, source(), work)
+        };
+        for major in [23, 24, 26, 28, 29, 31] {
+            for kind in ["DlSheetDlSegmentType", "DlSheetSmSegmentType"] {
+                let result = decode(kind, major, &b, &mut 1000);
+                if !(major == 26 || (major == 28 && values.len() == 7))
+                    || kind != "DlSheetSmSegmentType"
+                {
+                    assert!(result.is_err());
+                    continue;
+                }
+                let o = result.unwrap().unwrap();
+                let mut m = IDENTITY;
+                m[0][3] = 10.;
+                let DisplayGeometry::Curve {
+                    center,
+                    filled,
+                    start,
+                    end,
+                    ..
+                } = geometry(&o, &m, &BTreeMap::new(), &mut 1000)
+                    .unwrap()
+                    .unwrap()
+                else {
+                    panic!()
+                };
+                assert_eq!(center, [11., 2., 0.]);
+                assert_eq!(filled, Some(true));
+                assert_eq!(start, 0.);
+                assert_eq!(
+                    end,
+                    if values.len() == 12 {
+                        values[11]
+                    } else {
+                        std::f64::consts::TAU
+                    }
+                );
+                for end in 0..b.len() {
+                    assert!(decode(kind, major, &b[..end], &mut 1000).is_err());
+                }
+                let mut bad = b.clone();
+                bad.push(0);
+                assert!(decode(kind, major, &bad, &mut 1000).is_err());
+                bad = b.clone();
+                *bad.last_mut().unwrap() = 2;
+                assert!(decode(kind, major, &bad, &mut 1000).is_err());
+                assert!(decode(kind, major, &b, &mut 0).is_err());
+            }
+        }
+    }
+}
+
+#[test]
+fn observed_ellipse_wire_is_exact_and_rejects_unknown_profiles() {
+    let typ = "afd5ceeb-11d1-e071-0008-87a406e5dc09";
+    let mut data = vec![0; 26];
+    for value in [1f64, 2., 0., 3., 2., 1., 0., 0., 0., 1., 0., 0., 1.] {
+        data.extend(value.to_le_bytes());
+    }
+    data.push(0);
+    for major in [23, 24, 26, 28, 29, 31] {
+        let decode = |bytes: &[u8], work: &mut usize| {
+            super::super::fields::decode(
+                "DlSheetDlSegmentType",
+                major.into(),
+                typ,
+                0,
+                bytes,
+                source(),
+                work,
+            )
+        };
+        if !matches!(major, 23 | 26 | 28) {
+            assert!(decode(&data, &mut 1000).unwrap().is_none());
+            continue;
+        }
+        assert_eq!(
+            decode(&data, &mut 1000).unwrap().unwrap().proposed_role,
+            "stored_ellipse_candidate"
+        );
+        for end in 0..data.len() {
+            assert!(decode(&data[..end], &mut 1000).is_err());
+        }
+        let mut bad = data.clone();
+        bad.push(0);
+        assert!(decode(&bad, &mut 1000).is_err());
+        bad = data.clone();
+        *bad.last_mut().unwrap() = 1;
+        assert!(decode(&bad, &mut 1000).is_err());
+        bad = data.clone();
+        bad[26..34].copy_from_slice(&f64::NAN.to_le_bytes());
+        assert!(decode(&bad, &mut 1000).is_err());
+        assert!(decode(&data, &mut 0).is_err());
+    }
+    assert!(super::super::fields::decode(
+        "DlSheetDlSegmentType",
+        26.into(),
+        "9b3499d1-11d1-8626-6000-27bd351c3cb0",
+        0,
+        &[],
+        source(),
+        &mut 1000
+    )
+    .unwrap()
+    .is_none());
+}
+
+#[test]
 fn ellipse_basis_radii_and_placement_remain_independent() {
     let values = vec![
         2.,
@@ -603,6 +741,7 @@ fn ellipse_basis_radii_and_placement_remain_independent() {
         v,
         start,
         end,
+        ..
     } = geometry(&o, &m, &BTreeMap::new(), &mut 100)
         .unwrap()
         .unwrap()
@@ -860,6 +999,58 @@ fn visibility_is_attribute_driven_inherited_and_rejects_broken_links() {
 }
 
 #[test]
+fn major28_hidden_curve_attribute_is_inherited_without_promoting_other_profiles() {
+    for major in [23, 24, 26, 28, 29, 31] {
+        for owner in [0, 1] {
+            for value in [0, 1, 9] {
+                let mut d = placement_doc();
+                d.segments[1].registry.major = major;
+                attach_attribute(
+                    &mut d,
+                    owner,
+                    observation(
+                        101,
+                        "display_boolean_candidate",
+                        vec![
+                            ("attribute_mask", w(2)),
+                            ("attribute_boolean", FieldValue::U8(value)),
+                        ],
+                    ),
+                );
+                for kind in ["DlSheetDlSegmentType", "DlSheetSmSegmentType"] {
+                    d.segments[1].registry.kind = kind.into();
+                    let segment = &d.segments[1];
+                    let nodes = by_ordinal(segment, &mut 1000).unwrap();
+                    let ordinals = nodes.keys().copied().collect();
+                    let mut style = DisplayStyle::default();
+                    for id in [0, 1] {
+                        style = super::super::appearance::apply(
+                            &d,
+                            segment,
+                            nodes[&id],
+                            &nodes,
+                            &ordinals,
+                            &style,
+                            &mut 1000,
+                            &mut ResolveCache::default(),
+                        )
+                        .unwrap();
+                    }
+                    assert_eq!(style.sources.len(), 2);
+                    if major == 28 && kind == "DlSheetDlSegmentType" && value == 0 {
+                        assert!(!style.visible);
+                        assert!(!style.unresolved.contains(&"boolean_mask_not_interpreted"));
+                    } else {
+                        assert!(style.visible);
+                        assert!(style.unresolved.contains(&"boolean_mask_not_interpreted"));
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
     let mut d = placement_doc();
     attach_attribute(
@@ -954,6 +1145,24 @@ fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
             .dash,
         Some(vec![0.36, 0.09, 0.015, 0.09])
     );
+    for major in [23, 24, 26, 28, 29] {
+        for flag in [0, 1, 2] {
+            d.segments[2].observations[0].fields[7].value = FieldValue::U8(flag);
+            for pattern in [28101, 28107] {
+                d.segments[2].observations[0].fields[5].value = w(pattern);
+                let dash =
+                    super::super::appearance::layer_dashes(&d.segments[2].observations[0], major)
+                        .unwrap();
+                let supported = pattern == 28101
+                    && ((major == 26 && flag == 0) || (matches!(major, 28 | 29) && flag == 1));
+                assert_eq!(dash.is_some(), supported);
+                if supported {
+                    let base = if flag == 0 { 0.038_f32 as f64 } else { 0.03 };
+                    assert_eq!(dash, Some(vec![12. * base, 3. * base]));
+                }
+            }
+        }
+    }
     d.segments[2].observations[0].fields[7].value = FieldValue::U8(2);
     assert!(
         experimental_scene(&d, &Limits::default()).spaces[0].items[0]

@@ -37,6 +37,17 @@ impl Profile {
     }
     pub fn extended_record(self, type_id: &str) -> bool {
         self.legacy_records
+            || (self.major == 26
+                && matches!(
+                    type_id,
+                    "afd5ceeb-11d1-e071-0008-87a406e5dc09"
+                        | "d3a55702-11d1-ebbb-62ae-0297584063da"
+                        | "025e3388-4cbb-8851-7d1c-b0876dcb2a07"
+                        | "69c12b31-11d2-1c34-6000-1c9feb49cdb0"
+                        | "6589a70e-11d1-a4a7-6000-2fa5602d6bb0"
+                        | "4e52b139-11d1-d3ba-6000-46bead9287b0"
+                        | "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86"
+                ))
             || (self.major == 28
                 && matches!(
                     type_id,
@@ -44,6 +55,7 @@ impl Profile {
                         | "afd5ceeb-11d1-e071-0008-87a406e5dc09"
                         | "69c12b31-11d2-1c34-6000-1c9feb49cdb0"
                         | "4e52b139-11d1-d3ba-6000-46bead9287b0"
+                        | "025e3388-4cbb-8851-7d1c-b0876dcb2a07"
                 ))
     }
     pub fn fields_name(self) -> &'static str {

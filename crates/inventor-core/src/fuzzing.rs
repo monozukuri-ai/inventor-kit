@@ -72,7 +72,15 @@ pub fn drawing(data: &[u8]) {
     }
     match mode % 4 {
         0 => {
-            if let Ok(doc) = crate::drawing::inspect(bytes, "fuzz", &limits) {
+            // Keep the corpus harness's small typed-field allowance independent
+            // of the larger production drawing default, like container work.
+            let drawing_limits = crate::drawing::DrawingLimits {
+                max_field_values: limits.max_records,
+                ..Default::default()
+            };
+            if let Ok(doc) =
+                crate::drawing::inspect_with_limits(bytes, "fuzz", &limits, &drawing_limits)
+            {
                 let _ = crate::drawing::stored_sheets(&doc, &limits);
                 let scene = crate::drawing::experimental_scene(&doc, &limits);
                 let _ = crate::drawing::read_embedded_images(bytes, &scene, &limits);

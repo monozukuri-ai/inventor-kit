@@ -26,7 +26,7 @@ for sheet in drawing.sheets:
 `read_drawing_file(path, limits=..., drawing_limits=...)` bounds the file read. Both return a frozen
 `DrawingDocument`; sheets, views, items, image metadata and nested geometry/style mappings
 are immutable. Geometry is tagged `polyline`, `curve`, `text` or `image`. Image
-assets retain original PNG/JPEG bytes. Supported major23 splines use the stored
+assets retain original PNG/JPEG bytes. Supported major23/26/28 splines use the stored
 degree, knots, control points, weights and parameter range, sampled into a `polyline`
 with 16 segments per nonempty knot span. This approximation has no general geometric
 error bound. Elliptical arcs retain their center, two axes and angle range as `curve`.
@@ -85,6 +85,7 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 
 | Field | Default / hard ceiling | Scope |
 | --- | ---: | --- |
+| `max_field_values` | 1,000,000 | Typed payload work across the document; numeric values, references and UTF-16 code units are individually charged |
 | `max_sheets` | 256 | Stored sheet references / candidate display spaces |
 | `max_views` | 4,096 | Reachable decoded saved view placements across the drawing |
 | `max_display_items` | 100,000 | Expanded items across the drawing |
@@ -101,7 +102,11 @@ placements. Exhausting an expansion budget discards the display rather than
 returning a successful prefix; metadata and diagnostics remain available.
 Image limits produce unavailable image descriptors. The JSON writer checks its
 remaining budget before appending; exceeding it raises `ValueError`. Container
-and typed-field parsing each use their own `Limits.max_records` allowance.
+parsing uses `Limits.max_records`; typed-field parsing independently uses
+`DrawingLimits.max_field_values`. The latter replaces the previous 500,000
+allowance with a 1,000,000 ceiling: the filter-panel assembly needs 573,482 work
+units. The container's 500,000 ceiling is unchanged. Each field value still
+consumes its allowance, and callers can lower either limit.
 Raw cache pixels are bounded by expanded-stream bytes and `max_image_pixels`; each source stream is expanded once. Unknown view layouts remain omissions; the view budget counts decoded placements,
 not all possible model projections. These budgets do not bound process RSS or elapsed time. The Viewer uses the defaults; programmatic `Options`
 also accepts `drawing_limits`.
@@ -127,15 +132,16 @@ hidden-line and cropped views at their saved raster resolution. Zooming cannot
 recover vector detail. Unsupported pixel/alpha layouts produce unavailable assets;
 uninterpreted appearance data can omit a branch with a diagnostic reason.
 
-For supported Arial/Tahoma text, the Viewer adjusts saved height using browser
+For supported Arial/Tahoma and observed major24 ISOCP/ISOCP_IV25/Vafle text, the Viewer adjusts saved height using browser
 font metrics, preserves spaces and separate baselines, and applies supported
 bold/italic flags. Japanese text adds local Noto Sans CJK JP, Yu Gothic, Meiryo and
 Hiragino fallbacks before sans-serif. Unknown layouts and
 browsers without the height adjustment use an explicitly unverified fallback.
 Installed fonts affect text width and glyph shape; exact text fidelity is not
 guaranteed. The observed AIGDT `n` glyph is displayed as the approximate Unicode
-`⌀`, while original text and font remain available through the API. Other legacy
-symbols are not mapped. The Unicode diameter fallback selects local symbol fonts.
+`⌀`, and observed AIGDT `x` as the depth symbol `↧`, while original text and font
+remain available through the API. Other legacy symbols are not mapped. These
+Unicode fallbacks select local symbol fonts; no proprietary fonts are bundled.
 
 General clipping, draw order, text alignment and annotation coverage remain
 unverified. Circular and elliptical arcs use SVG ellipse arcs, including affine
@@ -160,15 +166,18 @@ support. Segment major numbers are not Inventor release-year identifiers.
 | --- | --- | --- | --- | --- |
 | 24 | `Template_IACS.idw` | 1 / 0 | 70 | Not enabled; model views remain unobserved |
 | 29 | `Toys-R-Us-Rex.idw` | 1 / 3 | 166 | Not enabled |
-| 28 | `mateolikescats.idw` | 1 / 5 | 1,816 | RGBA; one saved cache observed |
-| 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 529 and 90 | RGBA |
-| 26 | `RespiraWorks-bottom-assembly.idw`, `RespiraWorks-filter-panel-assembly.idw` | 1 / 3 and 1 / 4 | 528 and 9,475 | RGBA; two saved caches observed |
+| 28 | `mateolikescats.idw` | 1 / 5 | 1,650 | RGBA; one saved cache observed |
+| 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 543 and 90 | RGBA |
+| 26 | `RespiraWorks-bottom-assembly.idw`, `RespiraWorks-filter-panel-assembly.idw` | 1 / 3 and 1 / 4 | 550 and 28,820 | RGBA; two saved caches observed |
 
 Point lists resolve their encoding from the owning segment type table. Observed
 major26/28/29 triangle batches render filled saved arrowhead geometry. Major28
 also admits the observed spline, ellipse and annotation-placement layouts.
-The filter-panel assembly can export partial SVG, but its Viewer sheet JSON
-exceeds the 32 MiB limit and is rejected with an explicit diagnostic.
+Major26 also admits observed splines, balloons, revision tables, and section/detail
+annotation placements. The filter-panel assembly displays 28,820 saved elements.
+Shared styles, view references, placements and source bases reduce the same sheet
+content from 42,384,840 to 29,480,621 bytes (about 28.1 MiB), preserving item IDs,
+source evidence, omissions and the 32 MiB resource ceiling.
 
 These are pinned real-file regression results. Source-preserved Inventor 2027.1
 API/PDF captures of the five original inputs corroborated paper dimensions and
@@ -183,7 +192,33 @@ major26/28 local annotation/major26 hole-table placements.
 reproduces these limited comparisons; the capture bytes are not distributed.
 All remain `experimental_partial`. Unknown curve variants, colors, fonts and
 unresolved references remain diagnostic omissions or explicit font fallbacks.
-In particular, some major26 circle/arc suffixes are still unsupported. Major24
+The observed major26 SM circle/arc suffix 1 displays filled disks and circular
+segments closed by a chord. All 14 in RespiraWorks matched native PDF vertices
+within 0.03489 mm. Major28 also admits the observed balloon placement and filled
+SM circles: all ten disks in `assembly3exp.idw` matched PDF vertices within
+0.04391 mm. Filled major28 arcs and other suffixes remain unsupported.
+The observed hidden-line layer pattern is enabled for major29/28 (by weight) and
+major26 (fixed base). Nominal source dash lengths are preserved; SVG fits
+observed straight-line profiles as described below. Curve phase and overall
+visibility remain unverified.
+
+The additional capture covers ten drawings, 25 views and 32,276 curve segments.
+The observed major28 DL boolean mask=2/value=0 suppresses 166 items, all matched
+to API segments with Visible=false; 14 comparisons cover endpoints only. Other
+values and profiles retain unresolved semantics. The 14,958 added major26 ellipses
+in the filter-panel assembly have 17 fixed sample points each, at most 0.04461 mm
+from native PDF strokes. API endpoint pairs match within 0.0001 mm for 14,940
+curves; 18 remain unmatched at that threshold. These measurements do not bound
+continuous-curve error. The added 4,270 major26 splines all match API endpoint
+pairs within 0.0001 mm. Including ellipses, 339,804 sample points across 19,228
+curves are within 0.05278 mm of sampled PDF strokes. Of 117 added balloon/revision
+table items, 84 line/circle items have sample distances at most 0.06429 mm.
+The additional section and detail drawings display 951 and 755 items; the detail
+view's two arrowheads match PDF vertices within 0.03364 mm. Some section/detail
+curve comparisons exceed the PDF sample threshold; dash fitting, visibility and
+clipping remain unqualified. All ten
+captures were dirty and eight had missing external models; source hashes and
+before/after document state were preserved. Major24
 has template evidence only. Embedded PNG/JPEG assets are independent of the
 view-cache decoder. Native unit/state accuracy and independent holdout acceptance
 have not been qualified for these profiles. Majors 21, 25, 27, 30 and other
@@ -208,6 +243,12 @@ content in source coordinates without physical-unit conversion. Content coverage
 The Viewer loads the selected sheet on demand and discards stale
 responses when switching sheets. Sheet and image resources are checked before
 being made available.
+Sheet wire format v4 shares styles, view member references, placements and source
+bases without dropping provenance. Item IDs are reconstructed exactly from the
+input/sheet/segment/placement/record identity. The loader also reads v1/v2/v3.
+Invalid indices, byte ranges and duplicate IDs are rejected before display. The private Rust-to-Python
+transport also shares styles while retaining the 96 MiB output ceiling.
+The Python drawing API and downloaded SVG/report retain their existing format.
 Each sheet JSON is limited to 32 MiB. Sheets and images together are limited to
 128 MiB or the lower Viewer buffer limit. The 16 MiB metadata ceiling is separate;
 none of these byte limits promises bounded RSS or elapsed time.
@@ -288,11 +329,23 @@ The separate pinned regression check is:
 python scripts/measure_drawing_linetypes.py --input /path/to/linetypes-new --output linetypes.json
 ```
 
-Native PDF endpoints adjust dash period and phase to fit each line. SVG retains
-nominal arrays and reports `dash_phase_and_fit_unverified`; it does not reproduce
-that fitting. The 38 straight-line PDF comparisons pass a 0.01 mm measurement
-threshold, but curve phase, major23 layer patterns, custom `.lin`, non-unit layer
-scales and independent holdouts remain unqualified. Setting a sketch default
+Native PDF endpoints adjust dash period and phase to fit each line. The Viewer
+and saved SVG now fit observed two-point straight lines to whole periods, with
+half a dash at each endpoint. Actual SVG stroke endpoints across the 38 major31
+standard-pattern controls match PDF within 0.00265 mm (0.01 mm threshold).
+The observed major26/28/29 hidden lines and short major24 projection-symbol lines
+also use fitting; lines shorter than one nominal period use equal dash/gap/dash
+thirds. Of 197 straight lines in six preserved drawings, 175 match PDF endpoints
+within 0.05 mm; 22 tiny or overlapping/ambiguous lines remain unresolved.
+Major24 is limited to short lines; major31 is limited to at least one period.
+
+Source coordinates, nominal arrays and provenance are unchanged. Source styles
+retain `dash_phase_and_fit_unverified`; SVG `data-dash-rendering` and sidecar
+`export.dash_rendering` distinguish fitted lines from nominal rendering.
+Curves, polylines with three or more points, unobserved patterns and half-period
+rounding ties retain nominal rendering. Curve phase, major23 layer patterns,
+custom `.lin`, non-unit layer scales and independent holdouts remain unqualified.
+Setting a sketch default
 explicitly can create a continuous override; the collector leaves inherited
 properties untouched. The observed major31 default-width sentinel now preserves
 the layer width instead of making the sheet unavailable.

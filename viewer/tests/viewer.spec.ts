@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
+import { unpackSheetPayload } from '../src/drawing-data';
 
 const root = resolve(import.meta.dirname, '../..');
 const python = process.env.VIEWER_PYTHON || resolve(root, '.venv/bin/python');
@@ -12,7 +13,8 @@ let process_: ChildProcess | undefined;
 let errors: string[] = [];
 
 async function storedSheet(page: Page, url: string, descriptor: any) {
-  return { ...descriptor, ...await (await page.request.get(url + descriptor.resource)).json() };
+  const payload = unpackSheetPayload(await (await page.request.get(url + descriptor.resource)).json());
+  return { ...descriptor, ...payload };
 }
 
 async function mockDrawingSheets(page: Page, state: any, sheets: any[]) {
@@ -366,10 +368,11 @@ Path(sys.argv[3]).write_bytes(with_segment_major(Path(sys.argv[2]).read_bytes(),
 for (const [major, file, count, views] of [
   [24, 'iacs/Template_IACS', 70, 0],
   [29, 'versions/Toys-R-Us-Rex', 166, 3],
-  [28, 'versions/mateolikescats', 1816, 5],
-  [26, 'versions/RespiraWorks', 529, 3],
+  [28, 'versions/mateolikescats', 1650, 5],
+  [26, 'versions/RespiraWorks', 543, 3],
   [26, 'versions/starliliko', 90, 0],
-  [26, 'versions/RespiraWorks-bottom-assembly', 528, 3],
+  [26, 'versions/RespiraWorks-bottom-assembly', 550, 3],
+  [26, 'versions/RespiraWorks-filter-panel-assembly', 28820, 4],
 ] as const) {
   test(`IDW major${major} saved display ${file}`, async ({ page }, info) => {
     const url = await open(page, `drawings/${file}.idw`);
@@ -510,11 +513,13 @@ test('IDW capital-height candidates render at the stored height and preserve spa
   const state = await (await page.request.get(url + 'state.json')).json();
   const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
   const original = sheet.items.find((i: any) => i.geometry.kind === 'text');
-  sheet.size_in_source_units = [200, 120];
+  sheet.size_in_source_units = [250, 180];
   sheet.items = [
-    ['Arial', 10, 80, 'H', 1, 9], ['Tahoma', 70, 80, 'H', 1, 9],
-    ['Arial', 130, 80, 'H', .5, 9], ['Arial', 10, 30, ' H ', 1, 9],
+    ['Arial', 10, 140, 'H', 1, 9], ['Tahoma', 70, 140, 'H', 1, 9],
+    ['Arial', 130, 140, 'H', .5, 9], ['Arial', 10, 30, ' H ', 1, 9],
     ['Arial', 110, 30, 'H', 1, 10],
+    ['ISOCP', 10, 80, 'H', 1, 9], ['ISOCP_IV25', 70, 80, 'H', 1, 9],
+    ['Vafle VUT', 130, 80, 'H', 1, 9], ['Vafle Light VUT', 190, 80, 'H', 1, 9],
   ].map(([family, x, y, text, width, flags], index) => {
     const item = structuredClone(original); item.id = `synthetic-font-${index}`;
     Object.assign(item.geometry, { text, position: [x, y, 0], direction: [1, 0, 0], up: [0, 1, 0], raw_flags: flags });
@@ -523,7 +528,7 @@ test('IDW capital-height candidates render at the stored height and preserve spa
   });
   await mockDrawingSheets(page, state, [sheet]);
   await page.reload();
-  await expect(page.locator('#drawing-svg text')).toHaveCount(5);
+  await expect(page.locator('#drawing-svg text')).toHaveCount(9);
   await expect(page.locator('#drawing-font-note')).toContainText('approximate');
   const result = await page.evaluate(async () => {
     await document.fonts.ready;
@@ -534,16 +539,16 @@ test('IDW capital-height candidates render at the stored height and preserve spa
     // Rasterize the actual Viewer SVG at 5 pixels/source unit. Measure ink,
     // independently of the browser's line-box bounds or font-size declaration.
     const copy = document.querySelector('#drawing-svg')!.cloneNode(true) as SVGSVGElement;
-    copy.setAttribute('viewBox', '0 0 200 120'); copy.setAttribute('width', '1000'); copy.setAttribute('height', '600');
+    copy.setAttribute('viewBox', '0 0 250 180'); copy.setAttribute('width', '1250'); copy.setAttribute('height', '900');
     const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
     await img.decode();
-    const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 600;
+    const canvas = document.createElement('canvas'); canvas.width = 1250; canvas.height = 900;
     const ctx = canvas.getContext('2d')!; ctx.drawImage(img, 0, 0);
-    const pixels = ctx.getImageData(0, 0, 1000, 600).data;
-    const bounds = [0, 300, 600].map(start => {
-      let x0 = 1000, y0 = 600, x1 = -1, y1 = -1;
-      for (let y = 10; y < 300; y++) for (let x = start + 10; x < start + 290; x++) {
-        const p = (y * 1000 + x) * 4;
+    const pixels = ctx.getImageData(0, 0, 1250, 900).data;
+    const bounds = [[0,0],[300,0],[600,0],[0,300],[300,300],[600,300],[900,300]].map(([start, top]) => {
+      let x0 = 1250, y0 = 900, x1 = -1, y1 = -1;
+      for (let y = top + 10; y < top + 300; y++) for (let x = start + 10; x < start + 290; x++) {
+        const p = (y * 1250 + x) * 4;
         if (pixels[p + 3] && Math.max(pixels[p], pixels[p + 1], pixels[p + 2]) < 100) {
           x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
         }
@@ -566,6 +571,41 @@ test('IDW capital-height candidates render at the stored height and preserve spa
   await page.reload();
   await expect(page.locator('#drawing-font-note')).toContainText('cannot adjust text height');
   await expect(page.locator('#drawing-svg text').first()).toHaveAttribute('data-font-sizing', 'unverified-em-fallback');
+});
+
+test('IDW fitted straight dashes paint the endpoint halves and short-line thirds', async ({ page }, info) => {
+  const url = await open(page, 'SampleBg.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
+  const original = sheet.items.find((i: any) => i.geometry.kind === 'polyline');
+  sheet.size_in_source_units = [30, 20]; sheet.views = [];
+  sheet.segment_majors = { long: 31, short: 26 };
+  const cases = [
+    { segment: 'long', start: [1, 2], end: [13, 2], dash: [2, 2] },
+    { segment: 'long', start: [13, 6], end: [1, 6], dash: [2, 2] },
+    { segment: 'long', start: [17, 2], end: [24.2, 11.6], dash: [2, 2] },
+    { segment: 'short', start: [1, 14], end: [4, 14], dash: [4, 1] },
+  ];
+  sheet.items = cases.map((c, index) => ({ ...structuredClone(original), id: `dash-${index}`,
+    segment_id: c.segment, geometry: { kind: 'polyline', points: [[...c.start, 0], [...c.end, 0]] },
+    style: { ...structuredClone(original.style), dash: c.dash, width: .1, rgba: [0, 0, 0, 1] } }));
+  await mockDrawingSheets(page, state, [sheet]); await page.reload();
+  await expect(page.locator('#drawing-svg [data-dash-rendering="whole-period-half-dash-ends"]')).toHaveCount(3);
+  await expect(page.locator('#drawing-svg [data-dash-rendering="short-line-thirds"]')).toHaveCount(1);
+  const ink = await page.evaluate(cases => {
+    const lines = Array.from(document.querySelectorAll<SVGGeometryElement>('#drawing-svg polyline'));
+    return cases.map((c, i) => {
+      const length = Math.hypot(c.end[0] - c.start[0], c.end[1] - c.start[1]);
+      const distances = i === 3 ? [.5, 1.5, 2.5] : [.5, 2, 4, 6, 8, 10, 11.5];
+      return distances.map(d => lines[i].isPointInStroke(new DOMPoint(
+        c.start[0] + (c.end[0] - c.start[0]) * d / length,
+        20 - c.start[1] - (c.end[1] - c.start[1]) * d / length)));
+    });
+  }, cases);
+  expect(ink).toEqual([[true, false, true, false, true, false, true],
+    [true, false, true, false, true, false, true], [true, false, true, false, true, false, true],
+    [true, false, true]]);
+  await page.locator('#drawing-svg').screenshot({ path: info.outputPath('fitted-dashes.png') });
 });
 
 test('IDW Tahoma bold and italic retain capital height and change the rendered ink', async ({ page }) => {
@@ -660,24 +700,80 @@ test('IDW rejects sheets above the byte ceiling before fetching the payload', as
 });
 
 
-test('IDW diameter glyph fallback keeps source text and supports symbol search', async ({ page }) => {
+test('IDW rejects a shared style reference outside the verified table', async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const descriptor = state.drawing.sheets[0];
+  const payload = await (await page.request.get(url + descriptor.resource)).json();
+  expect(payload.schema_version).toBe(4);
+  payload.items[0].style_index = payload.styles.length;
+  const body = JSON.stringify(payload), hash = createHash('sha256').update(body).digest('hex');
+  Object.assign(descriptor, { resource: `drawing-sheet-${hash}.json`, bytes: Buffer.byteLength(body), sha256: hash });
+  await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  await page.reload();
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  await expect(page.locator('#drawing-omissions')).toContainText('Invalid drawing style table or reference');
+});
+
+for (const exported of [false, true]) test(`IDW rejects invalid shared view members export=${exported}`, async ({ page }) => {
+  const url = await open(page, 'drawings/versions/Toys-R-Us-Rex.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const descriptor = state.drawing.sheets[0];
+  const payload = await (await page.request.get(url + descriptor.resource)).json();
+  const views = exported ? payload.export_report.sheets[0].views : payload.views;
+  views[0].item_indices[0] = payload.items.length;
+  const body = JSON.stringify(payload), hash = createHash('sha256').update(body).digest('hex');
+  Object.assign(descriptor, { resource: `drawing-sheet-${hash}.json`, bytes: Buffer.byteLength(body), sha256: hash });
+  await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  await page.reload();
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  await expect(page.locator('#drawing-omissions')).toContainText('Invalid drawing view item reference');
+});
+
+for (const version of [2, 3]) test(`IDW legacy wire v${version} keeps view IDs and shared styles`, async ({ page }) => {
+  const url = await open(page, 'drawings/versions/Toys-R-Us-Rex.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const descriptor = state.drawing.sheets[0];
+  const wire = await (await page.request.get(url + descriptor.resource)).json();
+  const payload = unpackSheetPayload(wire);
+  payload.styles = wire.styles;
+  payload.items = payload.items.map(({ style, ...item }: any, index: number) => ({ ...item, style_index: wire.items[index].style_index }));
+  if (version === 3) {
+    payload.views = wire.views;
+    payload.export_report.sheets = wire.export_report.sheets;
+  }
+  payload.schema_version = version;
+  const body = JSON.stringify(payload), hash = createHash('sha256').update(body).digest('hex');
+  Object.assign(descriptor, { resource: `drawing-sheet-${hash}.json`, bytes: Buffer.byteLength(body), sha256: hash });
+  await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  await page.reload();
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(166);
+  await expect(page.locator('#drawing-views button')).toHaveCount(3);
+});
+
+for (const [raw, symbol] of [['n', '⌀'], ['x', '↧']]) test(`IDW symbol ${raw} fallback keeps source text and supports symbol search`, async ({ page }) => {
   const url = await open(page, 'SampleBg.idw');
   const state = await (await page.request.get(url + 'state.json')).json();
   const sheet = await storedSheet(page, url, state.drawing.sheets[0]);
   const item = structuredClone(sheet.items.find((i: any) => i.geometry.kind === 'text'));
-  Object.assign(item.geometry, { text: 'n', raw_flags: 9,
+  Object.assign(item.geometry, { text: raw, raw_flags: 9,
     font: { ...item.geometry.font, family: 'AIGDT', height_candidate: .45, flags: 0, weight_candidate: 400 } });
   sheet.items = [item];
   await mockDrawingSheets(page, state, [sheet]);
   await page.reload();
-  await expect(page.locator('#drawing-svg text')).toHaveText('⌀');
-  await expect(page.locator('#drawing-svg text')).toHaveAttribute('data-raw-text', 'n');
+  await expect(page.locator('#drawing-svg text')).toHaveText(symbol);
+  await expect(page.locator('#drawing-svg text')).toHaveAttribute('data-raw-text', raw);
   await expect(page.locator('#drawing-symbol-note')).toContainText('Unicode substitute');
-  await page.locator('#drawing-search').fill('⌀');
+  await page.locator('#drawing-search').fill(symbol);
   await page.locator('#drawing-search-results button').click();
-  await expect(page.locator('#selected')).toHaveText('⌀');
-  await expect(page.locator('#selection-info')).toContainText('"text": "n"');
-  await page.locator('#drawing-search').fill('n');
+  await expect(page.locator('#selected')).toHaveText(symbol);
+  await expect(page.locator('#selection-info')).toContainText(`"text": "${raw}"`);
+  await page.locator('#drawing-search').fill(raw);
   await expect(page.locator('#drawing-search-results button')).toHaveCount(1);
 });
 
@@ -814,4 +910,22 @@ test('IDW rejects active SVG content even when payload and export hashes match',
     await expect(page.locator('#drawing-save-svg')).toBeDisabled();
     expect(await page.evaluate(() => (window as any).drawingInjected)).toBeUndefined();
   }
+});
+
+for (const variant of ['placement', 'source', 'duplicate']) test(`IDW rejects compact item ${variant} despite valid resource hash`, async ({ page }) => {
+  const url = await open(page, 'SampleBg.idw');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  const descriptor = state.drawing.sheets[0];
+  const payload = await (await page.request.get(url + descriptor.resource)).json();
+  if (variant === 'placement') payload.items[0].record[0] = payload.placements.length;
+  if (variant === 'source') payload.items[0].record[4] = payload.items[0].record[3] - 1;
+  if (variant === 'duplicate') payload.items[1].record = [...payload.items[0].record];
+  const body = JSON.stringify(payload), hash = createHash('sha256').update(body).digest('hex');
+  Object.assign(descriptor, { resource: `drawing-sheet-${hash}.json`, bytes: Buffer.byteLength(body), sha256: hash });
+  await page.route(`**/${descriptor.resource}`, route => route.fulfill({ body, contentType: 'application/json' }));
+  await page.route('**/state.json', route => route.fulfill({ json: state }));
+  await page.reload();
+  await expect(page.locator('#empty h2')).toHaveText('Sheet display unavailable');
+  await expect(page.locator('#drawing-svg [data-item-id]')).toHaveCount(0);
+  await expect(page.locator('#drawing-omissions')).toContainText(variant === 'duplicate' ? 'Duplicate drawing item ID' : 'Invalid drawing compact item reference');
 });

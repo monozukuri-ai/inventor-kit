@@ -1367,22 +1367,7 @@
           "major": 26,
           "status": "framed",
           "framed_records": 900,
-          "diagnostics": [
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable",
-            "drawing.fields_unavailable"
-          ],
+          "diagnostics": [],
           "observations": {
             "display_attributes_candidate": 137,
             "display_group_candidate": 71,
@@ -1391,7 +1376,8 @@
             "sheet_local_display_candidate": 40,
             "sheet_placement_candidate": 5,
             "sheet_space_candidate": 1,
-            "stored_circle_candidate": 3,
+            "stored_arc_candidate": 2,
+            "stored_circle_candidate": 15,
             "stored_image_candidate": 1,
             "stored_line_candidate": 276,
             "stored_point_marker_candidate": 145,
@@ -1413,13 +1399,14 @@
             "layer_binding_candidate": 170,
             "stored_arc_candidate": 20,
             "stored_line_candidate": 102,
+            "stored_point_marker_candidate": 8,
             "stored_polyline_candidate": 4,
             "stored_text_candidate": 63,
             "stroke_override_candidate": 19
           }
         }
       ],
-      "fields_sha256": "21400cdbb3426c3196bb7dbf9985b0409c10f7ffa98036ce29f4ab77845bc80f",
+      "fields_sha256": "4cb10205aaf6221e3efd6f46c8d95496b204571654b9bed9a234f46822da6778",
       "reference_tables_sha256": "c178f8fab8e98755e513723b765333edad0bb4689b4ef7339190fbe32f3ded69",
       "types": {
         "00acc000-11d1-e05f-8000-66b1e13554c7": 9,
@@ -2837,7 +2824,7 @@
             "display_attributes_candidate": 21,
             "display_group_candidate": 41,
             "layer_binding_candidate": 20,
-            "sheet_local_display_candidate": 1,
+            "sheet_local_display_candidate": 3,
             "sheet_local_transformed_display_candidate": 1,
             "sheet_placement_candidate": 5,
             "sheet_space_candidate": 1,
@@ -2864,13 +2851,14 @@
             "layer_binding_candidate": 166,
             "stored_arc_candidate": 188,
             "stored_line_candidate": 237,
+            "stored_point_marker_candidate": 4,
             "stored_polyline_candidate": 4,
             "stored_text_candidate": 59,
             "stroke_override_candidate": 19
           }
         }
       ],
-      "fields_sha256": "4d7871e7bfc240612f6676ecdaa4f7bcae308c006a558bf2ae5481279db08168",
+      "fields_sha256": "ce2d14e9813e075680535d2d41b96de9473c5dcf12d23e11ad98cf03f5af4b61",
       "reference_tables_sha256": "932020d2dfbca5ca63a04a96be9d64ef9c2eadea75e560dd832e01c019746497",
       "types": {
         "00acc000-11d1-e05f-8000-66b1e13554c7": 9,
@@ -3250,6 +3238,7 @@
             "display_attributes_candidate": 13,
             "display_group_candidate": 81,
             "layer_binding_candidate": 13,
+            "sheet_local_display_candidate": 12,
             "sheet_local_transformed_display_candidate": 1,
             "sheet_placement_candidate": 6,
             "sheet_space_candidate": 1,
@@ -3275,6 +3264,8 @@
             "display_group_candidate": 563,
             "layer_binding_candidate": 155,
             "stored_arc_candidate": 3124,
+            "stored_bspline_candidate": 4270,
+            "stored_ellipse_candidate": 14958,
             "stored_line_candidate": 6270,
             "stored_polyline_candidate": 14,
             "stored_text_candidate": 53,
@@ -3282,7 +3273,7 @@
           }
         }
       ],
-      "fields_sha256": "d437e01c81448b06a0de323b41ad3b0d35464a4854cae781f0a96f82bbb29634",
+      "fields_sha256": "b1e237a62789c82f02ea39987ced96f3873591fceb15b1ca03e3c8350d00f9cf",
       "reference_tables_sha256": "b0b6c9b08355b266a571a57baba72156107cd43365dbde65a35110111ef2b8ef",
       "types": {
         "025e3388-4cbb-8851-7d1c-b0876dcb2a07": 11,

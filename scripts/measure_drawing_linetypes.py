@@ -1,8 +1,8 @@
-"""Check pinned native major31 line styles and distinguish nominal SVG from PDF fitting.
+"""Check pinned native major31 nominal styles and rendered SVG line fitting.
 
 Requires the private 38-case capture, the built package, and MuPDF's mutool.
-The PDF line-fit model is measured separately; it is not implemented by the SVG
-renderer and does not qualify curve phase, custom .lin files or other profiles.
+Read the actual SVG dash array and offset independently of the renderer's fit
+helper. This does not qualify curve phase, custom .lin files or other profiles.
 """
 import argparse
 import json
@@ -34,6 +34,46 @@ def fitted_line_segments(start, end, dash):
             segments.append([max(position, start), min(following, end)])
         position = following
     return segments
+
+
+def svg_line_segments(node, *, scale=1.):
+    """Expand serialized SVG straight-line strokes into path-distance intervals.
+
+    SVG2 painting 13.5.6/13.5.7: a positive dashoffset consumes the beginning of
+    the pattern. This evaluator deliberately does not call the production fit.
+    """
+    require(node.tag.rsplit('}', 1)[-1] == 'polyline', 'Expected SVG polyline')
+    points = [[float(v) for v in p.split(',')] for p in node.get('points').split()]
+    require(len(points) == 2 and all(len(p) == 2 for p in points), 'Expected two SVG points')
+    require(all(math.isfinite(v) for p in points for v in p), 'Non-finite SVG point')
+    require(math.isfinite(scale) and scale > 0, 'Invalid SVG scale')
+    length = math.dist(*points)
+    value = node.get('stroke-dasharray', 'none')
+    if value == 'none':
+        return [[0., length * scale]]
+    dash = [float(v) for v in value.split()]
+    require(bool(dash) and len(dash) % 2 == 0 and all(math.isfinite(v) and v > 0 for v in dash),
+            'Invalid SVG dash array')
+    period = sum(dash)
+    offset = float(node.get('stroke-dashoffset', '0'))
+    require(math.isfinite(period) and math.isfinite(offset) and math.isfinite(length), 'Invalid SVG stroke')
+    require(length / period * len(dash) < 100000, 'SVG stroke work limit')
+    offset %= period
+    index = 0
+    while offset >= dash[index]:
+        offset -= dash[index]
+        index += 1
+    remaining, position, result = dash[index] - offset, 0., []
+    for _ in range(100000):
+        following = min(length, position + remaining)
+        if index % 2 == 0 and following > position:
+            result.append([position * scale, following * scale])
+        if following >= length:
+            return result
+        require(following > position, 'SVG stroke does not advance')
+        position, index = following, (index + 1) % len(dash)
+        remaining = dash[index]
+    raise ValueError('SVG stroke work limit')
 
 
 def pdf_segments(pdf, y_mm):
@@ -80,24 +120,34 @@ def measure(root):
             require(near([item.style['width']], [request['weight']]), 'Line width mismatch')
             require(('dash_phase_and_fit_unverified' in item.style['unresolved']) == bool(dash), 'Missing phase limitation')
         svg = ET.fromstring(document.to_svg(allow_partial=True))
+        line_node = None
         for item in items:
             node = next(n for n in svg if n.get('data-item-id') == item.id)
-            value = node.get('stroke-dasharray', 'none')
-            saved = [] if value == 'none' else [float(v) for v in value.split()]
-            require(near(saved, dash), 'SVG nominal dash serialization mismatch')
+            if item.geometry['kind'] == 'polyline':
+                line_node = node
+                require(node.get('data-dash-rendering') == ('whole-period-half-dash-ends' if dash else None),
+                        'SVG line fitting was not applied')
+            else:
+                value = node.get('stroke-dasharray', 'none')
+                saved = [] if value == 'none' else [float(v) for v in value.split()]
+                require(near(saved, dash), 'Curve nominal dash serialization mismatch')
         start, end = sorted([native['line_start_cm'][0]*10, native['line_end_cm'][0]*10])
         predicted = fitted_line_segments(start, end, [v*10 for v in dash])
         actual = pdf_segments(root/row['pdf']['file_name'], native['line_start_cm'][1]*10)
         require(len(actual) == len(predicted), 'PDF line segment count differs')
         error = max(abs(a-b) for actual_pair, predicted_pair in zip(actual, predicted) for a,b in zip(actual_pair, predicted_pair))
         require(error <= .01, 'PDF line-fit model differs by more than 0.01 mm')
+        rendered = [[start + x for x in pair] for pair in svg_line_segments(line_node, scale=10)]
+        require(len(rendered) == len(actual), 'SVG/PDF stroke count differs')
+        svg_error = max(abs(a-b) for p,q in zip(actual, rendered) for a,b in zip(p,q))
+        require(svg_error <= .01, 'SVG/PDF line endpoints differ by more than 0.01 mm')
         result.append(dict(case=row['case'], nominal_dash_source_units=dash, styled_items=len(items),
             pdf_line_segments=len(actual), pdf_line_model_max_error_mm=error,
-            svg_phase_and_fitting_matches_pdf=not bool(dash)))
-    return dict(schema_version=1, status='nominal_styles_and_pdf_line_model_passed',
+            svg_line_max_error_mm=svg_error, svg_phase_and_fitting_matches_pdf=True))
+    return dict(schema_version=1, status='nominal_styles_and_svg_pdf_lines_passed',
         capture=acquisition['capture'], qualified_oracle=False, major=31, results=result,
         limitations=['Generated regression controls, not independent holdouts.',
-            'SVG uses nominal periods; PDF endpoint fitting and phase are not implemented.',
+            'Only the captured straight lines establish SVG fitting; circles keep nominal periods.',
             'PDF line-model tolerance is 0.01 mm; circle phase and general physical units are unqualified.',
             'No major23 or custom .lin admission.'])
 

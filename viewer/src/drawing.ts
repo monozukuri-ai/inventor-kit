@@ -6,7 +6,7 @@ type Font = { family: string; height_candidate: number; weight_candidate: number
 type Geometry =
   | { kind: 'polyline'; points: Point[] }
   | { kind: 'triangles'; vertices: Point[]; indices: number[] }
-  | { kind: 'curve'; center: Point; u: Point; v: Point; start: number; end: number }
+  | { kind: 'curve'; center: Point; u: Point; v: Point; start: number; end: number; filled?: true }
   | { kind: 'text'; text: string; position: Point; direction: Point; up: Point; raw_flags: number; font: Font | null }
   | { kind: 'image'; reference: number; origin: Point; u: Point; v: Point };
 type Item = { id: string; geometry: Geometry; style: { rgba: number[] | null; width: number | null; dash: number[] | null }; source: unknown };
@@ -19,13 +19,13 @@ export type DrawingScene = { status: string; sheet_status: string; units: string
   source_sha256: string; experimental: boolean; sheets: Descriptor[];
   images: { reference: number; resource: string | null; status: string; diagnostic: string | null }[] };
 
-// Native diameter control stores AIGDT's legacy 'n' glyph. Preserve the raw
-// API text; only this observed glyph gets an explicit Unicode display fallback.
-function diameterFallback(g: Geometry): boolean {
-  return g.kind === 'text' && g.text === 'n' && g.raw_flags === 9
+// Native PDF captures confirm AIGDT 'n' (diameter) and 'x' (depth).
+// Preserve the raw API text; substitute only these observed single glyphs.
+function symbolFallback(g: Geometry): boolean {
+  return g.kind === 'text' && ['n', 'x'].includes(g.text) && g.raw_flags === 9
     && g.font?.family.toLowerCase() === 'aigdt' && g.font.flags === 0 && g.font.weight_candidate === 400;
 }
-const displayedText = (g: Geometry): string => g.kind === 'text' ? (diameterFallback(g) ? '⌀' : g.text) : '';
+const displayedText = (g: Geometry): string => g.kind === 'text' ? (symbolFallback(g) ? (g.text === 'n' ? '⌀' : '↧') : g.text) : '';
 
 const el = (id: string) => document.getElementById(id)!;
 const NS = 'http://www.w3.org/2000/svg';
@@ -143,8 +143,8 @@ export function showDrawing(data: DrawingScene): () => void {
         : 'This browser cannot adjust text height. Text sizes and fonts are approximate.');
       note.id = 'drawing-font-note'; omissions.append(note);
     }
-    if (s.items.some(i => diameterFallback(i.geometry))) {
-      const note = label('p', 'Diameter symbol uses a Unicode substitute for AIGDT. The original text is retained; glyph shape is approximate.');
+    if (s.items.some(i => symbolFallback(i.geometry))) {
+      const note = label('p', 'Diameter and depth symbols use a Unicode substitute for AIGDT. The original text is retained; glyph shape is approximate.');
       note.id = 'drawing-symbol-note'; omissions.append(note);
     }
     if (s.items.some(i => { const g = i.geometry; return g.kind === 'image' && data.images.some(a => a.reference === g.reference && ['decoded_monochrome_view_cache_unqualified', 'decoded_rgba_view_cache_unqualified'].includes(a.status)); })) {

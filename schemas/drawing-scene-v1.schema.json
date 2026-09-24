@@ -795,16 +795,6 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "id",
-              "geometry",
-              "style",
-              "source",
-              "segment_id",
-              "record_ordinal",
-              "placement_record",
-              "group_path"
-            ],
             "properties": {
               "id": {
                 "type": "string"
@@ -831,9 +821,27 @@
               },
               "source": {
                 "type": "object"
+              },
+              "style_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "record": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
               }
-            }
-          }
+            },
+            "required": [
+              "geometry"
+            ]
+          },
+          "maxItems": 100000
         },
         "omissions": {
           "type": "array"
@@ -842,7 +850,12 @@
           "type": "array"
         },
         "schema_version": {
-          "const": 1
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ]
         },
         "scene_kind": {
           "const": "drawing_sheet"
@@ -870,7 +883,6 @@
               "placement_transform",
               "cache_bounds",
               "image_reference",
-              "item_ids",
               "source",
               "diagnostics",
               "view_type",
@@ -900,6 +912,15 @@
               },
               "rotation": {
                 "type": "null"
+              },
+              "item_indices": {
+                "type": "array",
+                "maxItems": 100000,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 99999
+                }
               }
             }
           }
@@ -910,6 +931,35 @@
         },
         "export_report": {
           "type": "object"
+        },
+        "styles": {
+          "description": "Wire v2/v3/v4 shared styles, including unchanged source spans.",
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "object"
+          }
+        },
+        "placements": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        "source_bases": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
       "required": [
@@ -923,6 +973,172 @@
         "units",
         "svg",
         "export_report"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "styles"
+              ]
+            },
+            "properties": {
+              "items": {
+                "items": {
+                  "required": [
+                    "style"
+                  ],
+                  "not": {
+                    "required": [
+                      "style_index"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "styles"
+            ],
+            "properties": {
+              "items": {
+                "items": {
+                  "required": [
+                    "style_index"
+                  ],
+                  "not": {
+                    "required": [
+                      "style"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "enum": [
+                  3,
+                  4
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "views": {
+                "items": {
+                  "required": [
+                    "item_indices"
+                  ],
+                  "not": {
+                    "required": [
+                      "item_ids"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "views": {
+                "items": {
+                  "required": [
+                    "item_ids"
+                  ],
+                  "not": {
+                    "required": [
+                      "item_indices"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 4
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "placements",
+              "source_bases"
+            ],
+            "properties": {
+              "items": {
+                "items": {
+                  "required": [
+                    "record",
+                    "style_index"
+                  ],
+                  "propertyNames": {
+                    "enum": [
+                      "geometry",
+                      "record",
+                      "style_index"
+                    ]
+                  }
+                }
+              },
+              "sheet_id": {
+                "maxLength": 512
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "placements"
+                  ]
+                },
+                {
+                  "required": [
+                    "source_bases"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "items": {
+                "items": {
+                  "required": [
+                    "id",
+                    "geometry",
+                    "source",
+                    "segment_id",
+                    "record_ordinal",
+                    "placement_record",
+                    "group_path"
+                  ],
+                  "not": {
+                    "required": [
+                      "record"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "drawing_limits": {
@@ -988,6 +1204,12 @@
           "minimum": 0,
           "maximum": 4096,
           "default": 4096
+        },
+        "max_field_values": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000,
+          "default": 1000000
         }
       }
     }

@@ -1,5 +1,7 @@
 use pyo3::{exceptions::PyValueError, prelude::*, types::PyBytes};
 
+mod drawing_wire;
+
 type ReadResult = (String, Option<Py<PyAny>>, Option<Py<PyBytes>>);
 
 fn read_limits(json: Option<&str>) -> PyResult<inventor_core::Limits> {
@@ -70,7 +72,7 @@ fn read_drawing(
     }
     let bytes = data.as_bytes();
     data.py().detach(|| {
-        let inventory = drawing::inspect(bytes, source_id, &limits)
+        let inventory = drawing::inspect_with_limits(bytes, source_id, &limits, &drawing_limits)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         if inventory.metadata.identification.kind != "drawing" {
             return Err(PyValueError::new_err("identified IDW document required"));
@@ -88,19 +90,22 @@ fn read_drawing(
         #[derive(serde::Serialize)]
         struct Output<'a> {
             api_version: u32,
+            wire_version: u32,
             source_sha256: &'a str,
             metadata: &'a inventor_core::document::DocumentInfo,
             sheets: &'a drawing::StoredSheets,
-            preview: &'a drawing::ExperimentalScene,
+            preview: drawing_wire::Scene<'a>,
             images: &'a Vec<drawing::EmbeddedImage>,
             diagnostics: Vec<&'a inventor_core::document::Diagnostic>,
         }
         let output = Output {
             api_version: 1,
+            wire_version: 2,
             source_sha256: &inventory.source_sha256,
             metadata: &inventory.metadata,
             sheets: &sheets,
-            preview: &preview,
+            preview: drawing_wire::Scene::new(&preview, &drawing_limits)
+                .map_err(PyValueError::new_err)?,
             images: &images,
             diagnostics,
         };

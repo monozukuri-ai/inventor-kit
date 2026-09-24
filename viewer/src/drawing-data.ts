@@ -2,6 +2,80 @@
 export const MAX_SHEET_BYTES = 32 * 1024 * 1024;
 export type SheetResource = { id: string; resource: string | null; bytes: number | null; sha256: string | null };
 
+function unpackItemRecords(payload: any): any {
+  const { items, placements, source_bases: bases, sheet_id: sheet, ...rest } = payload;
+  const integer = (n: any) => Number.isSafeInteger(n) && n >= 0;
+  if (typeof sheet !== 'string' || sheet.length > 512 || !Array.isArray(items) || items.length > 100000
+      || !Array.isArray(placements) || placements.length > items.length
+      || !Array.isArray(bases) || bases.length > items.length) throw new Error('Invalid drawing item record tables');
+  for (const p of placements) {
+    if (!Array.isArray(p) || p.length !== 3 || typeof p[0] !== 'string'
+        || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(p[0]) || !integer(p[1])
+        || !Array.isArray(p[2]) || p[2].length > 128 || p[2].some((n: any) => !integer(n))) {
+      throw new Error('Invalid drawing placement record');
+    }
+  }
+  for (const base of bases) {
+    if (!Array.isArray(base) || base.length !== 3 || base.some((s: any) => typeof s !== 'string')
+        || !['cfb_stream', 'inflated_stream'].includes(base[2])) throw new Error('Invalid drawing source base');
+  }
+  const identities = new Set<string>();
+  const expanded = items.map((item: any) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)
+        || Object.keys(item).sort().join(',') !== 'geometry,record,style_index') throw new Error('Invalid drawing compact item');
+    const r = item.record;
+    if (!Array.isArray(r) || r.length !== 5 || r.some((n: any) => !integer(n))
+        || r[0] >= placements.length || r[2] >= bases.length || r[3] > r[4]) throw new Error('Invalid drawing compact item reference');
+    const [segment, placement, path] = placements[r[0]], [source, stream, domain] = bases[r[2]];
+    const id = `${sheet}/${segment}/${placement}/${r[1]}`;
+    if (identities.has(id)) throw new Error('Duplicate drawing item ID');
+    identities.add(id);
+    return { id, geometry: item.geometry, style_index: item.style_index, segment_id: segment,
+      record_ordinal: r[1], placement_record: placement, group_path: path,
+      source: { source_id: source, stream, byte_domain: domain, start_offset: r[3], end_offset: r[4] } };
+  });
+  return { ...rest, sheet_id: sheet, schema_version: 3, items: expanded };
+}
+
+export function unpackSheetPayload(payload: any): any {
+  if (payload?.schema_version === 4) payload = unpackItemRecords(payload);
+  if (payload?.schema_version === 1) return payload;
+  if (![2, 3].includes(payload?.schema_version)) throw new Error('Unsupported drawing sheet schema');
+  const { styles, items, ...rest } = payload;
+  if (!Array.isArray(styles) || !Array.isArray(items) || styles.length > items.length || items.length > 100000
+      || styles.some((s: any) => !s || typeof s !== 'object' || Array.isArray(s))
+      || items.some((i: any) => !i || typeof i !== 'object' || Array.isArray(i) || 'style' in i
+        || !Number.isSafeInteger(i.style_index) || i.style_index < 0 || i.style_index >= styles.length)) {
+    throw new Error('Invalid drawing style table or reference');
+  }
+  // Reuse the verified table objects; never inflate to a duplicate JSON string.
+  const result = { ...rest, schema_version: 1, items: items.map(({ style_index, ...item }: any) => ({ ...item, style: styles[style_index] })) };
+  if (payload.schema_version === 3) {
+    function views(rows: any, budget: { left: number }): any[] {
+      if (!Array.isArray(rows) || rows.length > 4096) throw new Error('Invalid drawing view reference table');
+      return rows.map((view: any) => {
+        const refs = view?.item_indices;
+        if (!view || typeof view !== 'object' || !Array.isArray(refs) || 'item_ids' in view || refs.length > budget.left
+            || refs.some((i: any) => !Number.isSafeInteger(i) || i < 0 || i >= items.length)) {
+          throw new Error('Invalid drawing view item reference');
+        }
+        budget.left -= refs.length;
+        const { item_indices, ...rest } = view;
+        return { ...rest, item_ids: refs.map((i: number) => items[i].id) };
+      });
+    }
+    result.views = views(result.views, { left: 100000 });
+    const report = result.export_report;
+    if (!report || !Array.isArray(report.sheets) || report.sheets.length > 256
+        || report.sheets.some((s: any) => !s || typeof s !== 'object' || Array.isArray(s))) {
+      throw new Error('Invalid drawing export view reference table');
+    }
+    const budget = { left: 100000 };
+    result.export_report = { ...report, sheets: report.sheets.map((s: any) => ({ ...s, views: views(s.views, budget) })) };
+  }
+  return result;
+}
+
 export async function loadSheet(source: string, sheet: SheetResource, signal: AbortSignal): Promise<any> {
   if (!/^[a-f0-9]{64}$/.test(source) || !sheet.id.startsWith(source + '/')) throw new Error('Sheet input identity mismatch');
   if (!sheet.resource || !/^drawing-sheet-[a-f0-9]{64}\.json$/.test(sheet.resource)
@@ -29,7 +103,7 @@ export async function loadSheet(source: string, sheet: SheetResource, signal: Ab
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
   if (digest !== sheet.sha256) throw new Error('Sheet resource hash mismatch');
-  const payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+  const payload = unpackSheetPayload(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)));
   if (payload.schema_version !== 1 || payload.scene_kind !== 'drawing_sheet'
       || payload.source_sha256 !== source || payload.sheet_id !== sheet.id
       || payload.units !== 'source_units_unverified' || !Array.isArray(payload.items)
