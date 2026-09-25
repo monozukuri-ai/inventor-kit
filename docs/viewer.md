@@ -142,8 +142,8 @@ by its unsupported native profile.
 Viewer bounds frame the camera and are not exact CAD dimensions.
 
 ```sh
-python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.5.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
-python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.5.0.tar.gz --viewer --browser
+python scripts/smoke_distribution.py --wheel dist/inventor_kit-0.6.0-cp310-abi3-manylinux_2_34_x86_64.whl --viewer --browser
+python scripts/smoke_distribution.py --sdist dist/inventor_kit-0.6.0.tar.gz --viewer --browser
 ```
 
 Use the actual built wheel filename for your environment. Omit `--browser` for

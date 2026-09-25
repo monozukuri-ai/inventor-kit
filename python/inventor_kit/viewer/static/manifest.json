@@ -8,8 +8,8 @@
   "inputs": {
     "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
-    "package-lock.json": "96904e447a825ce869d73a5118dc5592f88715c49abaedb8774c964a366c0f68",
-    "package.json": "8daa81457048f55ed4774ee8579c08b857308d65741e358a3b2d5ce1af7ed02e",
+    "package-lock.json": "1ab48701ab1937e08993a05b748b4ecc69c161f42b113a2efe744bd1e2c9718a",
+    "package.json": "15de162685ef8fca73fa9f6d3ba1dab7bbbdd452de34dc18234f5eda16917c6e",
     "scripts/check-drawing-platform.mjs": "950d36b0508289e4ad1701e11ddba386c6ae8d59b23a88073eaccf51e2c39246",
     "scripts/manifest.mjs": "101a4cc3c0c371d17f378ad37b24332920a7637a01e24de2358660f0e8ebfd92",
     "src/drawing-data.ts": "de66180fef51c042ea6023801a1e7f3ab0c26e6a210874e170a4d257f122588a",
