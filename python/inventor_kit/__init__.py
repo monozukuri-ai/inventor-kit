@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from . import _inventor
+from .writer import PartBuilder, PartWriteReport, PartWriteError, new_part
 from .limits import Limits, effective as _effective_limits, encoded as _encoded_limits
 from .document import (DocumentInfo, Property, PropertySet, Diagnostic, SourceSpan,
                        Thumbnail, FileTime, OleDate, ClipboardData, PropertyArray, _document)
@@ -26,7 +27,9 @@ if TYPE_CHECKING:
 def capabilities() -> dict:
     """Return declared bounded support; does not claim host/CI or vendor validation."""
     from importlib.resources import files
-    return json.loads(files(__package__).joinpath('capabilities.json').read_text(encoding='utf-8'))
+    result = json.loads(files(__package__).joinpath('capabilities.json').read_text(encoding='utf-8'))
+    result['part_writer']['available'] = hasattr(_inventor, 'encode_analytic_part')
+    return result
 
 
 @dataclass(frozen=True)
@@ -96,7 +99,12 @@ def inspect_file(path: str | Path, *, include_candidates: bool = False, limits: 
     return inspect(_file_bytes(path, limits), source_id=str(path), include_candidates=include_candidates, limits=limits)
 
 
-__all__ = ["Limits", "capabilities", "InventorDocument", "DocumentInfo", "Property", "PropertySet", "Diagnostic", "SourceSpan",
+from .step_parts import StepPartLimits, StepPartWriteError, StepPartWriteReport, write_step_parts
+
+
+__all__ = ["PartBuilder", "PartWriteReport", "PartWriteError", "new_part",
+           "StepPartLimits", "StepPartWriteError", "StepPartWriteReport", "write_step_parts",
+           "Limits", "capabilities", "InventorDocument", "DocumentInfo", "Property", "PropertySet", "Diagnostic", "SourceSpan",
            "BodyConversion", "PartConversion", "BodyConversionError", "ConversionDiagnostic",
            "Thumbnail", "FileTime", "OleDate", "ClipboardData", "PropertyArray", "GeometryInventory", "GeometrySelection",
            "KernelCandidate", "SegmentInventory", "read", "read_file", "inspect", "inspect_file",

@@ -15,13 +15,14 @@ for standard reproduction steps. Detailed results default to
 | `validate_geometry.py`, `validate_components.py`, `validate_topology.py` | Check frozen geometry metrics, curves, surfaces, and topology |
 | `validate_tolerant_trims.py` | Check [tolerant boundaries and finite UV](../docs/tolerant-trims.md) against pinned source components |
 | `validate_analytic_closure.py` | Check [cylinder seams, shell closure, STEP and meshes](../docs/validation.md#reproduction-and-optional-oracles), retaining open auxiliary bodies as failures |
-| `validate_revolution_trims.py` | Qualify FTC10/CTC02 repaired faces, retained source boundaries, STEP and meshes; requires published cq-acis 0.3.8 or later |
+| `validate_revolution_trims.py` | Qualify FTC10/CTC02 repaired faces, retained source boundaries, STEP and meshes; requires published cq-acis 0.3.10 or later |
 | `validate_assembly.py` | Regression and holdout checks for IAM references, placements, omissions, and STEP |
 | `benchmark_parser.py`, `seed_fuzz_corpus.py`, `run_fuzz.py` | Measure fixed inputs and run bounded ASan fuzzing |
 | `capture_vendor_oracle.py`, `capture_model_states.py` | Optional Windows / Autodesk oracle capture |
 | `drawing_corpus.py`, `capture_drawing_oracle.py`, `drawing_oracle_contract.py`, `validate_drawing_oracle.py` | IDW corpus and [offline capture schema](../schemas/drawing-oracle-v1.schema.json); use each command's `--help` for options |
 | `validate_drawing_inventory.py` | Regression-only IDW framing, provisional fields and source ranges; does not qualify [drawing display](../docs/drawing.md) |
 | `oracle_contract.py`, `compare_state_candidates.py`, `ezdxf_oracle.py` | Oracle contracts and comparisons |
+| `smoke_writer.py` | Installed API/CLI writer qualification using synthetic parts and STEP assemblies |
 | `check_dependencies.py`, `check_distribution.py`, `smoke_distribution.py`, `check_release.py` | Dependency, distribution, isolated installation, and release gates |
 | `check_public_tree.py`, `summarize_validation.py` | Check public links and generate public aggregates |
 

@@ -15,16 +15,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from check_corpus import verify
 from check_release import artifact_set, check_tag, pypi_conflicts, viewer_reports
 from check_distribution import check_metadata
+from check_dependencies import check_python_lock
 from check_license import DISTRIBUTION_LICENSE
 import inventor_kit as ik
 
 
 class ReleaseGates(unittest.TestCase):
+    def test_python_lock_rejects_unpublished_or_stale_dependencies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'pyproject.toml').write_text('[project]\nversion = "0.7.0"\n')
+            valid = ('[[package]]\nname = "inventor-kit"\nversion = "0.7.0"\n'
+                     '[[package]]\nname = "cq-acis"\nversion = "0.3.10"\n'
+                     'source = {registry = "https://pypi.org/simple"}\n')
+            (root/'uv.lock').write_text(valid)
+            check_python_lock(root)
+            for content in (valid.replace('0.7.0','0.6.0'), valid.replace('0.3.10','0.3.9'),
+                            valid.replace('registry = "https://pypi.org/simple"','path = "local"'),
+                            valid.replace('https://pypi.org/simple','https://example.test/simple')):
+                (root/'uv.lock').write_text(content)
+                with self.assertRaises(ValueError):check_python_lock(root)
+
     def test_distribution_rejects_stale_python_and_cq_acis_requirements(self):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
                             ('License-Expression', DISTRIBUTION_LICENSE), ('Requires-Python', '>=3.11'),
-                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.8'), ('Provides-Extra', 'viewer'),
+                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.10'), ('Provides-Extra', 'viewer'),
                             ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value
         check_metadata(meta, '0.1.0')
@@ -84,6 +100,9 @@ class ReleaseGates(unittest.TestCase):
                                    mesh_buffers_fetched=4, shutdown='passed')
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         for report in reports:
+            report['writer'] = dict(status='passed', single_parts=1, batch_occurrences=2, cli_occurrences=2,
+                nested_placement=True, repeated_definition=True, metadata=True,
+                existing_output_preserved=True, unsupported_batch_rejected=True, native_validation='not_run')
             if report['python'].startswith('3.12.'):
                 report['drawing_browser'] = dict(status='passed', engine='chromium', installed_wheel=True,
                     real_sheets=5, synthetic_controls=1, physical_scale_verified=False, native_font_fidelity_verified=False,
@@ -110,6 +129,8 @@ class ReleaseGates(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     viewer_reports(bad, artifacts)
             mutations = [
+                {'writer': {}}, {'writer': {**reports[0]['writer'], 'cli_occurrences': 0}},
+                {'writer': {**reports[0]['writer'], 'native_validation': 'passed'}},
                 {'artifact': {**reports[0]['artifact'], 'sha256': 'bad'}},
                 {'platform': 'windows-x86_64'}, {'python': '3.13.0'},
                 {'status': 'failed'}, {'dependency_mode': 'local'}, {'pip_check': 'failed'},

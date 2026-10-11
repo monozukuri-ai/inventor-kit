@@ -4,8 +4,8 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.3.8` と `acis-py-bridge=0.3.8`、Python は
-`cq-acis>=0.3.8,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.3.10` と `acis-py-bridge=0.3.10`、Python は
+`cq-acis>=0.3.10,<0.4` と共通モデル API 2 を必要とします。
 Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。
@@ -124,3 +124,15 @@ wheel には API・capabilities・ライセンスを含め、パッケージ説�
 Release workflow は全 4 プラットフォームと sdist の集合を検査し、同じ版の既存 PyPI
 ファイルがあれば SHA-256 一致を要求します。異なる内容や 404 以外の照合失敗は停止します。
 再実行時の `skip-existing` もこの検査後に限ります。
+
+## writer対応版の公開条件
+
+0.7.0候補にはcq-acis 0.3.10の意味付き形状生成APIが必要です。
+acis-coreを先に公開・照合し、対応するbridgeとPython配布物を公開した後、
+本プロジェクトのCargo・uv lockを公開registryから更新します。
+ローカル依存の候補ビルドは準備用であり、公開ゲートの合格には使いません。
+
+各配布artifactとPython版のインストール検査には、穴付き部品の生成、入れ子配置と同一定義の
+2部材を持つSTEP一括変換、同じ入力のCLI変換、既存出力の保持、非対応形状の拒否を含めます。
+入力は検査時に合成します。Inventor実機での受入とは別の検査で、各生成物の
+`native_validation` は `not_run` のままです。

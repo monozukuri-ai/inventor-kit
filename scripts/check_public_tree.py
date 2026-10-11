@@ -6,6 +6,16 @@ import subprocess
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+PRIVATE_ROOTS = {'internal', '.internal', '.local'}
+PRIVATE_SUFFIXES = {'.ipt', '.iam', '.idw', '.ipn', '.step', '.stp', '.sab', '.sat', '.log'}
+
+
+def check_public_path(name):
+    path = Path(name)
+    if (path.parts and path.parts[0] in PRIVATE_ROOTS) or path.suffix.lower() in PRIVATE_SUFFIXES:
+        raise ValueError(f'Private data must not be tracked publicly: {name}')
+    if path.name in {'error.png', 'error.log'}:
+        raise ValueError(f'Private capture must not be tracked publicly: {name}')
 
 
 def check_links(root):
@@ -23,7 +33,7 @@ def check_links(root):
             destination = (path.parent / unquote(parsed.path)).resolve()
             if not destination.is_relative_to(root):
                 raise ValueError(f'Public link leaves the repository: {path.name}: {target}')
-            if destination.is_relative_to(root / 'internal'):
+            if any(destination.is_relative_to(root / name) for name in PRIVATE_ROOTS):
                 raise ValueError(f'Public link depends on internal files: {path.name}: {target}')
             if not destination.exists():
                 raise ValueError(f'Broken public link: {path.name}: {target}')
@@ -31,10 +41,11 @@ def check_links(root):
 
 
 def check_index(root):
-    result = subprocess.run(['git', 'ls-files', '-z', '--', 'internal'], cwd=root,
+    result = subprocess.run(['git', 'ls-files', '-z'], cwd=root,
                             check=True, capture_output=True)
-    if result.stdout:
-        raise ValueError('internal/ files must not be tracked in the public repository')
+    for name in result.stdout.decode().split('\0'):
+        if name:
+            check_public_path(name)
 
 
 def main():

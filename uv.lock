@@ -348,19 +348,19 @@ wheels = [
 
 [[package]]
 name = "cq-acis"
-version = "0.3.8"
+version = "0.3.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cadquery" },
     { name = "casadi", marker = "sys_platform == 'win32'" },
     { name = "nlopt", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/78/0282b6c66f250830b83166da779f9d01e6567ae273712b24fcabf14b2a56/cq_acis-0.3.8.tar.gz", hash = "sha256:2cb829927d40ba17c86edf5a620bb581d7ed0b156e5060ab143df0377e05b061", size = 120524, upload-time = "2026-09-15T23:01:06.104Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/3c/be2c83fdd7a4d41008c48f70b3b7ac7569fced52f249dc5cd086ae600340/cq_acis-0.3.10.tar.gz", hash = "sha256:5b690807bb8d3871a96663991720e3aeae9d890ad2eb0f088684b2cfd90284bf", size = 143776, upload-time = "2026-10-11T07:10:37.939Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/0e/1c64f6b88e71683eb17c568fa471f51d287cd0494f6173137fe922b0a35d/cq_acis-0.3.8-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:d6e4649ca9bc0ed2f5f41f92741282cc6388ec114bc37923d0fc8d9f0ab36d36", size = 542004, upload-time = "2026-09-15T23:01:00.234Z" },
-    { url = "https://files.pythonhosted.org/packages/29/e0/850bc23dbc041d78adfda6ce394c7b0805169860a9396725e9443524ef5a/cq_acis-0.3.8-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:1ac00c911d48014a4fa8c83aea65306273e09848bcbc7986931b814dbd1bf248", size = 539662, upload-time = "2026-09-15T23:01:01.843Z" },
-    { url = "https://files.pythonhosted.org/packages/63/f4/c43b94e632ddc70a28399bae6584ccf7f84dfc2d661c5d08b227c23c45a5/cq_acis-0.3.8-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f62127c8e6ca98747f48190c4624cca08d64699cad488a84be46dff49099d460", size = 589117, upload-time = "2026-09-15T23:01:03.325Z" },
-    { url = "https://files.pythonhosted.org/packages/ce/fa/c2a68aa01c249f70e6871059e03fdbd42cab556fb9d72abffdf0cdbc845c/cq_acis-0.3.8-cp310-abi3-win_amd64.whl", hash = "sha256:2c43c17231c734e222d6cfddd4dcf0cdc6dda6bcd57cd2c282bfea842d5ea8e2", size = 442299, upload-time = "2026-09-15T23:01:04.805Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/ef/767f1d8e84bc0f6083b72e48c025565cdaeb79ce577c5bd51c2e660f1ad0/cq_acis-0.3.10-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:366874ee6946801ed4517ecf6343adc5adbc277bb49f7e08b3d76fc2472e8057", size = 531722, upload-time = "2026-10-11T07:10:31.112Z" },
+    { url = "https://files.pythonhosted.org/packages/80/1e/2823027630f8dce7032f1220be5f176cc7c77648ef701fca5efa09830f63/cq_acis-0.3.10-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:c38fff8584043f8d87f984beb8482b6575693f2145daa5af59cd25b860283fb8", size = 526049, upload-time = "2026-10-11T07:10:32.942Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/3d/79731806bcba4509203561007454c4ef5f540d298d72180ca4746958eaf6/cq_acis-0.3.10-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:44a816b7fc4c10101b54b0e9e3f12314b197f6134c8a48289f1508147ffa75ee", size = 566405, upload-time = "2026-10-11T07:10:34.78Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/a0/fd971968b7632370f348fd7cf038ffc793a7790a15aeb248167b816837ba/cq_acis-0.3.10-cp310-abi3-win_amd64.whl", hash = "sha256:1ffeb746c7a2a41a579c09b6922f312479490fb84a7f339b9fdea908d4ce5d9c", size = 484160, upload-time = "2026-10-11T07:10:36.537Z" },
 ]
 
 [[package]]
@@ -602,7 +602,7 @@ wheels = [
 
 [[package]]
 name = "inventor-kit"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "cq-acis" },
@@ -625,7 +625,7 @@ viewer = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cq-acis", specifier = ">=0.3.8,<0.4" },
+    { name = "cq-acis", specifier = ">=0.3.10,<0.4" },
     { name = "jsonschema", marker = "extra == 'oracle'", specifier = ">=4.23,<5" },
     { name = "jsonschema", marker = "extra == 'validation'", specifier = ">=4.23,<5" },
     { name = "ocp-tessellate", marker = "extra == 'viewer'", specifier = "==3.5.1" },

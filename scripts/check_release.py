@@ -76,6 +76,13 @@ def viewer_reports(paths, artifacts):
             raise ValueError('Viewer qualification did not pass with published dependencies')
         if report['dependencies']['ocp-tessellate'] != '3.5.1':
             raise ValueError('Viewer qualification used an unexpected tessellator')
+        writer = report.get('writer', {})
+        if (writer.get('status') != 'passed' or writer.get('single_parts') != 1
+                or writer.get('batch_occurrences') != 2 or writer.get('cli_occurrences') != 2
+                or writer.get('native_validation') != 'not_run'
+                or not all(writer.get(key) is True for key in ('nested_placement', 'repeated_definition',
+                    'metadata', 'existing_output_preserved', 'unsupported_batch_rejected'))):
+            raise ValueError('Missing installed writer qualification for this artifact/interpreter')
         if key[1] == '3.12':
             browser = report.get('drawing_browser', {})
             os_name = {'windows': 'win32', 'macos': 'darwin', 'linux': 'linux'}[platform.split('-')[0]]
@@ -132,6 +139,8 @@ def main():
     parser.add_argument('--viewer-reports', type=Path, help='Require viewer qualification reports for the complete artifact set')
     parser.add_argument('--check-pypi', action='store_true')
     args = parser.parse_args()
+    from check_dependencies import check_python_lock
+    check_python_lock()
     version = check_tag(args.tag)
     reports = artifact_set(sorted(args.dist.iterdir())) if args.dist else None
     if args.viewer_reports:

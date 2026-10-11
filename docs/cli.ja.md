@@ -78,3 +78,13 @@ SVGは32 MiBまでです。workerごとのJSON受け渡し上限は詳細レポ�
 現在の対応IDWは部分対応のため、レポート取得・SVG保存が成功しても**終了code 2**です。
 未対応profileは3、無効なID、部分出力の拒否、timeout、出力失敗は1です。
 レポートだけなら`--allow-partial`は不要です。形状変換、metadata-only、候補・body・IAM選択指定とは併用できません。
+
+## STEPからIPTを生成する
+
+```sh
+python -m inventor_kit write-step assembly.step output_parts --timeout 600
+```
+
+[部品writer](part-writer.ja.md)は各solidの配置につき単独IPTを生成します。出力先は新規directoryです。
+結果はJSONで表示し、成功時0・失敗時1を返します。workerが正常終了した後に一式を配置します。
+この機能にはwriter対応版が必要です。対応版と入力の制限はリンク先を参照してください。

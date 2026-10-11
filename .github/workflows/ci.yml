@@ -11,6 +11,7 @@ permissions:
 
 env:
   RUSTUP_TOOLCHAIN: 1.93.0
+  RUSTFLAGS: --remap-path-prefix=${{ github.workspace }}=/workspace
 
 jobs:
   check:
@@ -97,7 +98,7 @@ jobs:
           maturin build --release --locked --out dist
           maturin sdist --out dist
           python scripts/check_distribution.py dist/*.whl dist/*.tar.gz
-      - name: Install wheel and rebuild sdist outside checkout
+      - name: Install wheel and rebuild sdist outside checkout (including IPT writer)
         run: |
           .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl
           .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz

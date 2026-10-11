@@ -4,12 +4,17 @@ English | [日本語](releasing.ja.md)
 
 ## Dependency contract
 
-Rust requires `acis-core=0.3.8` and `acis-py-bridge=0.3.8`. Python requires
-`cq-acis>=0.3.8,<0.4` and shared model API 2. The minimum Python version is 3.11,
+Rust requires `acis-core=0.3.10` and `acis-py-bridge=0.3.10`. Python requires
+`cq-acis>=0.3.10,<0.4` and shared model API 2. The minimum Python version is 3.11,
 matching cq-acis. Dependencies must be published, and Cargo.lock must retain
 registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.
 This guide does not assert that a release has been published or that CI has passed.
+
+The 0.7.0 candidate needs the semantic authoring additions in cq-acis 0.3.10.
+Publish and verify acis-core, then its matching bridge and Python distribution,
+before resolving this project's Cargo and uv locks from public registries. A
+staged dependency build is useful for preparation but cannot pass the publish gate.
 
 ## Procedure
 
@@ -135,6 +140,11 @@ Use the source repository for fixture download and validation scripts and fixtur
 indexes.
 
 The release workflow checks the complete set of four platforms and the sdist.
+Every installed-artifact report also requires the writer smoke: a named part
+with a hole, a two-occurrence STEP batch with nested rigid placements, the same
+batch through the CLI, preserved existing outputs and rejection of unsupported
+geometry. Each test creates its own synthetic data. Native acceptance and
+per-output `native_validation="not_run"` remain separate from these local checks.
 If files for the same version already exist on PyPI, their SHA-256 hashes must
 match. Different content or a lookup failure other than HTTP 404 stops the release.
 On reruns, `skip-existing` is allowed only after this check.

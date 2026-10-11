@@ -22,9 +22,11 @@ v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwの�
 対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
 図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
 
+このcheckoutは **0.7.0リリース候補**です。writerにはcq-acis 0.3.10以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
+
 ## インストール
 
-Python 3.11 以降、`cq-acis>=0.3.8,<0.4`、共通モデル API 2 を使用します。
+Python 3.11 以降、`cq-acis>=0.3.10,<0.4`、共通モデル API 2 を使用します。
 公開済みの互換 wheel がある環境では、次のようにインストールできます。
 
 ```sh
@@ -32,7 +34,7 @@ python -m pip install inventor-kit
 ```
 
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.3.8 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
+0.3.10 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
 [リリース条件](docs/releasing.ja.md)を参照してください。
 
 ## 部品の読み込み
@@ -104,6 +106,7 @@ print(ik.capabilities())
 | [API ガイド](docs/api.ja.md) | 属性、保存候補、単位、参照解決、上限 |
 | [検証](docs/validation.ja.md) | 回帰・保留検証、比較の根拠、実行済み範囲 |
 | [開発](docs/development.ja.md) | ビルド、テスト、fuzz、公開ディレクトリの役割 |
+| [実験段階のpart writer](docs/part-writer.ja.md) | 0.7.0候補: CadQuery・STEPから単独IPTを生成 |
 | [リリース](docs/releasing.ja.md) | wheel / sdist、CI、公開前の条件 |
 | [形式資料](docs/format-reference.ja.md) | 実装に使用した資料とライセンス |
 

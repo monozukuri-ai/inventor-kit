@@ -34,3 +34,11 @@ ASM 22700 のトレラント情報は部分ビューで読み、保存端点と�
 追加機能の[ローカル viewer](viewer.ja.md)は、変換できた IPT の B-rep と明示的に許可した IAM の保存配置を表示します。
 IAM は occurrence の階層と欠落理由を保持し、部分表示には追加の明示指定を必要とします。
 文書情報と保存プレビューも表示します。native 形状、アセンブリ状態、図面の対応範囲を広げるものではありません。
+
+## 実験段階の部品書込み
+
+[writer](part-writer.ja.md)は限定した単一solid・mm単位のIPT profileに対応します。
+平面・円筒面と直線・円・楕円の辺を、CadQueryやSTEPの各配置から生成します。
+IAM・IDW書込み、一般曲面、複数body IPT、元のフィーチャ履歴の復元は対象外です。
+実機受入は固定した開発用形状集合とInventor buildで確認し、新規出力の
+`native_validation` は `not_run` を維持します。

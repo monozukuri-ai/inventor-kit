@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+import tomllib
 
 import inventor_kit as ik
 
@@ -54,8 +55,15 @@ def validate(fixtures):
     holdout = ik.inspect_assembly_file(fixtures / 'm5-holdout/wing_assembly.iam')
     if holdout.status != 'unavailable' or holdout.occurrences:
         raise AssertionError('Frozen unsupported-profile holdout changed; review support before changing this gate')
+    locked = tomllib.loads((ROOT / 'Cargo.lock').read_text())['package']
+    shared_versions = {p['name']: p['version'] for p in locked
+                       if p['name'] in {'acis-core', 'acis-py-bridge'}}
     return dict(schema_version=1, fixture_manifest_sha256=hashlib.sha256((ROOT / 'fixtures/assembly-manifest.json').read_bytes()).hexdigest(),
-                dependency_versions=dict(acis_core='0.3.8', acis_py_bridge='0.3.8', model_api=2, assembly_api=1),
+                dependency_versions=dict(acis_core=shared_versions['acis-core'],
+                                         acis_py_bridge=shared_versions['acis-py-bridge'],
+                                         model_api=ik._inventor.MODEL_API_VERSION,
+                                         assembly_api=ik._inventor.ASSEMBLY_API_VERSION),
+                dependency_identity_source='Cargo.lock and installed model/assembly API constants',
                 fixtures=len(manifest), native_cases=cases,
                 holdout=dict(file='wing_assembly.iam', source_sha256=holdout.summary['source_sha256'],
                              schema=holdout.summary['ufrx']['schema'], sections=holdout.summary['ufrx']['sections'],

@@ -1,13 +1,16 @@
 [package]
 name = "inventor-core"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
-description = "Bounded CFB and RSe Inventor part carrier reader"
+description = "Bounded Inventor reader and single-solid IPT writer"
 license.workspace = true
 readme.workspace = true
 
 [features]
+default = ["analytic-writer"]
 fuzzing = []
+# Bounded exact analytic part writer.
+analytic-writer = []
 
 [dependencies]
 acis-core.workspace = true
@@ -18,6 +21,8 @@ serde.workspace = true
 encoding_rs = "0.8.35"
 crc32fast = "1.5"
 sha2 = "0.10.9"
+serde_json = { workspace = true, features = ["float_roundtrip"] }
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 serde_json.workspace = true
