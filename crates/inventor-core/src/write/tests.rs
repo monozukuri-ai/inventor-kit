@@ -671,10 +671,12 @@ fn boxes_roundtrip_geometry_graph_and_fresh_identity() {
         let paths: std::collections::BTreeSet<_> = c
             .walk()
             .filter(|e| e.is_stream())
-            .map(|e| e.path().to_string_lossy().into_owned())
+            .map(|e| e.path().to_path_buf())
             .collect();
-        assert!(paths.contains("/RSeStorage/RSeEmbeddings/DatabaseInterfaces"));
-        assert!(!paths.contains("/DatabaseInterfaces"));
+        assert!(paths.contains(std::path::Path::new(
+            "/RSeStorage/RSeEmbeddings/DatabaseInterfaces"
+        )));
+        assert!(!paths.contains(std::path::Path::new("/DatabaseInterfaces")));
         // Native controls and accepted M1 constructors declare each complete
         // frame's expanded size. A streaming self-reader also accepts an absent
         // size, so geometry roundtrips alone do not cover this wire contract.

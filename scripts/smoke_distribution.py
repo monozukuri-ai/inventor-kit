@@ -5,6 +5,7 @@ import hashlib
 import json
 import platform
 import os
+import runpy
 import subprocess
 import sys
 import tarfile
@@ -365,8 +366,11 @@ def main():
         args.report.unlink(missing_ok=True)  # Never leave a stale pass after a failed retry.
     if args.installed:
         installed(args.corpus)
-        from smoke_writer import installed_writer
-        writer_result = installed_writer()
+        # Isolated Python (-I) deliberately excludes the script directory from
+        # sys.path. Load this harness explicitly without exposing checkout code
+        # to imports of the installed product.
+        writer_harness = runpy.run_path(str(Path(__file__).with_name('smoke_writer.py')))
+        writer_result = writer_harness['installed_writer']()
         if args.viewer:
             cases = {
                 'part': installed_viewer(args.corpus),
