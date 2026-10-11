@@ -25,16 +25,18 @@ See the [release notes](docs/release-notes-v0.5.0.md) for supported drawing prof
 line styles and platform checks. Drawing support remains experimental and partial;
 physical scale and native rendering equivalence are unverified.
 
+This checkout is the **0.7.0 release candidate**. Its writer requires cq-acis 0.3.10 or later in the 0.3 series; see the [writer guide](docs/part-writer.md).
+
 ## Installation
 
-Requires Python 3.11 or later, `cq-acis>=0.3.8,<0.4`, and shared model API 2.
+Requires Python 3.11 or later, `cq-acis>=0.3.10,<0.4`, and shared model API 2.
 Where compatible published wheels are available, install with:
 
 ```sh
 python -m pip install inventor-kit
 ```
 
-Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.8
+Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.10
 from crates.io. See the [development guide](docs/development.md) and
 [release requirements](docs/releasing.md).
 
@@ -110,6 +112,7 @@ diagnostics, and saved candidate selection.
 | [API](docs/api.md) | Metadata, saved candidates, units, reference resolution, and limits |
 | [Validation](docs/validation.md) | Regression and holdout checks, comparison evidence, and completed validation |
 | [Development](docs/development.md) | Builds, tests, fuzzing, and public directory roles |
+| [Experimental part writer](docs/part-writer.md) | 0.7.0 candidate: standalone IPTs from CadQuery or STEP |
 | [Releasing](docs/releasing.md) | Wheels, sdists, CI, and publication requirements |
 | [Format references](docs/format-reference.md) | Implementation references and licenses |
 

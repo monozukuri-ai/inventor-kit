@@ -136,5 +136,41 @@
       28,
       31
     ]
+  },
+  "part_writer": {
+    "api_version": 1,
+    "status": "experimental_bounded",
+    "enabled_in_standard_build": true,
+    "target_profile": "inventor-ipt-rse31-metric-analytic-base-feature-v21",
+    "inputs": [
+      "CadQuery Solid",
+      "millimetre STEP solid occurrences"
+    ],
+    "output": "one standalone IPT per solid occurrence",
+    "units": [
+      "mm"
+    ],
+    "surfaces": [
+      "plane",
+      "cylinder"
+    ],
+    "edges": [
+      "line",
+      "circle",
+      "ellipse"
+    ],
+    "inventor_api_required": false,
+    "template_required": false,
+    "assemblies": false,
+    "drawings": false,
+    "parametric_history": false,
+    "appearance_import": false,
+    "per_output_native_validation": "not_run",
+    "native_qualification": {
+      "inventor_build": "311270010",
+      "scope": "bounded development corpus: 11 analytic parts and a separate 32-part assembly; representative native machining and save/reopen"
+    },
+    "cli": "write-step",
+    "default_timeout_seconds": 600
   }
 }

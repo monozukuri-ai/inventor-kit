@@ -4,10 +4,10 @@ build-backend = "maturin"
 
 [project]
 name = "inventor-kit"
-version = "0.6.0"
-description = "Bounded Rust Inventor part carrier reader with shared ACIS models"
+version = "0.7.0"
+description = "Read Inventor files and write bounded single-solid IPT parts without Inventor"
 requires-python = ">=3.11"
-dependencies = ["cq-acis>=0.3.8,<0.4"]
+dependencies = ["cq-acis>=0.3.10,<0.4"]
 license = "PolyForm-Noncommercial-1.0.0 AND MIT AND Apache-2.0 AND BSD-3-Clause AND CC-BY-4.0 AND Zlib"
 license-files = ["LICENSE", "COMMERCIAL-LICENSE.md", "THIRD_PARTY_NOTICES.md", "licenses/*.txt", "licenses/*.md", "licenses/*.json"]
 readme = "README.md"
@@ -24,11 +24,12 @@ validation = ["jsonschema>=4.23,<5", "olefile==0.46", "Pillow>=10,<13", "zstanda
 oracle = ["jsonschema>=4.23,<5", "pywin32; sys_platform == 'win32'"]
 
 [tool.maturin]
+strip = true
 manifest-path = "crates/inventor-py/Cargo.toml"
 module-name = "inventor_kit._inventor"
 python-source = "python"
-features = ["pyo3/extension-module"]
-exclude = ["internal/**", "fixtures/public/**", "reports/**", "target/**", "fuzz/**"]
+features = ["pyo3/extension-module", "analytic-writer"]
+exclude = ["internal/**", ".internal/**", ".local/**", "fixtures/**", "reports/**", "target/**", "fuzz/**", ".cargo/**", "*.step", "*.stp", "*.ipt", "*.iam", "*.idw", "error.*"]
 include = [
     {path = "python/inventor_kit/viewer/static/**", format = ["wheel", "sdist"]},
     {path = "viewer/src/*", format = "sdist"},

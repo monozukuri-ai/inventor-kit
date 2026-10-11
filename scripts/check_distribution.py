@@ -23,7 +23,7 @@ def check_metadata(meta, version):
     if meta['Requires-Python'] != '>=3.11':
         raise ValueError('Distribution must require Python >=3.11')
     requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
-    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.8', '<0.4'}:
+    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.10', '<0.4'}:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
     viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
     if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
@@ -43,7 +43,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
             raise ValueError('Missing ABI3 native extension')
         package_prefix = 'inventor_kit/'
         viewer_sources = None
-        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py'):
             if 'inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python API: {name}')
         metadata = [v for k, v in contents.items() if k.endswith('.dist-info/METADATA')]
@@ -94,7 +94,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         for name in ('mod.rs', 'ufrx.rs', 'records.rs', 'matrix.rs', 'resolve.rs', 'tests.rs'):
             if prefix + 'crates/inventor-core/src/assembly/' + name not in contents:
                 raise ValueError(f'Missing assembly Rust source: {name}')
-        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py'):
             if prefix + 'python/inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python source: {name}')
         for name, content in contents.items():
@@ -116,7 +116,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
-            if len(entries) != 1 or entries[0]['version'] != '0.3.8':
+            if len(entries) != 1 or entries[0]['version'] != '0.3.10':
                 raise ValueError(f'Expected one pinned {package}')
             entry = entries[0]
             registry = entry.get('source') == 'registry+https://github.com/rust-lang/crates.io-index' and len(entry.get('checksum', '')) == 64
@@ -130,8 +130,10 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         raise ValueError(f'Unexpected artifact: {path}')
     for name in contents:
         parts = PurePosixPath(name).parts
-        if any(p in {'internal', 'fixtures', 'reports', 'corpus', '.cargo', '.venv', '.git', 'target', 'fuzz', 'node_modules', 'test-results', 'playwright-report'} for p in parts):
+        if any(p in {'internal', '.internal', '.local', 'fixtures', 'reports', 'corpus', '.cargo', '.venv', '.git', 'target', 'fuzz', 'node_modules', 'test-results', 'playwright-report'} for p in parts):
             raise ValueError(f'Development data/configuration leaked into artifact: {name}')
+        if PurePosixPath(name).suffix.lower() in {'.ipt', '.iam', '.idw', '.ipn', '.step', '.stp', '.sab', '.sat', '.log'} or PurePosixPath(name).name == 'error.png':
+            raise ValueError(f'Private CAD input or execution log leaked into artifact: {name}')
         if '..' in parts or name.startswith('/'):
             raise ValueError(f'Unsafe archive member: {name}')
     if len(metadata) != 1:

@@ -12,6 +12,9 @@ concurrency:
   group: python-distributions-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  RUSTFLAGS: --remap-path-prefix=${{ github.workspace }}=/workspace
+
 defaults:
   run:
     shell: bash
@@ -109,7 +112,7 @@ jobs:
           npm ci --prefix viewer
           cd viewer
           npx playwright install --with-deps chromium
-      - name: Cold install, geometry, STEP and viewer checks on Python 3.11 and 3.12
+      - name: Cold install, IPT writer, geometry, STEP and viewer on Python 3.11 and 3.12
         # Platform font/rendering evidence is collected from a cold installed wheel.
         # workflow_dispatch never reaches the publish job below.
         env:
@@ -190,7 +193,7 @@ jobs:
           pattern: viewer-platform-*
           path: qualification
           merge-multiple: true
-      - name: Require all archives and their installed viewer results
+      - name: Require all archives and their installed viewer and writer results
         run: python scripts/check_release.py --dist dist --viewer-reports qualification
 
   publish:

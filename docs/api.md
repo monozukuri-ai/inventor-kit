@@ -125,3 +125,10 @@ Graph-wide traversal is limited separately by `FileSystemResolver` parameters:
 `max_documents`, `max_instances`, `max_depth`, `max_total_file_bytes`, and
 `max_directory_entries`. These limits do not guarantee bounds on process RSS,
 runtime, or OCCT computation.
+
+## Native part authoring
+
+The experimental [part writer](part-writer.md) provides `new_part`,
+`PartBuilder.add_body`, `saveas` and `write_step_parts`. It creates new single-solid
+IPTs without an Inventor process or template. See that guide for the required
+release, accepted geometry, publication behavior and error reports.

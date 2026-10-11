@@ -5,6 +5,7 @@ import hashlib
 import json
 import platform
 import os
+import runpy
 import subprocess
 import sys
 import tarfile
@@ -191,7 +192,7 @@ def installed(corpus):
         shape = doc.to_cadquery().val()
         assert shape.isValid() and len(shape.Solids()) == 1
         assert math.isclose(shape.Volume(), volume, rel_tol=1e-9)
-    # Exercise public cq-acis 0.3.8 with the registry core/bridge after installation.
+    # Exercise public cq-acis 0.3.10 with the registry core/bridge after installation.
     name = 'INV_nist_ftc_07_asme1_2021.ipt'
     item = next(e for e in json.loads((ROOT/'fixtures/manifest.json').read_text()) if e['file'] == name)
     data = (corpus/name).read_bytes()
@@ -365,6 +366,11 @@ def main():
         args.report.unlink(missing_ok=True)  # Never leave a stale pass after a failed retry.
     if args.installed:
         installed(args.corpus)
+        # Isolated Python (-I) deliberately excludes the script directory from
+        # sys.path. Load this harness explicitly without exposing checkout code
+        # to imports of the installed product.
+        writer_harness = runpy.run_path(str(Path(__file__).with_name('smoke_writer.py')))
+        writer_result = writer_harness['installed_writer']()
         if args.viewer:
             cases = {
                 'part': installed_viewer(args.corpus),
@@ -389,6 +395,7 @@ def main():
                     'dependencies': {name: version(name) for name in
                         ('inventor-kit', 'cq-acis', 'cadquery', 'cadquery-ocp', 'ocp-tessellate')},
                     'cases': cases,
+                    'writer': writer_result,
                 }), encoding='utf-8')
         return
     if args.wheel is None and args.sdist is None:
@@ -421,7 +428,7 @@ def main():
                 if len(manifests) != 1:
                     raise ValueError(f'Expected one staged {name} crate')
                 package = tomllib.loads(manifests[0].read_text())['package']
-                if (package['name'], package['version']) != (name, '0.3.8'):
+                if (package['name'], package['version']) != (name, '0.3.10'):
                     raise ValueError(f'Unexpected staged {name}')
                 patches.append(name + ' = { path = '+json.dumps(str(manifests[0].parent))+' }\n')
             if patches:

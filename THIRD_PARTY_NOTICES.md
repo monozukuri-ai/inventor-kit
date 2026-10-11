@@ -30,6 +30,13 @@ are created by an inventor-kit commercial agreement.
   Attribution: the cadmpeg project. These are adapted notes and a smaller independently written reader, not a complete port.
   The Apache license copy is `licenses/cadmpeg-Apache-2.0.txt`. This project implements a smaller reader
   and adds zstd envelopes checked by adversarial tests and public files and bounded profile gates.
+- Additional native part inventory references: cadmpeg format notes and layout
+  table at commit `9d36a963e9ebfe45c6547d4f9b7147fd29eae532`:
+  https://github.com/cadmpeg/cadmpeg/tree/9d36a963e9ebfe45c6547d4f9b7147fd29eae532/docs
+  Attribution: the cadmpeg project; the format notes are CC-BY-4.0 and the layout
+  table is Apache-2.0. The major-31 part record observations are independently
+  derived from hash-bound native controls. The reference's older feature layouts
+  are not treated as a major-31 specification or a qualified native writer.
 - cq-acis (monozukuri-ai), MIT: the shared Rust model and SAB reader use
   crates.io `acis-core`; the Python conversion uses `acis-py-bridge`.
   https://github.com/monozukuri-ai/cq-acis

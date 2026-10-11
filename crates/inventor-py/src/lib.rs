@@ -212,8 +212,31 @@ fn read<'py>(
         doc.kernel_bytes.map(|b| PyBytes::new(py, &b).unbind()),
     ))
 }
+#[cfg(feature = "analytic-writer")]
+#[pyfunction]
+fn encode_analytic_part<'py>(
+    py: Python<'py>,
+    specification: &str,
+) -> PyResult<Bound<'py, PyBytes>> {
+    if specification.len() > 64 * 1024 * 1024 {
+        return Err(PyValueError::new_err(
+            "semantic writer JSON byte budget exceeded",
+        ));
+    }
+    let bytes = py.detach(|| {
+        let part: inventor_core::write::analytic::PartDocument =
+            serde_json::from_str(specification)
+                .map_err(|e| PyValueError::new_err(format!("invalid semantic part: {e}")))?;
+        part.encode()
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    })?;
+    Ok(PyBytes::new(py, &bytes))
+}
+
 #[pymodule]
 fn _inventor(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    #[cfg(feature = "analytic-writer")]
+    module.add_function(wrap_pyfunction!(encode_analytic_part, module)?)?;
     module.add_function(wrap_pyfunction!(default_limits, module)?)?;
     module.add_function(wrap_pyfunction!(default_drawing_limits, module)?)?;
     module.add_function(wrap_pyfunction!(read, module)?)?;

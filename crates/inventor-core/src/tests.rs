@@ -297,6 +297,13 @@ fn type_indices_and_record_lengths_must_match() {
         compressed_offset: 0,
         codec: "zlib",
         state_words: [0; 3],
+        header_words: [0; 8],
+        timestamps: [String::new(), String::new()],
+        body_form: 0,
+        body_header: [0; 7],
+        sections: vec![],
+        terminal_id: [0; 16],
+        type_fields: vec![],
     };
     let mut data = vec![0, 0, 0, 0, 42, 1, 0, 0, 0, 0, 255, 255, 255, 255];
     assert!(rse::records(&data, &meta, 25).is_ok());

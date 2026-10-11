@@ -44,3 +44,12 @@ converted IPT B-rep shapes and explicitly permitted IAM saved placements. IAM
 retains the occurrence hierarchy and omission reasons; partial display requires
 an additional opt-in. It also shows document information and saved previews.
 It does not extend native geometry, assembly-state, or drawing support.
+
+## Experimental part writing
+
+The [writer](part-writer.md) supports a bounded single-solid metric IPT profile.
+Planar/cylindrical faces and line/circle/ellipse edges can be authored from CadQuery
+or STEP occurrences. IAM/IDW writing, general surfaces, multiple-body IPTs and
+feature-history reconstruction are outside scope. Native acceptance was checked
+on a fixed development corpus and Inventor build; every new output retains
+`native_validation="not_run"`.

@@ -14,10 +14,13 @@ pub mod document;
 pub mod drawing;
 #[cfg(feature = "fuzzing")]
 pub mod fuzzing;
+pub mod part;
 pub mod property;
 mod read;
 mod rse;
 pub mod thumbnail;
+/// Experimental source-free RSe31 box authoring. Native qualification is pending.
+pub mod write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error(pub String);

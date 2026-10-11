@@ -110,3 +110,9 @@ Python と Rust の両方が 0 以上の整数であること、既定値以下�
 `FileSystemResolver` の `max_documents`、`max_instances`、`max_depth`、
 `max_total_file_bytes`、`max_directory_entries` で別途制限します。
 これらはプロセス RSS・実行時間や OCCT の計算量を保証する値ではありません。
+
+## ネイティブ部品の生成
+
+実験段階の[部品writer](part-writer.ja.md)は `new_part`、`PartBuilder.add_body`、
+`saveas`、`write_step_parts` を提供します。Inventorのプロセスやテンプレートを使わず、
+新しい単一solid IPTを生成します。必要な版、対応形状、出力確定、エラーの扱いはリンク先を参照してください。

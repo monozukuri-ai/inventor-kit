@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "acis-core"
-version = "0.3.8"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28523f07df5efcea2c1972a8c60a964d8e2a79c00fc0f268b50b959e29a98221"
+checksum = "d68b549545616e3b649dd49add0c8ad57213be3f43af40429db3a0e2f22d04d5"
 dependencies = [
  "num-bigint",
 ]
@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "inventor-core"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "acis-core",
  "cfb",
@@ -198,7 +198,9 @@ dependencies = [
  "encoding_rs",
  "flate2",
  "serde",
+ "serde_json",
  "sha2",
+ "uuid",
  "zstd",
 ]
 
@@ -209,6 +211,12 @@ dependencies = [
  "inventor-core",
  "libfuzzer-sys",
 ]
+
+[[package]]
+name = "itoa"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "jobserver"
@@ -246,6 +254,12 @@ dependencies = [
  "arbitrary",
  "cc",
 ]
+
+[[package]]
+name = "memchr"
+version = "2.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "miniz_oxide"
@@ -364,6 +378,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_json"
+version = "1.0.151"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+dependencies = [
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -421,6 +448,7 @@ version = "1.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2cefc03fd367c0c6d4305de1b312cf00248c4114f4a0418ce6a6af769e3b0bd9"
 dependencies = [
+ "getrandom",
  "js-sys",
  "wasm-bindgen",
 ]
@@ -491,6 +519,12 @@ name = "zlib-rs"
 version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34b31d188d9d685a4f9c7b46d6e36631b07058d2cfe190267adce54dc230bf12"
+
+[[package]]
+name = "zmij"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zstd"

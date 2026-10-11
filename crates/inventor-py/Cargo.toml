@@ -1,8 +1,8 @@
 [package]
 name = "inventor-py"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
-description = "Python bindings for the Inventor part carrier reader"
+description = "Python bindings for the Inventor reader and part writer"
 license.workspace = true
 readme.workspace = true
 publish = false
@@ -17,3 +17,7 @@ acis-py-bridge.workspace = true
 pyo3.workspace = true
 serde_json.workspace = true
 serde.workspace = true
+
+[features]
+default = ["analytic-writer"]
+analytic-writer = ["inventor-core/analytic-writer"]

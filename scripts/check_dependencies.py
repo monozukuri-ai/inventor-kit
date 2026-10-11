@@ -2,6 +2,23 @@
 import argparse
 import json
 import subprocess
+from pathlib import Path
+import tomllib
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def check_python_lock(root=ROOT):
+    project = tomllib.loads((root/'pyproject.toml').read_text(encoding='utf-8'))['project']
+    packages = tomllib.loads((root/'uv.lock').read_text(encoding='utf-8'))['package']
+    own = [p for p in packages if p['name'] == 'inventor-kit']
+    shared = [p for p in packages if p['name'] == 'cq-acis']
+    if len(own) != 1 or own[0]['version'] != project['version']:
+        raise ValueError('uv.lock project version is stale; refresh after dependency publication')
+    if (len(shared) != 1 or shared[0].get('source', {}).get('registry') != 'https://pypi.org/simple'
+            or tuple(map(int, shared[0]['version'].split('.'))) < (0, 3, 10)
+            or tuple(map(int, shared[0]['version'].split('.'))) >= (0, 4, 0)):
+        raise ValueError('uv.lock must resolve compatible published cq-acis >=0.3.10,<0.4')
 
 
 def check_graph(metadata, root_name='inventor-py', allow_local_bridge=False, allow_local_core=False):
@@ -20,8 +37,8 @@ def check_graph(metadata, root_name='inventor-py', allow_local_bridge=False, all
     result = {}
     for name in ('acis-core', 'acis-py-bridge'):
         found = [packages[i] for i in visited if packages[i]['name'] == name]
-        if len(found) != 1 or found[0]['version'] != '0.3.8':
-            raise ValueError(f'Expected exactly one {name} 0.3.8 in the resolved extension graph')
+        if len(found) != 1 or found[0]['version'] != '0.3.10':
+            raise ValueError(f'Expected exactly one {name} 0.3.10 in the resolved extension graph')
         p = found[0]
         registry = p['source'] == 'registry+https://github.com/rust-lang/crates.io-index'
         if not registry and not (((name == 'acis-py-bridge' and allow_local_bridge) or (name == 'acis-core' and allow_local_core)) and p['source'] is None):
@@ -37,6 +54,8 @@ def main():
     parser.add_argument('--allow-local-core', action='store_true', help='Explicit development core override; publication still required')
     parser.add_argument('--offline', action='store_true')
     args = parser.parse_args()
+    if not (args.allow_local_bridge or args.allow_local_core):
+        check_python_lock()
     command = ['cargo', 'metadata', '--locked', '--format-version', '1']
     if args.offline:
         command.append('--offline')

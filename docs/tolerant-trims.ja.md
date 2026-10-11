@@ -13,8 +13,8 @@
 
 ## 再現方法
 
-Rustは公開済みの`acis-core=0.3.8`と`acis-py-bridge=0.3.8`を使用します。
-Pythonは`cq-acis>=0.3.8,<0.4`と共有モデルAPI 2を必要とします。
+Rustの依存は`acis-core=0.3.10`と`acis-py-bridge=0.3.10`を使用します。
+Pythonは`cq-acis>=0.3.10,<0.4`と共有モデルAPI 2を必要とします。
 
 ```sh
 python scripts/validate_components.py

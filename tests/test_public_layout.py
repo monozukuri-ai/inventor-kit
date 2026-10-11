@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from check_public_tree import check_links
+from check_public_tree import check_links, check_public_path
 from summarize_validation import summarize
 
 
@@ -20,10 +20,18 @@ class PublicLayout(unittest.TestCase):
             readme = root / 'README.md'
             readme.write_text('[API](docs/api.md)')
             self.assertEqual(check_links(root), 2)
-            for target in ('internal/notes.md', 'docs/missing.md', '../outside.md'):
+            for target in ('internal/notes.md', '.local/secret.md', '.internal/log.md', 'docs/missing.md', '../outside.md'):
                 readme.write_text(f'[details]({target})')
                 with self.assertRaises(ValueError):
                     check_links(root)
+
+    def test_private_inputs_and_captures_are_not_public_source(self):
+        for name in ('internal/data.json', '.local/review.md', '.internal/review.json',
+                     'private-assembly.step', 'docs/sample.IPT', 'error.png', 'run.log'):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                check_public_path(name)
+        for name in ('python/inventor_kit/writer.py', 'tests/data/example.json', 'docs/part-writer.md'):
+            check_public_path(name)
 
     def test_summary_excludes_private_fields_and_requires_complete_inputs(self):
         private = 'PRIVATE_DIAGNOSTIC_SENTINEL'

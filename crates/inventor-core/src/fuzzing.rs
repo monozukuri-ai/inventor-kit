@@ -24,6 +24,7 @@ pub fn container(data: &[u8]) {
     let _ = crate::inspect(data, "fuzz", &limits);
     let _ = crate::read(data, "fuzz", &limits);
     let _ = crate::assembly::inspect(data, "fuzz", &limits);
+    let _ = crate::part::inspect(data, "fuzz", &limits);
 }
 
 pub fn stream(data: &[u8]) {
@@ -40,9 +41,20 @@ pub fn stream(data: &[u8]) {
         }
         1 => {
             let _ = rse::meta(bytes, &limits);
+            let mut expanded = limits.max_total_inflated_bytes;
+            let mut work = limits.max_records;
+            let _ = rse::meta_layout_budgeted(
+                bytes,
+                &limits,
+                &mut expanded,
+                &mut work,
+                rse::MetaLayout::PART31,
+            );
         }
         2 => {
             let _ = rse::registry(bytes);
+            let mut work = limits.max_records;
+            let _ = rse::registry_table_budgeted(bytes, &mut work, true);
         }
         3 => {
             crate::assembly::fuzz_ufrx(&mut Reader::new(bytes), &limits);
@@ -121,6 +133,13 @@ pub fn drawing(data: &[u8]) {
                     block_table_offset: 0,
                     type_table_offset: 0,
                     reference_sections: vec![],
+                    header_words: [0; 8],
+                    timestamps: [String::new(), String::new()],
+                    body_form: 0,
+                    body_header: [0; 7],
+                    sections: vec![],
+                    terminal_id: [0; 16],
+                    type_fields: vec![],
                 };
                 rse::record_table(
                     &bytes[r.pos..],

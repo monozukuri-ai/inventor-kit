@@ -12,6 +12,39 @@ pub(crate) struct Segment {
     pub major: u8,
     pub start_offset: usize,
     pub end_offset: usize,
+    pub revision_id: [u8; 16],
+    pub state: u32,
+    pub state_words: [u32; 6],
+    pub type_words: [u32; 2],
+    pub version: [u8; 8],
+    pub version_state: u32,
+    pub objects: Vec<RegistryObject>,
+    pub nodes: Vec<RegistryNode>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct RegistryObject {
+    pub revision_id: [u8; 16],
+    pub flags: [u8; 9],
+    pub segment_id: [u8; 16],
+    pub state: u32,
+    pub node_count: usize,
+    pub start: usize,
+    pub end: usize,
+}
+#[derive(Debug, Clone)]
+pub(crate) struct RegistryNode {
+    pub index: u32,
+    pub list_index: i16,
+    pub id: [u8; 16],
+    pub start: usize,
+    pub end: usize,
+}
+pub(crate) struct RegistryTable {
+    pub segments: Vec<Segment>,
+    pub tail_offset: usize,
+    pub tail_word: u32,
+    pub identifier_lists: [Vec<[u8; 16]>; 2],
 }
 
 pub(crate) fn registry(bytes: &[u8]) -> Result<Vec<Segment>> {
@@ -28,6 +61,14 @@ pub(crate) fn charge(budget: &mut usize, n: usize) -> Result<()> {
 }
 
 pub(crate) fn registry_budgeted(bytes: &[u8], work: &mut usize) -> Result<Vec<Segment>> {
+    Ok(registry_table_budgeted(bytes, work, false)?.segments)
+}
+
+pub(crate) fn registry_table_budgeted(
+    bytes: &[u8],
+    work: &mut usize,
+    keep_wire: bool,
+) -> Result<RegistryTable> {
     let mut r = Reader::new(bytes);
     let n = r.count(65536)?;
     charge(work, n)?;
@@ -36,29 +77,57 @@ pub(crate) fn registry_budgeted(bytes: &[u8], work: &mut usize) -> Result<Vec<Se
         let start_offset = r.pos;
         let name = r.utf16()?;
         let id = r.id()?;
-        r.skip(16 + 4)?;
-        let objects = r.count(1_000_000)?;
-        charge(work, objects)?;
-        r.skip(5 * 4 + 4)?;
+        let revision_id = r.id()?;
+        let state = r.u32()?;
+        let object_count = r.count(1_000_000)?;
+        charge(work, object_count)?;
+        let state_words = [r.u32()?, r.u32()?, r.u32()?, r.u32()?, r.u32()?, r.u32()?];
         let kind = r.utf16()?;
-        r.skip(8)?;
-        let version = r.take(8)?;
+        let type_words = [r.u32()?, r.u32()?];
+        let version: [u8; 8] = r.take(8)?.try_into().unwrap();
         let major = version[2];
-        r.skip(4)?;
-        let mut nodes = 1;
-        for _ in 0..objects {
-            r.skip(16 + 9 + 16 + 4)?;
-            nodes = r.count(1_000_000)?;
+        let version_state = r.u32()?;
+        let mut node_count = 1;
+        let mut objects = Vec::new();
+        for _ in 0..object_count {
+            let start = r.pos;
+            let revision_id = r.id()?;
+            let flags = r.take(9)?.try_into().unwrap();
+            let segment_id = r.id()?;
+            let state = r.u32()?;
+            node_count = r.count(1_000_000)?;
+            if keep_wire {
+                objects.push(RegistryObject {
+                    revision_id,
+                    flags,
+                    segment_id,
+                    state,
+                    node_count,
+                    start,
+                    end: r.pos,
+                });
+            }
         }
-        let count = nodes
+        let count = node_count
             .checked_sub(1)
             .ok_or_else(|| Error("zero registry node count".into()))?;
         charge(work, count)?;
-        r.skip(
-            count
-                .checked_mul(22)
-                .ok_or_else(|| Error("node length overflow".into()))?,
-        )?;
+        let mut nodes = Vec::new();
+        for _ in 0..count {
+            let start = r.pos;
+            let index = r.u32()?;
+            let list_index = r.u16()? as i16;
+            let id = r.id()?;
+            if keep_wire {
+                nodes.push(RegistryNode {
+                    index,
+                    list_index,
+                    id,
+                    start,
+                    end: r.pos,
+                });
+            }
+        }
         entries.push(Segment {
             name,
             kind,
@@ -66,16 +135,33 @@ pub(crate) fn registry_budgeted(bytes: &[u8], work: &mut usize) -> Result<Vec<Se
             major,
             start_offset,
             end_offset: r.pos,
+            revision_id,
+            state,
+            state_words,
+            type_words,
+            version,
+            version_state,
+            objects,
+            nodes,
         });
     }
-    r.skip(4)?;
-    for _ in 0..2 {
+    let tail_offset = r.pos;
+    let tail_word = r.u32()?;
+    let mut identifier_lists = [Vec::new(), Vec::new()];
+    for ids in &mut identifier_lists {
         let n = r.count(1_000_000)?;
         charge(work, n)?;
-        r.skip(n * 16)?;
+        for _ in 0..n {
+            ids.push(r.id()?);
+        }
     }
     r.finish()?;
-    Ok(entries)
+    Ok(RegistryTable {
+        segments: entries,
+        tail_offset,
+        tail_word,
+        identifier_lists,
+    })
 }
 
 /// Exactly one compressed member, bounded both while streaming and before return.
@@ -171,7 +257,15 @@ pub(crate) struct Meta {
     pub block_table_offset: usize,
     pub type_table_offset: usize,
     pub reference_sections: Vec<MetaSection>,
+    pub header_words: [u16; 8],
+    pub timestamps: [String; 2],
+    pub body_form: u8,
+    pub body_header: [u16; 7],
+    pub sections: Vec<MetaSection>,
+    pub terminal_id: [u8; 16],
+    pub type_fields: Vec<[(u16, u32); 2]>,
 }
+#[derive(Clone)]
 pub(crate) struct MetaSection {
     pub number: u8,
     pub count: usize,
@@ -185,19 +279,33 @@ pub(crate) struct MetaSection {
 pub(crate) struct MetaLayout {
     pub type_limit: usize,
     pub tagged_section9: bool,
+    pub keep_wire_sections: bool,
+    pub part31_meta6: bool,
 }
 impl MetaLayout {
     pub const STANDARD: Self = Self {
         type_limit: 256,
         tagged_section9: false,
+        keep_wire_sections: false,
+        part31_meta6: false,
     };
     pub const DRAWING_DOC_DC: Self = Self {
         type_limit: 4096,
         tagged_section9: true,
+        keep_wire_sections: false,
+        part31_meta6: false,
     };
     pub const DRAWING_SHEET_DC: Self = Self {
         type_limit: 256,
         tagged_section9: true,
+        keep_wire_sections: false,
+        part31_meta6: false,
+    };
+    pub const PART31: Self = Self {
+        type_limit: 256,
+        tagged_section9: true,
+        keep_wire_sections: true,
+        part31_meta6: true,
     };
 }
 pub(crate) fn meta_identity(bytes: &[u8]) -> Result<([u8; 16], String)> {
@@ -235,23 +343,41 @@ pub(crate) fn meta_layout_budgeted(
     if r.text()? != "RSe Meta Stream Version 8" || r.u16()? != 8 {
         return Err(Error("unsupported RSe meta profile".into()));
     }
-    r.skip(16)?;
+    let header_words = [
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+    ];
     let name = r.utf16()?;
     let id = r.id()?;
     let state_words = [r.u32()?, r.u32()?, r.u32()?];
-    r.text()?;
-    r.text()?;
-    r.u8()?;
+    let timestamps = [r.text()?, r.text()?];
+    let body_form = r.u8()?;
     let compressed_offset = r.pos;
     let (body, codec) = inflate_budgeted(&bytes[r.pos..], limits.max_inflated_bytes, expanded)?;
     let mut r = Reader::new(&body);
-    r.skip(14)?;
+    let body_header = [
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+        r.u16()?,
+    ];
     let mut blocks = Vec::new();
     let mut types = Vec::new();
     let mut type_footer = 0;
     let mut block_table_offset = 0;
     let mut type_table_offset = 0;
     let mut reference_sections = Vec::new();
+    let mut sections = Vec::new();
+    let mut type_fields = Vec::new();
     for (section, size) in [(1, 4), (2, 10), (3, 28), (4, 28)] {
         let n = r.count(limits.max_records)?;
         charge(work, n)?;
@@ -263,6 +389,14 @@ pub(crate) fn meta_layout_budgeted(
         }
         let offset = r.pos;
         let payload = r.take(n * size)?;
+        if layout.keep_wire_sections {
+            sections.push(MetaSection {
+                number: section,
+                count: n,
+                offset,
+                bytes: payload.to_vec(),
+            });
+        }
         if section == 2 {
             reference_sections.push(MetaSection {
                 number: 2,
@@ -284,6 +418,21 @@ pub(crate) fn meta_layout_budgeted(
                 .chunks_exact(28)
                 .map(|b| b[..16].try_into().unwrap())
                 .collect();
+            type_fields = payload
+                .chunks_exact(28)
+                .map(|b| {
+                    [
+                        (
+                            u16::from_le_bytes(b[16..18].try_into().unwrap()),
+                            u32::from_le_bytes(b[18..22].try_into().unwrap()),
+                        ),
+                        (
+                            u16::from_le_bytes(b[22..24].try_into().unwrap()),
+                            u32::from_le_bytes(b[24..28].try_into().unwrap()),
+                        ),
+                    ]
+                })
+                .collect();
             type_footer = r.pos;
         }
         if r.u32()? as usize != 4 + n * size {
@@ -302,10 +451,11 @@ pub(crate) fn meta_layout_budgeted(
         let mut tail = Reader::new(&body[start..end]);
         let previous = tail.u32()? as usize;
         let count = tail.u32()? as usize;
-        if number != 5 && count > limits.max_records {
+        let meta6_discriminator = number == 6 && layout.part31_meta6;
+        if number != 5 && !meta6_discriminator && count > limits.max_records {
             return Err(Error(format!("meta section {number} count limit exceeded")));
         }
-        if number != 5 {
+        if number != 5 && !meta6_discriminator {
             charge(work, count)?;
         }
         if previous < 4 {
@@ -338,8 +488,19 @@ pub(crate) fn meta_layout_budgeted(
             }
             entries.finish()?;
         }
+        if meta6_discriminator {
+            part31_meta6(&body[start + 4..end], limits, work)?;
+        }
         if matches!(number, 7 | 8 | 10) {
             reference_sections.push(MetaSection {
+                number,
+                count,
+                offset: start + 8,
+                bytes: body[start + 8..end].to_vec(),
+            });
+        }
+        if layout.keep_wire_sections {
+            sections.push(MetaSection {
                 number,
                 count,
                 offset: start + 8,
@@ -364,7 +525,91 @@ pub(crate) fn meta_layout_budgeted(
         block_table_offset,
         type_table_offset,
         reference_sections,
+        header_words,
+        timestamps,
+        body_form,
+        body_header,
+        sections,
+        terminal_id: body[body.len() - 16..].try_into().unwrap(),
+        type_fields,
     })
+}
+
+/// RSe31 Meta6 starts with a bitmap discriminator, not an item count. The
+/// three-byte empty terminator can share the u32 framing slot with an allocator
+/// byte. Validate its grammar and budgets instead of exempting an opaque blob.
+fn part31_meta6(bytes: &[u8], limits: &Limits, work: &mut usize) -> Result<()> {
+    let mut r = Reader::new(bytes);
+    let mut pages = 0usize;
+    let mut previous_end = 0u32;
+    loop {
+        let kind = r.u8()?;
+        if r.u16()? != 0 {
+            return Err(Error("invalid Meta6 bitmap short".into()));
+        }
+        if kind == 0 {
+            break;
+        }
+        pages += 1;
+        if pages > 4096.min(limits.max_records) {
+            return Err(Error("Meta6 bitmap page budget".into()));
+        }
+        charge(work, 1)?;
+        let start = r.u32()?;
+        if start % 256 != 0 || start < previous_end || start >= 65536 {
+            return Err(Error("invalid Meta6 bitmap extent".into()));
+        }
+        previous_end = match kind {
+            1 => {
+                let occupied = r.u32()?;
+                let mixed = r.u32()?;
+                if mixed & !occupied != 0 {
+                    return Err(Error("invalid Meta6 bitmap masks".into()));
+                }
+                for _ in 0..mixed.count_ones() {
+                    if matches!(r.u8()?, 0 | 255) {
+                        return Err(Error("noncanonical Meta6 bitmap byte".into()));
+                    }
+                }
+                start + 256
+            }
+            2 => {
+                if r.u16()? != 0 {
+                    return Err(Error("invalid Meta6 range short".into()));
+                }
+                let end = r.u32()?;
+                if end % 256 != 0 || end <= start || end > 65536 {
+                    return Err(Error("invalid Meta6 range".into()));
+                }
+                end
+            }
+            _ => return Err(Error("unknown Meta6 bitmap discriminator".into())),
+        };
+    }
+    if r.u32()? > 65536 {
+        return Err(Error("Meta6 allocator budget".into()));
+    }
+    let count = r.u16()? as usize;
+    if count > 64.min(limits.max_records) {
+        return Err(Error("Meta6 context budget".into()));
+    }
+    charge(work, count)?;
+    let mut previous = None;
+    for _ in 0..count {
+        r.id()?;
+        let index = r.u32()?;
+        if previous.is_some_and(|p| index <= p) {
+            return Err(Error("unordered Meta6 contexts".into()));
+        }
+        previous = Some(index);
+    }
+    let count = r.u16()? as usize;
+    if count > 4096.min(limits.max_records) {
+        return Err(Error("Meta6 terminal budget".into()));
+    }
+    charge(work, count)?;
+    r.skip(count * 6)?;
+    r.finish()
 }
 
 pub(crate) struct NamedReference {
@@ -501,4 +746,35 @@ pub(crate) fn record_table(
         terminal_offset,
         opaque_start: r.pos,
     })
+}
+#[cfg(test)]
+mod meta6_tests {
+    use super::*;
+    #[test]
+    fn empty_bitmap_discriminator_and_bounded_grammar() {
+        let mut bytes = vec![0, 0, 0];
+        bytes.extend(413u32.to_le_bytes());
+        bytes.extend(0u16.to_le_bytes());
+        bytes.extend(0u16.to_le_bytes());
+        assert!(
+            u32::from_le_bytes(bytes[..4].try_into().unwrap())
+                > Limits::default().max_records as u32
+        );
+        assert!(part31_meta6(&bytes, &Limits::default(), &mut 100).is_ok());
+        for n in 0..bytes.len() {
+            assert!(part31_meta6(&bytes[..n], &Limits::default(), &mut 100).is_err());
+        }
+        let mut bad = bytes.clone();
+        bad.push(0);
+        assert!(part31_meta6(&bad, &Limits::default(), &mut 100).is_err());
+        let mut bad = bytes.clone();
+        bad[1] = 1;
+        assert!(part31_meta6(&bad, &Limits::default(), &mut 100).is_err());
+        let mut bad = bytes.clone();
+        bad[3..7].copy_from_slice(&65537u32.to_le_bytes());
+        assert!(part31_meta6(&bad, &Limits::default(), &mut 100).is_err());
+        let mut bad = bytes;
+        bad[7..9].copy_from_slice(&65u16.to_le_bytes());
+        assert!(part31_meta6(&bad, &Limits::default(), &mut 100).is_err());
+    }
 }

@@ -325,7 +325,17 @@ pub(crate) fn scan(
                 max_records: record_budget,
                 ..limits.clone()
             };
-            let meta = rse::meta(&bytes, &bounded)?;
+            let meta = if reg.major == 31 {
+                rse::meta_layout_budgeted(
+                    &bytes,
+                    &bounded,
+                    &mut { bounded.max_inflated_bytes },
+                    &mut { usize::MAX },
+                    rse::MetaLayout::PART31,
+                )?
+            } else {
+                rse::meta(&bytes, &bounded)?
+            };
             debug_assert!(meta.id == id && meta.name == name);
             expanded_budget -= meta.inflated_bytes;
             record_budget = record_budget

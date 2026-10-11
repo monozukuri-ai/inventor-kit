@@ -2,6 +2,7 @@
 
 [English](README.md) | 日本語
 
+- [部品writer](part-writer.ja.md): CadQuery・STEPからの単独IPT生成、対応範囲と制限。
 - [ライセンス](license.ja.md): 非商用許諾、商用プラン、旧 MIT 部分。
 - [API ガイド](api.ja.md): 読み込み、属性、保存候補、アセンブリ、上限。
 - [body選択](body-conversion.ja.md): 個別結果、部分STEP、出典ID。

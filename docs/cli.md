@@ -90,3 +90,14 @@ were successfully saved, because support is partial. Unsupported profiles exit
 3; invalid IDs, refused partial export, timeout or output errors exit 1. Reporting
 alone needs no partial opt-in. Geometry, metadata-only, candidate/body and IAM
 selection flags cannot be mixed with drawing modes.
+
+## Write parts from STEP
+
+```sh
+python -m inventor_kit write-step assembly.step output_parts --timeout 600
+```
+
+The [part writer](part-writer.md) creates one standalone IPT per solid occurrence.
+The destination must be new. It prints JSON, returns 0 on success and 1 on failure,
+and publishes the batch only after normal worker shutdown. This command requires
+the writer-enabled release described in that guide.
