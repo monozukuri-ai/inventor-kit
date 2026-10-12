@@ -116,15 +116,20 @@ diagnostics, and saved candidate selection.
 | [Releasing](docs/releasing.md) | Wheels, sdists, CI, and publication requirements |
 | [Format references](docs/format-reference.md) | Implementation references and licenses |
 
-From 0.3.0, new material is source-available under PolyForm Noncommercial 1.0.0,
-with [commercial Internal/OEM licenses](COMMERCIAL-LICENSE.md) from UnRobotics Inc.
-See [licensing](docs/license.md) for earlier MIT rights and permitted uses.
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
-third-party notices. Public samples are validated against pinned hashes and
-sources; the CAD files themselves are excluded from distribution packages.
+To bundle authored IPTs into an IAM, see the [assembly writer](docs/assembly-writer.md): `new_assembly` and `write-assembly`. The bounded profile passed native open/save/reopen and moved-bundle qualification.
+
+Public samples are validated against pinned hashes and sources; the CAD files
+themselves are excluded from distribution packages.
+
+## License
+
+inventor-kit is source-available under
+**[PolyForm Noncommercial 1.0.0](licenses/PolyForm-Noncommercial-1.0.0.md)**.
+For use outside PolyForm's permissions, UnRobotics Inc. offers separate
+[commercial licenses](COMMERCIAL-LICENSE.md).
+See [licensing details](docs/license.md) for scope, earlier MIT permissions,
+and third-party license conditions.
 
 Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
 
 Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
-
-To bundle authored IPTs into an IAM, see the [assembly writer](docs/assembly-writer.md): `new_assembly` and `write-assembly`. The bounded profile passed native open/save/reopen and moved-bundle qualification.
