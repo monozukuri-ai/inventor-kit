@@ -126,7 +126,8 @@ jobs:
           import subprocess, sys, tomllib
           from pathlib import Path
           project = tomllib.loads(Path('pyproject.toml').read_text())['project']
-          subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:',
+          # olefile 0.46 is source-only. These are fixture tools, not product dependencies.
+          subprocess.run([sys.executable, '-m', 'pip', 'install',
                           *project['optional-dependencies']['validation']], check=True)
           PY
       - name: Cold install, IPT/IAM writers, geometry, STEP and viewer on Python 3.11 and 3.12
