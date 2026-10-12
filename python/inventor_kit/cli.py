@@ -88,6 +88,9 @@ def run_job(request, timeout):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == 'write-assembly':
+        from .assembly_writer_cli import main as assembly_main
+        return assembly_main(argv[1:])
     if argv and argv[0] == 'write-step':
         from .writer_cli import main as write_main
         return write_main(argv[1:])

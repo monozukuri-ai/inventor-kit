@@ -39,6 +39,9 @@ IAM は occurrence の階層と欠落理由を保持し、部分表示には追�
 
 [writer](part-writer.ja.md)は限定した単一solid・mm単位のIPT profileに対応します。
 平面・円筒面と直線・円・楕円の辺を、CadQueryやSTEPの各配置から生成します。
-IAM・IDW書込み、一般曲面、複数body IPT、元のフィーチャ履歴の復元は対象外です。
+IDW書込み、一般曲面、複数body IPT、元のフィーチャ履歴の復元は対象外です。
 実機受入は固定した開発用形状集合とInventor buildで確認し、新規出力の
 `native_validation` は `not_run` を維持します。
+
+[アセンブリwriter](assembly-writer.ja.md)は生成IPTを平坦なIAMへまとめます。
+限定profileで実機の保存・再読込・移動後の参照解決まで検証済みです。

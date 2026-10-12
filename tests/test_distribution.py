@@ -38,7 +38,7 @@ class WheelRecords(unittest.TestCase):
             info + '/METADATA': (
                 f'Metadata-Version: 2.4\nName: inventor-kit\nVersion: {self.version}\n'
                 f'License-Expression: {DISTRIBUTION_LICENSE}\nRequires-Python: >=3.11\n'
-                'Requires-Dist: cq-acis>=0.3.10,<0.4\n\n'
+                'Requires-Dist: cq-acis>=0.3.11,<0.4\n\n'
             ).encode(),
             info + '/WHEEL': b'Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: cp310-abi3-win_amd64\n',
         }
@@ -46,7 +46,7 @@ class WheelRecords(unittest.TestCase):
         for path in (ROOT/'python/inventor_kit/viewer').rglob('*'):
             if path.is_file() and (path.suffix == '.py' or 'static' in path.parts):
                 self.contents['inventor_kit/viewer/'+path.relative_to(ROOT/'python/inventor_kit/viewer').as_posix()] = path.read_bytes()
-        for name in ('drawing.py', 'drawing_output.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py'):
+        for name in ('drawing.py', 'drawing_output.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
             self.contents['inventor_kit/' + name] = b'{}'
         for name in license_paths():
             self.contents[info + '/licenses/' + name] = (ROOT/name).read_bytes()

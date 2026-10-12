@@ -132,3 +132,5 @@ The experimental [part writer](part-writer.md) provides `new_part`,
 `PartBuilder.add_body`, `saveas` and `write_step_parts`. It creates new single-solid
 IPTs without an Inventor process or template. See that guide for the required
 release, accepted geometry, publication behavior and error reports.
+
+To bundle authored IPTs into an IAM, see the [assembly writer](assembly-writer.md): `new_assembly` and `write-assembly`. The bounded profile passed native open/save/reopen and moved-bundle qualification.

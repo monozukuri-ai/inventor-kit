@@ -6,6 +6,13 @@ from pathlib import Path
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
+_SHARED = tomllib.loads((ROOT/'Cargo.toml').read_text(encoding='utf-8'))['workspace']['dependencies']
+ACIS_VERSION = _SHARED['acis-core'].removeprefix('=')
+if _SHARED['acis-core'] != '=' + ACIS_VERSION or _SHARED['acis-py-bridge'] != '=' + ACIS_VERSION:
+    raise ValueError('The shared ACIS core and bridge must have matching exact workspace pins')
+ACIS_MINIMUM = tuple(map(int, ACIS_VERSION.split('.')))
+CQ_ACIS_BOUNDS = {f'>={ACIS_VERSION}', '<0.4'}
+CQ_ACIS_REQUIREMENT = f'cq-acis>={ACIS_VERSION},<0.4'
 
 
 def check_python_lock(root=ROOT):
@@ -15,10 +22,13 @@ def check_python_lock(root=ROOT):
     shared = [p for p in packages if p['name'] == 'cq-acis']
     if len(own) != 1 or own[0]['version'] != project['version']:
         raise ValueError('uv.lock project version is stale; refresh after dependency publication')
+    requirements = [p for p in project['dependencies'] if p.startswith('cq-acis')]
+    if requirements != [CQ_ACIS_REQUIREMENT]:
+        raise ValueError('Python dependency must match the shared ACIS workspace pin: ' + CQ_ACIS_REQUIREMENT)
     if (len(shared) != 1 or shared[0].get('source', {}).get('registry') != 'https://pypi.org/simple'
-            or tuple(map(int, shared[0]['version'].split('.'))) < (0, 3, 10)
+            or tuple(map(int, shared[0]['version'].split('.'))) < ACIS_MINIMUM
             or tuple(map(int, shared[0]['version'].split('.'))) >= (0, 4, 0)):
-        raise ValueError('uv.lock must resolve compatible published cq-acis >=0.3.10,<0.4')
+        raise ValueError('uv.lock must resolve compatible published ' + CQ_ACIS_REQUIREMENT)
 
 
 def check_graph(metadata, root_name='inventor-py', allow_local_bridge=False, allow_local_core=False):
@@ -37,8 +47,8 @@ def check_graph(metadata, root_name='inventor-py', allow_local_bridge=False, all
     result = {}
     for name in ('acis-core', 'acis-py-bridge'):
         found = [packages[i] for i in visited if packages[i]['name'] == name]
-        if len(found) != 1 or found[0]['version'] != '0.3.10':
-            raise ValueError(f'Expected exactly one {name} 0.3.10 in the resolved extension graph')
+        if len(found) != 1 or found[0]['version'] != ACIS_VERSION:
+            raise ValueError(f'Expected exactly one {name} {ACIS_VERSION} in the resolved extension graph')
         p = found[0]
         registry = p['source'] == 'registry+https://github.com/rust-lang/crates.io-index'
         if not registry and not (((name == 'acis-py-bridge' and allow_local_bridge) or (name == 'acis-core' and allow_local_core)) and p['source'] is None):

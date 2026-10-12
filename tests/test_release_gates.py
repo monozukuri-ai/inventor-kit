@@ -24,28 +24,45 @@ class ReleaseGates(unittest.TestCase):
     def test_python_lock_rejects_unpublished_or_stale_dependencies(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root/'pyproject.toml').write_text('[project]\nversion = "0.7.0"\n')
+            (root/'pyproject.toml').write_text('[project]\nversion = "0.7.0"\ndependencies = ["cq-acis>=0.3.11,<0.4"]\n')
             valid = ('[[package]]\nname = "inventor-kit"\nversion = "0.7.0"\n'
-                     '[[package]]\nname = "cq-acis"\nversion = "0.3.10"\n'
+                     '[[package]]\nname = "cq-acis"\nversion = "0.3.11"\n'
                      'source = {registry = "https://pypi.org/simple"}\n')
             (root/'uv.lock').write_text(valid)
             check_python_lock(root)
-            for content in (valid.replace('0.7.0','0.6.0'), valid.replace('0.3.10','0.3.9'),
+            for content in (valid.replace('0.7.0','0.6.0'), valid.replace('0.3.11','0.3.10'),
                             valid.replace('registry = "https://pypi.org/simple"','path = "local"'),
                             valid.replace('https://pypi.org/simple','https://example.test/simple')):
                 (root/'uv.lock').write_text(content)
                 with self.assertRaises(ValueError):check_python_lock(root)
 
+    def test_python_requirement_must_match_shared_rust_pin(self):
+        from check_dependencies import CQ_ACIS_REQUIREMENT, ACIS_VERSION
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'uv.lock').write_text(
+                '[[package]]\nname = "inventor-kit"\nversion = "0.7.0"\n'
+                f'[[package]]\nname = "cq-acis"\nversion = "{ACIS_VERSION}"\n'
+                'source = {registry = "https://pypi.org/simple"}\n')
+            for requirement in (CQ_ACIS_REQUIREMENT, 'cq-acis>=0.3.10,<0.4'):
+                (root/'pyproject.toml').write_text(
+                    f'[project]\nversion = "0.7.0"\ndependencies = ["{requirement}"]\n')
+                if requirement == CQ_ACIS_REQUIREMENT:
+                    check_python_lock(root)
+                else:
+                    with self.assertRaisesRegex(ValueError, 'workspace pin'):
+                        check_python_lock(root)
+
     def test_distribution_rejects_stale_python_and_cq_acis_requirements(self):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
                             ('License-Expression', DISTRIBUTION_LICENSE), ('Requires-Python', '>=3.11'),
-                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.10'), ('Provides-Extra', 'viewer'),
+                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.11'), ('Provides-Extra', 'viewer'),
                             ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value
         check_metadata(meta, '0.1.0')
         for name, value in [('Requires-Python', '>=3.10'),
-                            ('Requires-Dist', 'cq-acis>=0.3.6,<0.4')]:
+                            ('Requires-Dist', 'cq-acis>=0.3.10,<0.4')]:
             bad = deepcopy(meta)
             bad.replace_header(name, value)
             with self.subTest(name=name), self.assertRaises(ValueError):
@@ -75,23 +92,25 @@ class ReleaseGates(unittest.TestCase):
         with self.assertRaises(ValueError):
             check_tag('v9.9.9')
         paths = [Path('inventor_kit-0.1.0-cp310-abi3-' + s + '.whl') for s in
-                 ('manylinux_2_17_x86_64.manylinux2014_x86_64', 'win_amd64', 'macosx_11_0_arm64', 'macosx_10_12_x86_64')]
+                 ('manylinux_2_17_x86_64.manylinux2014_x86_64', 'manylinux_2_17_aarch64.manylinux2014_aarch64',
+                  'win_amd64', 'macosx_11_0_arm64', 'macosx_10_12_x86_64')]
         paths.append(Path('inventor_kit-0.1.0.tar.gz'))
         with patch('check_release.check', side_effect=lambda p: {'file': str(p)}):
-            self.assertEqual(len(artifact_set(paths)), 5)
+            self.assertEqual(len(artifact_set(paths)), 6)
             for bad in (paths[:-1], paths + paths[:1], paths + [Path('unknown.txt')]):
                 with self.assertRaises(ValueError):
                     artifact_set(bad)
 
-    def test_viewer_requires_nine_successful_installs_bound_to_archive_hashes(self):
+    def test_viewer_requires_eleven_successful_installs_bound_to_archive_hashes(self):
         names = ['inventor_kit-0.1.0-cp310-abi3-' + tag + '.whl' for tag in
-                 ('manylinux_2_17_x86_64.manylinux2014_x86_64', 'win_amd64', 'macosx_11_0_arm64', 'macosx_10_12_x86_64')]
+                 ('manylinux_2_17_x86_64.manylinux2014_x86_64', 'win_amd64', 'macosx_11_0_arm64', 'macosx_10_12_x86_64',
+                  'manylinux_2_17_aarch64.manylinux2014_aarch64')]
         names.append('inventor_kit-0.1.0.tar.gz')
         artifacts = [dict(file=name, sha256=str(i)*64) for i, name in enumerate(names)]
-        platforms = ['linux-x86_64', 'windows-x86_64', 'macos-arm64', 'macos-x86_64', 'linux-x86_64']
+        platforms = ['linux-x86_64', 'windows-x86_64', 'macos-arm64', 'macos-x86_64', 'linux-arm64', 'linux-x86_64']
         reports = []
         for index, (artifact, platform) in enumerate(zip(artifacts, platforms)):
-            for python in (('3.11.13',) if index == 4 else ('3.11.13', '3.12.9')):
+            for python in (('3.11.13',) if index == len(names) - 1 else ('3.11.13', '3.12.9')):
                 reports.append(dict(schema_version=1, artifact=artifact, platform=platform, python=python,
                     status='passed', dependency_mode='published', pip_check='passed',
                     interpreter_shutdown='passed', current_state_verified=False,
@@ -101,6 +120,8 @@ class ReleaseGates(unittest.TestCase):
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         for report in reports:
             report['writer'] = dict(status='passed', single_parts=1, batch_occurrences=2, cli_occurrences=2,
+                semantic_json_roundtrip=True,
+                iam_api_occurrences=2, iam_cli_occurrences=1, iam_local_relocation=True,
                 nested_placement=True, repeated_definition=True, metadata=True,
                 existing_output_preserved=True, unsupported_batch_rejected=True, native_validation='not_run')
             if report['python'].startswith('3.12.'):
@@ -117,7 +138,7 @@ class ReleaseGates(unittest.TestCase):
             paths = [Path(temporary) / f'{i}.json' for i in range(len(reports))]
             for path, report in zip(paths, reports):
                 path.write_text(json.dumps(report))
-            self.assertEqual(viewer_reports(paths, artifacts), 9)
+            self.assertEqual(viewer_reports(paths, artifacts), 11)
             browser_report = reports[1]
             for change in ({}, {'status': 'failed'}, {'platform': 'win32'}, {'installed_wheel': False},
                            {'physical_scale_verified': True}, {'real_sheets': 4}):
@@ -130,6 +151,9 @@ class ReleaseGates(unittest.TestCase):
                     viewer_reports(bad, artifacts)
             mutations = [
                 {'writer': {}}, {'writer': {**reports[0]['writer'], 'cli_occurrences': 0}},
+                {'writer': {**reports[0]['writer'], 'iam_cli_occurrences': 0}},
+                {'writer': {**reports[0]['writer'], 'iam_local_relocation': False}},
+                {'writer': {**reports[0]['writer'], 'semantic_json_roundtrip': False}},
                 {'writer': {**reports[0]['writer'], 'native_validation': 'passed'}},
                 {'artifact': {**reports[0]['artifact'], 'sha256': 'bad'}},
                 {'platform': 'windows-x86_64'}, {'python': '3.13.0'},

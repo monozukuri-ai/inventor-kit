@@ -2,6 +2,7 @@
 
 English | [日本語](README.ja.md)
 
+- [Assembly writer](assembly-writer.md): Bundle newly authored IPTs into a fixed IAM (native qualification pending).
 - [Part writer](part-writer.md): Create standalone IPTs from CadQuery or STEP; scope and limits.
 - [Licensing](license.md): Noncommercial permissions, commercial plans and earlier MIT material.
 - [API guide](api.md): Reading files, metadata, saved candidates, assemblies, and limits.

@@ -14,7 +14,7 @@ REVIEWED_LICENSES = {
     'MIT/Apache-2.0', 'Unlicense OR MIT', 'MIT OR Zlib OR Apache-2.0',
     '0BSD OR MIT OR Apache-2.0', '(Apache-2.0 OR MIT) AND BSD-3-Clause',
     '(MIT OR Apache-2.0) AND Unicode-3.0', 'Apache-2.0 WITH LLVM-exception',
-    'Zlib',
+    'Zlib', 'BSD-3-Clause',
 }
 
 
@@ -53,6 +53,9 @@ def refresh_rust(root=ROOT):
                  if mit and 'MIT' in (p['license'] or '') else candidates)
         if p['name'] == 'zstd-sys':
             files.append(base/'zstd/LICENSE')
+        if p['name'] == 'sha1_smol':
+            # Its BSD notice attributes the contributors listed in AUTHORS.
+            files.append(base/'AUTHORS')
         entries = []
         for f in sorted(set(files)):
             data = f.read_bytes()

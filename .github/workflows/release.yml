@@ -49,6 +49,11 @@ jobs:
             target: x86_64-unknown-linux-gnu
             manylinux: "2014"
             interpreter: python3.11
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            manylinux: "2014"
+            interpreter: python3.11
           - platform: windows-x86_64
             runner: windows-2025
             target: x86_64-pc-windows-msvc
@@ -112,7 +117,7 @@ jobs:
           npm ci --prefix viewer
           cd viewer
           npx playwright install --with-deps chromium
-      - name: Cold install, IPT writer, geometry, STEP and viewer on Python 3.11 and 3.12
+      - name: Cold install, IPT/IAM writers, geometry, STEP and viewer on Python 3.11 and 3.12
         # Platform font/rendering evidence is collected from a cold installed wheel.
         # workflow_dispatch never reaches the publish job below.
         env:

@@ -6,6 +6,9 @@
 //! native M3 gate on build 311270010; self-reading alone does not establish acceptance.
 #[cfg(feature = "analytic-writer")]
 pub mod analytic;
+/// Bounded flat IAM encoding, qualified with Inventor build 311270010.
+#[cfg(feature = "iam-writer")]
+pub mod assembly;
 mod carrier;
 mod cfb;
 mod document;

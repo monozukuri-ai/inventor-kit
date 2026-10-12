@@ -101,3 +101,5 @@ The [part writer](part-writer.md) creates one standalone IPT per solid occurrenc
 The destination must be new. It prints JSON, returns 0 on success and 1 on failure,
 and publishes the batch only after normal worker shutdown. This command requires
 the writer-enabled release described in that guide.
+
+To bundle authored IPTs into an IAM, see the [assembly writer](assembly-writer.md): `new_assembly` and `write-assembly`. The bounded profile passed native open/save/reopen and moved-bundle qualification.

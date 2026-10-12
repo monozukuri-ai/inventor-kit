@@ -172,5 +172,34 @@
     },
     "cli": "write-step",
     "default_timeout_seconds": 600
+  },
+  "assembly_writer": {
+    "api_version": 1,
+    "status": "experimental_bounded",
+    "enabled_in_standard_build": true,
+    "target_profile": "inventor-iam-rse31-fixed-parts-v1",
+    "input": "initial single-solid IPT writer profile",
+    "max_occurrences": 32,
+    "max_part_bytes": 67108864,
+    "max_bundle_bytes": 268435456,
+    "placement": "grounded_visible_identity",
+    "references": "same_folder_basenames",
+    "inventor_api_required": false,
+    "template_required": false,
+    "constraints": false,
+    "joints": false,
+    "nested_assemblies": false,
+    "arbitrary_transforms": false,
+    "per_output_native_validation": "not_run",
+    "native_qualification": {
+      "inventor_build": "311270010",
+      "date": "2026-10-12",
+      "generated_cases": 4,
+      "control_cases": 1,
+      "phases": 35,
+      "scope": "initial writer IPTs: one part, two definitions with three placements, 32 repeated placements, and a separate 32-part assembly; open/save/reopen and moved-bundle resolution/resave/reopen; no constraints or arbitrary transforms"
+    },
+    "cli": "write-assembly",
+    "default_timeout_seconds": 120
   }
 }

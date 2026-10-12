@@ -233,10 +233,98 @@ fn encode_analytic_part<'py>(
     Ok(PyBytes::new(py, &bytes))
 }
 
+#[cfg(feature = "iam-writer")]
+#[pyfunction]
+fn inspect_authored_part(data: &Bound<'_, PyBytes>, filename: &str) -> PyResult<String> {
+    let bytes = data.as_bytes();
+    let part = data
+        .py()
+        .detach(|| {
+            inventor_core::write::assembly::PartDefinition::from_authored_ipt(filename, bytes)
+        })
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    serde_json::to_string(&part).map_err(|e| PyValueError::new_err(e.to_string()))
+}
+
+#[cfg(feature = "iam-writer")]
+#[pyfunction]
+fn encode_fixed_assembly<'py>(
+    py: Python<'py>,
+    specification: &str,
+    parts: Vec<(String, Bound<'py, PyBytes>)>,
+) -> PyResult<(Bound<'py, PyBytes>, String)> {
+    use inventor_core::write::assembly::{AssemblyDocument, PartDefinition};
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Occurrence {
+        part: usize,
+        name: String,
+    }
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Spec {
+        name: String,
+        part_number: String,
+        occurrences: Vec<Occurrence>,
+    }
+    if specification.len() > 65536
+        || parts.is_empty()
+        || parts.len() > 32
+        || parts
+            .iter()
+            .any(|(_, b)| b.as_bytes().len() > 64 * 1024 * 1024)
+        || parts.iter().map(|(_, b)| b.as_bytes().len()).sum::<usize>() > 256 * 1024 * 1024
+    {
+        return Err(PyValueError::new_err("IAM input budget exceeded"));
+    }
+    let inputs: Vec<_> = parts
+        .iter()
+        .map(|(name, b)| (name.as_str(), b.as_bytes()))
+        .collect();
+    let (bytes, report) = py
+        .detach(|| -> Result<_, String> {
+            let spec: Spec = serde_json::from_str(specification).map_err(|e| e.to_string())?;
+            if spec.occurrences.is_empty() || spec.occurrences.len() > 32 {
+                return Err("expected 1..32 occurrences".into());
+            }
+            let mut definitions = Vec::new();
+            for (name, b) in &inputs {
+                definitions
+                    .push(PartDefinition::from_authored_ipt(name, b).map_err(|e| e.to_string())?);
+            }
+            let mut doc = AssemblyDocument::empty(&spec.name)
+                .and_then(|d| d.with_part_number(&spec.part_number))
+                .map_err(|e| e.to_string())?;
+            let mut used = std::collections::BTreeSet::new();
+            for o in spec.occurrences {
+                used.insert(o.part);
+                let part = definitions
+                    .get(o.part)
+                    .ok_or("invalid occurrence part index")?;
+                doc.add_part(part.clone(), &o.name)
+                    .map_err(|e| e.to_string())?;
+            }
+            if used.len() != inputs.len() {
+                return Err("unused part input".into());
+            }
+            let prepared = doc.prepare();
+            let bytes = prepared.encode().map_err(|e| e.to_string())?;
+            let report = serde_json::to_string(&prepared).map_err(|e| e.to_string())?;
+            Ok((bytes, report))
+        })
+        .map_err(PyValueError::new_err)?;
+    Ok((PyBytes::new(py, &bytes), report))
+}
+
 #[pymodule]
 fn _inventor(module: &Bound<'_, PyModule>) -> PyResult<()> {
     #[cfg(feature = "analytic-writer")]
     module.add_function(wrap_pyfunction!(encode_analytic_part, module)?)?;
+    #[cfg(feature = "iam-writer")]
+    {
+        module.add_function(wrap_pyfunction!(inspect_authored_part, module)?)?;
+        module.add_function(wrap_pyfunction!(encode_fixed_assembly, module)?)?;
+    }
     module.add_function(wrap_pyfunction!(default_limits, module)?)?;
     module.add_function(wrap_pyfunction!(default_drawing_limits, module)?)?;
     module.add_function(wrap_pyfunction!(read, module)?)?;

@@ -4,18 +4,18 @@ version = 4
 
 [[package]]
 name = "acis-core"
-version = "0.3.10"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d68b549545616e3b649dd49add0c8ad57213be3f43af40429db3a0e2f22d04d5"
+checksum = "95d3c4c7c77ecba4f065dc8648a0a21af61ef59cb601eba691471dfbc4dc86a7"
 dependencies = [
  "num-bigint",
 ]
 
 [[package]]
 name = "acis-py-bridge"
-version = "0.3.10"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e1c601ffd0c5bd9cf790d3e21bb8157fcf078df14a8d53187a9414e3d315017"
+checksum = "3eaa6e00be0c0e0b859429e3b777630b65a4cd34058c3e63b5a32b40f09eae60"
 dependencies = [
  "acis-core",
  "num-bigint",
@@ -460,6 +460,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha1_smol"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -536,6 +542,7 @@ checksum = "2cefc03fd367c0c6d4305de1b312cf00248c4114f4a0418ce6a6af769e3b0bd9"
 dependencies = [
  "getrandom",
  "js-sys",
+ "sha1_smol",
  "wasm-bindgen",
 ]
 

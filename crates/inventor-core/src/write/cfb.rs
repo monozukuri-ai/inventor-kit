@@ -6,13 +6,31 @@ use std::{
 };
 
 pub(super) fn encode(streams: BTreeMap<String, Vec<u8>>) -> Result<Vec<u8>> {
+    encode_document(streams, "4d29b490-49b2-11d0-93c3-7e0706000000")
+}
+
+// IAM and IPT share CFB3 framing, but not their document or segment graphs.
+// Selecting a container class does not qualify its streams.
+pub(super) fn encode_document(
+    streams: BTreeMap<String, Vec<u8>>,
+    document_clsid: &str,
+) -> Result<Vec<u8>> {
     let mut c =
         ::cfb::CompoundFile::create_with_version(::cfb::Version::V3, Cursor::new(Vec::new()))
             .map_err(err)?;
-    let clsid = uuid::Uuid::parse_str("4d29b490-49b2-11d0-93c3-7e0706000000").map_err(err)?;
+    let clsid = uuid::Uuid::parse_str(document_clsid).map_err(err)?;
     c.set_storage_clsid("/", clsid).map_err(err)?;
     for path in ["/RSeStorage", "/RSeStorage/V1", "/RSeStorage/RSeEmbeddings"] {
         c.create_storage(path).map_err(err)?;
+    }
+    if document_clsid == "e60f81e1-49b3-11d0-93c3-7e0706000000" {
+        for path in [
+            "/RSeStorage/V1/RSeEmbeddings",
+            "/RSeStorage/RefdFiles",
+            "/RSeStorage/Templates",
+        ] {
+            c.create_storage(path).map_err(err)?;
+        }
     }
     c.set_storage_clsid("/RSeStorage/V1", clsid).map_err(err)?;
     for (path, data) in streams {

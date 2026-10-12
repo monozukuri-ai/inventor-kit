@@ -11,6 +11,8 @@ default = ["analytic-writer"]
 fuzzing = []
 # Bounded exact analytic part writer.
 analytic-writer = []
+# Bounded flat IAM writer; qualified with Inventor build 311270010.
+iam-writer = []
 
 [dependencies]
 acis-core.workspace = true
@@ -22,7 +24,7 @@ encoding_rs = "0.8.35"
 crc32fast = "1.5"
 sha2 = "0.10.9"
 serde_json = { workspace = true, features = ["float_roundtrip"] }
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "v5"] }
 
 [dev-dependencies]
 serde_json.workspace = true

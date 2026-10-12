@@ -18,7 +18,7 @@ python -m inventor_kit.viewer part.ipt
 終了時は端末で Ctrl-C を押してください。タブを閉じるだけでは終了しません。
 利用時の Node.js、Inventor、ネット接続は不要です。Windows は Ctrl-Break でも正常終了します。
 
-配布 workflow は Linux x86_64、Windows x86_64、macOS arm64 / x86_64 のそれぞれで、
+配布 workflow は Linux x86_64 / arm64、Windows x86_64、macOS arm64 / x86_64 のそれぞれで、
 Python 3.11 / 3.12 の新規環境に viewer extra を導入します。IPT、保存配置を許可した IAM、
 部分表示を明示許可した IAM のシーン・メッシュ配信、正常終了、一時データ削除を必須にしています。
 フルのブラウザ試験は Linux Chromium のソフトウェア描画で実行します。

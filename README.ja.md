@@ -22,11 +22,11 @@ v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwの�
 対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
 図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
 
-このcheckoutは **0.7.0リリース候補**です。writerにはcq-acis 0.3.10以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
+このcheckoutは **0.7.0リリース候補**です。writerにはcq-acis 0.3.11以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
 
 ## インストール
 
-Python 3.11 以降、`cq-acis>=0.3.10,<0.4`、共通モデル API 2 を使用します。
+Python 3.11 以降、`cq-acis>=0.3.11,<0.4`、共通モデル API 2 を使用します。
 公開済みの互換 wheel がある環境では、次のようにインストールできます。
 
 ```sh
@@ -34,7 +34,7 @@ python -m pip install inventor-kit
 ```
 
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.3.10 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
+0.3.11 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
 [リリース条件](docs/releasing.ja.md)を参照してください。
 
 ## 部品の読み込み
@@ -119,3 +119,5 @@ UnRobotics Inc. が別途 [Internal/OEM 商用ライセンス](COMMERCIAL-LICENS
 Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
 
 Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
+
+生成したIPTをIAMにまとめる `new_assembly` / `write-assembly` は[アセンブリwriter](docs/assembly-writer.ja.md)を参照してください。限定profileで実機の保存・再読込・移動後の参照解決まで検証済みです。

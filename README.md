@@ -25,18 +25,18 @@ See the [release notes](docs/release-notes-v0.5.0.md) for supported drawing prof
 line styles and platform checks. Drawing support remains experimental and partial;
 physical scale and native rendering equivalence are unverified.
 
-This checkout is the **0.7.0 release candidate**. Its writer requires cq-acis 0.3.10 or later in the 0.3 series; see the [writer guide](docs/part-writer.md).
+This checkout is the **0.7.0 release candidate**. Its writer requires cq-acis 0.3.11 or later in the 0.3 series; see the [writer guide](docs/part-writer.md).
 
 ## Installation
 
-Requires Python 3.11 or later, `cq-acis>=0.3.10,<0.4`, and shared model API 2.
+Requires Python 3.11 or later, `cq-acis>=0.3.11,<0.4`, and shared model API 2.
 Where compatible published wheels are available, install with:
 
 ```sh
 python -m pip install inventor-kit
 ```
 
-Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.10
+Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.11
 from crates.io. See the [development guide](docs/development.md) and
 [release requirements](docs/releasing.md).
 
@@ -126,3 +126,5 @@ sources; the CAD files themselves are excluded from distribution packages.
 Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
 
 Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
+
+To bundle authored IPTs into an IAM, see the [assembly writer](docs/assembly-writer.md): `new_assembly` and `write-assembly`. The bounded profile passed native open/save/reopen and moved-bundle qualification.

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from . import _inventor
 from .writer import PartBuilder, PartWriteReport, PartWriteError, new_part
+from .assembly_writer import AssemblyBuilder, AssemblyWriteReport, AssemblyWriteError, new_assembly
 from .limits import Limits, effective as _effective_limits, encoded as _encoded_limits
 from .document import (DocumentInfo, Property, PropertySet, Diagnostic, SourceSpan,
                        Thumbnail, FileTime, OleDate, ClipboardData, PropertyArray, _document)
@@ -29,6 +30,7 @@ def capabilities() -> dict:
     from importlib.resources import files
     result = json.loads(files(__package__).joinpath('capabilities.json').read_text(encoding='utf-8'))
     result['part_writer']['available'] = hasattr(_inventor, 'encode_analytic_part')
+    result['assembly_writer']['available'] = hasattr(_inventor, 'encode_fixed_assembly')
     return result
 
 
@@ -103,6 +105,7 @@ from .step_parts import StepPartLimits, StepPartWriteError, StepPartWriteReport,
 
 
 __all__ = ["PartBuilder", "PartWriteReport", "PartWriteError", "new_part",
+           "AssemblyBuilder", "AssemblyWriteReport", "AssemblyWriteError", "new_assembly",
            "StepPartLimits", "StepPartWriteError", "StepPartWriteReport", "write_step_parts",
            "Limits", "capabilities", "InventorDocument", "DocumentInfo", "Property", "PropertySet", "Diagnostic", "SourceSpan",
            "BodyConversion", "PartConversion", "BodyConversionError", "ConversionDiagnostic",

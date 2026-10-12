@@ -21,3 +21,4 @@ serde.workspace = true
 [features]
 default = ["analytic-writer"]
 analytic-writer = ["inventor-core/analytic-writer"]
+iam-writer = ["inventor-core/iam-writer"]

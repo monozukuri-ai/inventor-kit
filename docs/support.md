@@ -49,7 +49,10 @@ It does not extend native geometry, assembly-state, or drawing support.
 
 The [writer](part-writer.md) supports a bounded single-solid metric IPT profile.
 Planar/cylindrical faces and line/circle/ellipse edges can be authored from CadQuery
-or STEP occurrences. IAM/IDW writing, general surfaces, multiple-body IPTs and
+or STEP occurrences. IDW writing, general surfaces, multiple-body IPTs and
 feature-history reconstruction are outside scope. Native acceptance was checked
 on a fixed development corpus and Inventor build; every new output retains
 `native_validation="not_run"`.
+
+The [assembly writer](assembly-writer.md) adds a bounded flat IAM profile for newly
+authored IPTs. Its bounded profile passed native open/save/reopen and moved-bundle qualification.

@@ -21,7 +21,7 @@ does not stop the process. Node.js, Inventor, and runtime network access are not
 required. Windows also accepts Ctrl-Break for normal shutdown.
 
 The distribution workflow checks the viewer extra on Python 3.11 and 3.12 for
-Linux x86_64, Windows x86_64, and macOS arm64 / x86_64. Each fresh installation
+Linux x86_64 / arm64, Windows x86_64, and macOS arm64 / x86_64. Each fresh installation
 must serve IPT, saved IAM, and explicitly permitted partial IAM scenes, deliver
 mesh buffers, exit normally, and remove temporary session data. Full browser
 checks run on Linux Chromium using software rendering. Windows/macOS browser

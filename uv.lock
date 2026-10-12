@@ -348,19 +348,20 @@ wheels = [
 
 [[package]]
 name = "cq-acis"
-version = "0.3.10"
+version = "0.3.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cadquery" },
     { name = "casadi", marker = "sys_platform == 'win32'" },
     { name = "nlopt", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/3c/be2c83fdd7a4d41008c48f70b3b7ac7569fced52f249dc5cd086ae600340/cq_acis-0.3.10.tar.gz", hash = "sha256:5b690807bb8d3871a96663991720e3aeae9d890ad2eb0f088684b2cfd90284bf", size = 143776, upload-time = "2026-10-11T07:10:37.939Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/a6/c67709ecc1a772829f7ad8f812b9c108b00e9d0ca7d8cb1b28e29b9a0731/cq_acis-0.3.11.tar.gz", hash = "sha256:ffe35a5a46eed37820ad15cfbd6f6055ad83c24282b52ab4a8de0c27073004d0", size = 143950, upload-time = "2026-10-11T09:43:46.727Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/ef/767f1d8e84bc0f6083b72e48c025565cdaeb79ce577c5bd51c2e660f1ad0/cq_acis-0.3.10-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:366874ee6946801ed4517ecf6343adc5adbc277bb49f7e08b3d76fc2472e8057", size = 531722, upload-time = "2026-10-11T07:10:31.112Z" },
-    { url = "https://files.pythonhosted.org/packages/80/1e/2823027630f8dce7032f1220be5f176cc7c77648ef701fca5efa09830f63/cq_acis-0.3.10-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:c38fff8584043f8d87f984beb8482b6575693f2145daa5af59cd25b860283fb8", size = 526049, upload-time = "2026-10-11T07:10:32.942Z" },
-    { url = "https://files.pythonhosted.org/packages/3b/3d/79731806bcba4509203561007454c4ef5f540d298d72180ca4746958eaf6/cq_acis-0.3.10-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:44a816b7fc4c10101b54b0e9e3f12314b197f6134c8a48289f1508147ffa75ee", size = 566405, upload-time = "2026-10-11T07:10:34.78Z" },
-    { url = "https://files.pythonhosted.org/packages/d5/a0/fd971968b7632370f348fd7cf038ffc793a7790a15aeb248167b816837ba/cq_acis-0.3.10-cp310-abi3-win_amd64.whl", hash = "sha256:1ffeb746c7a2a41a579c09b6922f312479490fb84a7f339b9fdea908d4ce5d9c", size = 484160, upload-time = "2026-10-11T07:10:36.537Z" },
+    { url = "https://files.pythonhosted.org/packages/38/72/d2ffed8e0e93df2b4078fde12b1e7fe1888de19211104e306fa952e2a6bd/cq_acis-0.3.11-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:83fa9c33963452073a9d9d6fd9dd449785d98bf908974184ff69c7f40a23d21e", size = 532507, upload-time = "2026-10-11T09:43:39.855Z" },
+    { url = "https://files.pythonhosted.org/packages/16/95/d71665fb7e8a1f477f5ee5d9bf95a245866c3eccd98ee50b6912398b555f/cq_acis-0.3.11-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:6dacb5d8372b10d9c2d4f973bee470c0c85dec49b4fd43013b81f159bd35d86f", size = 526695, upload-time = "2026-10-11T09:43:41.2Z" },
+    { url = "https://files.pythonhosted.org/packages/15/6a/e22a682c4f2ad122715ad307bc9dfc90ff531fce1d0da1e7ce0991341ce2/cq_acis-0.3.11-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4862e8d4e971c47ed16f2801033d470579240e23750cc7ec2bca1957a9b3d41d", size = 537996, upload-time = "2026-10-11T09:43:42.691Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/3a/2fb598f631ab95eccaeef37a1ab107af15832d9a779dd3f45be257e4a741/cq_acis-0.3.11-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7ce8de3391855e145fb49ce624087c1ac73df16b76d9239b8cb1a279e58acd08", size = 566915, upload-time = "2026-10-11T09:43:43.941Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/9e/3766527c3a3681db2cdf17336227425d5f835206d588f36772d19453a17f/cq_acis-0.3.11-cp310-abi3-win_amd64.whl", hash = "sha256:5647b00e3b00c0aa0d4826802c883ec0a3dff64371f5ea63b16e68086f3c2e0a", size = 484991, upload-time = "2026-10-11T09:43:45.308Z" },
 ]
 
 [[package]]
@@ -625,7 +626,7 @@ viewer = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cq-acis", specifier = ">=0.3.10,<0.4" },
+    { name = "cq-acis", specifier = ">=0.3.11,<0.4" },
     { name = "jsonschema", marker = "extra == 'oracle'", specifier = ">=4.23,<5" },
     { name = "jsonschema", marker = "extra == 'validation'", specifier = ">=4.23,<5" },
     { name = "ocp-tessellate", marker = "extra == 'viewer'", specifier = "==3.5.1" },

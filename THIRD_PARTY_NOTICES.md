@@ -52,6 +52,10 @@ are created by an inventor-kit commercial agreement.
 - sha2 0.10.9 and its supporting Rust dependencies: content-bound candidate IDs
   and source fingerprints. Used under MIT; notices are preserved in
   `licenses/sha2-dependencies-MIT.txt`.
+- sha1_smol 1.0.1, BSD-3-Clause with an MIT-licensed SIMD implementation:
+  UUID v5 names for assembly state roles. This is identifier allocation, not
+  a security hash. License texts and contributor attribution are included in
+  `licenses/rust-dependencies.txt`.
 - MS-OLEPS and the W3C PNG specification informed the independent document reader.
   Exact sections and limitations are linked from `docs/format-reference.md`.
   olefile and Pillow are validation dependencies only; their source is not copied.

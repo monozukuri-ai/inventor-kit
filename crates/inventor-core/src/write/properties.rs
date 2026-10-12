@@ -224,7 +224,12 @@ fn ufrx(g: &Graph<'_>) -> Vec<u8> {
     w.0.resize(w.0.len() + 433, 0);
     w.0
 }
-fn text_property_set(fmtid: &str, pid: u32, text: &str, set_name: &str) -> Result<Vec<u8>> {
+pub(super) fn text_property_set(
+    fmtid: &str,
+    pid: u32,
+    text: &str,
+    set_name: &str,
+) -> Result<Vec<u8>> {
     let wide = |text: &str| {
         let mut w = Wire::default();
         w.u32(31);

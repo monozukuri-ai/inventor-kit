@@ -41,6 +41,11 @@ class WriterIntegration(unittest.TestCase):
         for i,shape in enumerate((self.shape,self.cq.Workplane('XY').circle(10).extrude(20).val(),
                 self.shape.cut(self.cq.Workplane('XY').center(5,5).circle(2).extrude(10).val()).Solids()[0])):
             with self.subTest(i=i):
+                from cq_acis.authoring import from_cadquery
+                from cq_acis import _native
+                authored = from_cadquery(shape)
+                restored = _native.author_analytic(json.loads(json.dumps(authored.to_spec())))
+                self.assertEqual(restored.to_sab(history=False), authored.to_sab(history=False))
                 report=self.part(shape).saveas(self.root/f'形状{i}.ipt')
                 doc=ik.read_file(report.path);result=doc.to_cadquery().val()
                 self.assertTrue(result.isValid());self.assertEqual(len(result.Solids()),1)

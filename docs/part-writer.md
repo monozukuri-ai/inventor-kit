@@ -7,7 +7,7 @@ Inventor API, or an existing IPT template. It accepts one solid per part and
 stores exact geometry as a nonparametric base feature. Display meshes accompany
 the geometry. Existing files and directories are never overwritten.
 
-This API is part of the **0.7.0 release candidate** and requires `cq-acis>=0.3.10,<0.4`.
+This API is part of the **0.7.0 release candidate** and requires `cq-acis>=0.3.11,<0.4`.
 Install a candidate wheel from the [distribution workflow](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml)
 until inventor-kit 0.7.0 is published. Earlier published builds do not include this API.
 
@@ -81,7 +81,7 @@ or memory bound is required.
 | Document | One nonparametric base feature; fresh independent document identities |
 | Metadata | Document label, body/feature names, Title and Part Number |
 | STEP batch | Names, nested rigid placements, repeated solid occurrences |
-| Outside scope | IAM/IDW output, multiple-body IPTs, feature-history reconstruction, imported appearance, general NURBS surfaces |
+| Outside scope | IDW output; IAM output uses the separate assembly writer, multiple-body IPTs, feature-history reconstruction, imported appearance, general NURBS surfaces |
 
 `StepPartLimits` defaults to 32 MiB of input, 250,000 STEP entities, 256 parts,
 4,096 hierarchy nodes, depth 32, 32,768 total faces/edges/vertices and 256 MiB of

@@ -5,9 +5,9 @@ build-backend = "maturin"
 [project]
 name = "inventor-kit"
 version = "0.7.0"
-description = "Read Inventor files and write bounded single-solid IPT parts without Inventor"
+description = "Read Inventor files and write bounded IPT parts and flat IAM assemblies without Inventor"
 requires-python = ">=3.11"
-dependencies = ["cq-acis>=0.3.10,<0.4"]
+dependencies = ["cq-acis>=0.3.11,<0.4"]
 license = "PolyForm-Noncommercial-1.0.0 AND MIT AND Apache-2.0 AND BSD-3-Clause AND CC-BY-4.0 AND Zlib"
 license-files = ["LICENSE", "COMMERCIAL-LICENSE.md", "THIRD_PARTY_NOTICES.md", "licenses/*.txt", "licenses/*.md", "licenses/*.json"]
 readme = "README.md"
@@ -28,7 +28,7 @@ strip = true
 manifest-path = "crates/inventor-py/Cargo.toml"
 module-name = "inventor_kit._inventor"
 python-source = "python"
-features = ["pyo3/extension-module", "analytic-writer"]
+features = ["pyo3/extension-module", "analytic-writer", "iam-writer"]
 exclude = ["internal/**", ".internal/**", ".local/**", "fixtures/**", "reports/**", "target/**", "fuzz/**", ".cargo/**", "*.step", "*.stp", "*.ipt", "*.iam", "*.idw", "error.*"]
 include = [
     {path = "python/inventor_kit/viewer/static/**", format = ["wheel", "sdist"]},
@@ -48,6 +48,8 @@ include = [
     {path = "CLA.md", format = "sdist"},
     {path = "viewer/LICENSE.txt", format = "sdist"},
     {path = "scripts/check_license.py", format = "sdist"},
+    {path = "scripts/check_assembly_writer.py", format = "sdist"},
+    {path = "tests/test_assembly_writer.py", format = "sdist"},
     {path = "scripts/sync_license_notices.py", format = "sdist"},
     {path = "docs/format-reference*.md", format = "wheel"},
     {path = "docs/*.md", format = "sdist"},

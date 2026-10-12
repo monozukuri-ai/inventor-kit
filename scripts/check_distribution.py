@@ -13,6 +13,7 @@ import tomllib
 import zipfile
 from check_viewer_assets import check_bundle
 from check_license import DISTRIBUTION_LICENSE, check_archive_licenses, notice_bundle
+from check_dependencies import ACIS_VERSION, CQ_ACIS_BOUNDS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +24,7 @@ def check_metadata(meta, version):
     if meta['Requires-Python'] != '>=3.11':
         raise ValueError('Distribution must require Python >=3.11')
     requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
-    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != {'>=0.3.10', '<0.4'}:
+    if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != CQ_ACIS_BOUNDS:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
     viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
     if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
@@ -43,7 +44,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
             raise ValueError('Missing ABI3 native extension')
         package_prefix = 'inventor_kit/'
         viewer_sources = None
-        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
             if 'inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python API: {name}')
         metadata = [v for k, v in contents.items() if k.endswith('.dist-info/METADATA')]
@@ -94,9 +95,15 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         for name in ('mod.rs', 'ufrx.rs', 'records.rs', 'matrix.rs', 'resolve.rs', 'tests.rs'):
             if prefix + 'crates/inventor-core/src/assembly/' + name not in contents:
                 raise ValueError(f'Missing assembly Rust source: {name}')
-        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
             if prefix + 'python/inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python source: {name}')
+        for name in ('allocation.rs', 'input.rs', 'wire.rs', 'profile.json'):
+            if prefix + 'crates/inventor-core/src/write/assembly/' + name not in contents:
+                raise ValueError(f'Missing IAM writer build input: {name}')
+        for name in ('scripts/check_assembly_writer.py', 'tests/test_assembly_writer.py'):
+            if prefix + name not in contents:
+                raise ValueError(f'Missing public IAM validation source: {name}')
         for name, content in contents.items():
             if name.endswith('Cargo.toml'):
                 # Any remaining path must name a crate within this source archive.
@@ -116,7 +123,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
-            if len(entries) != 1 or entries[0]['version'] != '0.3.10':
+            if len(entries) != 1 or entries[0]['version'] != ACIS_VERSION:
                 raise ValueError(f'Expected one pinned {package}')
             entry = entries[0]
             registry = entry.get('source') == 'registry+https://github.com/rust-lang/crates.io-index' and len(entry.get('checksum', '')) == 64

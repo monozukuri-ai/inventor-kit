@@ -14,14 +14,15 @@ Python 3.11 以降を使用します。通常の再現手順は [開発ガイド
 | `validate_geometry.py`, `validate_components.py`, `validate_topology.py` | 固定形状量と曲線・曲面・トポロジの検証 |
 | `validate_tolerant_trims.py` | [トレラント・有限 UV 対応](../docs/tolerant-trims.ja.md)と固定した元データの要素を照合 |
 | `validate_analytic_closure.py` | [円筒継ぎ目・シェル閉鎖・STEP・メッシュ](../docs/validation.ja.md#再現と任意のオラクル)を検証し、開いた補助 body の失敗を保持 |
-| `validate_revolution_trims.py` | FTC10/CTC02 の修正面・元の境界保持・STEP・メッシュを検証。公開 cq-acis 0.3.10 以降が必要 |
+| `validate_revolution_trims.py` | FTC10/CTC02 の修正面・元の境界保持・STEP・メッシュを検証。公開 cq-acis 0.3.11 以降が必要 |
 | `validate_assembly.py` | IAM 参照・配置・欠落・STEP の回帰と保留検証 |
 | `benchmark_parser.py`, `seed_fuzz_corpus.py`, `run_fuzz.py` | 固定入力の計測と bounded ASan fuzz |
 | `capture_vendor_oracle.py`, `capture_model_states.py` | 任意の Windows / Autodesk オラクル取得 |
 | `drawing_corpus.py`, `capture_drawing_oracle.py`, `drawing_oracle_contract.py`, `validate_drawing_oracle.py` | IDWコーパスと[比較値スキーマ](../schemas/drawing-oracle-v1.schema.json)。オプションは各コマンドの`--help`を参照 |
 | `validate_drawing_inventory.py` | 回帰用IDWの構造・暫定フィールド・元バイト範囲を検証。[図面表示](../docs/drawing.ja.md)の適格化ではない |
 | `oracle_contract.py`, `compare_state_candidates.py`, `ezdxf_oracle.py` | オラクル契約と比較 |
-| `smoke_writer.py` | 合成部品・STEPを使うインストール済みAPI/CLI writerの検査 |
+| `check_assembly_writer.py` | 内部資料への依存がないtyped IAM初期値を検査 |
+| `smoke_writer.py` | 合成部品・STEP・移動可能なIAM bundleを使うインストール済みAPI/CLI writerの検査 |
 | `check_dependencies.py`, `check_distribution.py`, `smoke_distribution.py`, `check_release.py` | 依存・配布物・隔離インストール・公開ゲート |
 | `check_public_tree.py`, `summarize_validation.py` | 公開リンクの検査、公開用集計の生成 |
 

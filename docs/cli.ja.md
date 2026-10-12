@@ -88,3 +88,5 @@ python -m inventor_kit write-step assembly.step output_parts --timeout 600
 [部品writer](part-writer.ja.md)は各solidの配置につき単独IPTを生成します。出力先は新規directoryです。
 結果はJSONで表示し、成功時0・失敗時1を返します。workerが正常終了した後に一式を配置します。
 この機能にはwriter対応版が必要です。対応版と入力の制限はリンク先を参照してください。
+
+生成したIPTをIAMにまとめる `new_assembly` / `write-assembly` は[アセンブリwriter](assembly-writer.ja.md)を参照してください。限定profileで実機の保存・再読込・移動後の参照解決まで検証済みです。

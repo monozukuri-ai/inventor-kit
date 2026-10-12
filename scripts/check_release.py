@@ -32,13 +32,15 @@ def artifact_platform(name):
         platform = 'macos-x86_64'
     elif '-manylinux' in name and name.endswith('_x86_64.whl'):
         platform = 'linux-x86_64'
+    elif '-manylinux' in name and name.endswith('_aarch64.whl'):
+        platform = 'linux-arm64'
     else:
         raise ValueError('Unexpected release artifact: ' + name)
     return platform
 
 
 def artifact_set(paths):
-    expected = {'linux-x86_64', 'windows-x86_64', 'macos-arm64', 'macos-x86_64', 'sdist'}
+    expected = {'linux-x86_64', 'linux-arm64', 'windows-x86_64', 'macos-arm64', 'macos-x86_64', 'sdist'}
     found = set()
     reports = []
     for path in paths:
@@ -79,9 +81,11 @@ def viewer_reports(paths, artifacts):
         writer = report.get('writer', {})
         if (writer.get('status') != 'passed' or writer.get('single_parts') != 1
                 or writer.get('batch_occurrences') != 2 or writer.get('cli_occurrences') != 2
+                or writer.get('iam_api_occurrences') != 2 or writer.get('iam_cli_occurrences') != 1
+                or writer.get('iam_local_relocation') is not True
                 or writer.get('native_validation') != 'not_run'
                 or not all(writer.get(key) is True for key in ('nested_placement', 'repeated_definition',
-                    'metadata', 'existing_output_preserved', 'unsupported_batch_rejected'))):
+                    'metadata', 'existing_output_preserved', 'unsupported_batch_rejected', 'semantic_json_roundtrip'))):
             raise ValueError('Missing installed writer qualification for this artifact/interpreter')
         if key[1] == '3.12':
             browser = report.get('drawing_browser', {})

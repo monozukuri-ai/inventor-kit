@@ -4,8 +4,8 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.3.10` と `acis-py-bridge=0.3.10`、Python は
-`cq-acis>=0.3.10,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.3.11` と `acis-py-bridge=0.3.11`、Python は
+`cq-acis>=0.3.11,<0.4` と共通モデル API 2 を必要とします。
 Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。
@@ -53,6 +53,7 @@ CLA への明示的な同意を記録してください。
 | artifact | ビルド対象 | インストール確認 |
 | --- | --- | --- |
 | ABI3 wheel | Linux x86_64 / manylinux2014 | Python 3.11 / 3.12 |
+| ABI3 wheel | Linux arm64(aarch64)/ manylinux2014 | Python 3.11 / 3.12 |
 | ABI3 wheel | Windows x86_64 | Python 3.11 / 3.12 |
 | ABI3 wheel | macOS arm64 | Python 3.11 / 3.12 |
 | ABI3 wheel | macOS x86_64 | Python 3.11 / 3.12 |
@@ -127,7 +128,7 @@ Release workflow は全 4 プラットフォームと sdist の集合を検査�
 
 ## writer対応版の公開条件
 
-0.7.0候補にはcq-acis 0.3.10の意味付き形状生成APIが必要です。
+0.7.0候補にはcq-acis 0.3.11の意味付き形状生成APIとJSON仕様の修正を使用します。
 acis-coreを先に公開・照合し、対応するbridgeとPython配布物を公開した後、
 本プロジェクトのCargo・uv lockを公開registryから更新します。
 ローカル依存の候補ビルドは準備用であり、公開ゲートの合格には使いません。

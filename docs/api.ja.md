@@ -116,3 +116,5 @@ Python と Rust の両方が 0 以上の整数であること、既定値以下�
 実験段階の[部品writer](part-writer.ja.md)は `new_part`、`PartBuilder.add_body`、
 `saveas`、`write_step_parts` を提供します。Inventorのプロセスやテンプレートを使わず、
 新しい単一solid IPTを生成します。必要な版、対応形状、出力確定、エラーの扱いはリンク先を参照してください。
+
+生成したIPTをIAMにまとめる `new_assembly` / `write-assembly` は[アセンブリwriter](assembly-writer.ja.md)を参照してください。限定profileで実機の保存・再読込・移動後の参照解決まで検証済みです。
