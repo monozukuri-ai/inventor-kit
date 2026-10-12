@@ -24,13 +24,14 @@ class ReleaseGates(unittest.TestCase):
     def test_python_lock_rejects_unpublished_or_stale_dependencies(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root/'pyproject.toml').write_text('[project]\nversion = "0.7.0"\ndependencies = ["cq-acis>=0.3.11,<0.4"]\n')
-            valid = ('[[package]]\nname = "inventor-kit"\nversion = "0.7.0"\n'
+            (root/'Cargo.toml').write_text('[workspace.package]\nversion = "1.2.3"\n')
+            (root/'pyproject.toml').write_text('[project]\ndynamic = ["version"]\ndependencies = ["cq-acis>=0.3.11,<0.4"]\n')
+            valid = ('[[package]]\nname = "inventor-kit"\nversion = "1.2.3"\nsource = {editable = "."}\n'
                      '[[package]]\nname = "cq-acis"\nversion = "0.3.11"\n'
                      'source = {registry = "https://pypi.org/simple"}\n')
             (root/'uv.lock').write_text(valid)
             check_python_lock(root)
-            for content in (valid.replace('0.7.0','0.6.0'), valid.replace('0.3.11','0.3.10'),
+            for content in (valid.replace('1.2.3','1.2.2'), valid.replace('0.3.11','0.3.10'),
                             valid.replace('registry = "https://pypi.org/simple"','path = "local"'),
                             valid.replace('https://pypi.org/simple','https://example.test/simple')):
                 (root/'uv.lock').write_text(content)
@@ -40,13 +41,14 @@ class ReleaseGates(unittest.TestCase):
         from check_dependencies import CQ_ACIS_REQUIREMENT, ACIS_VERSION
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root/'Cargo.toml').write_text('[workspace.package]\nversion = "1.2.3"\n')
             (root/'uv.lock').write_text(
-                '[[package]]\nname = "inventor-kit"\nversion = "0.7.0"\n'
+                '[[package]]\nname = "inventor-kit"\nsource = {editable = "."}\n'
                 f'[[package]]\nname = "cq-acis"\nversion = "{ACIS_VERSION}"\n'
                 'source = {registry = "https://pypi.org/simple"}\n')
             for requirement in (CQ_ACIS_REQUIREMENT, 'cq-acis>=0.3.10,<0.4'):
                 (root/'pyproject.toml').write_text(
-                    f'[project]\nversion = "0.7.0"\ndependencies = ["{requirement}"]\n')
+                    f'[project]\ndynamic = ["version"]\ndependencies = ["{requirement}"]\n')
                 if requirement == CQ_ACIS_REQUIREMENT:
                     check_python_lock(root)
                 else:

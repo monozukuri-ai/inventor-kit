@@ -21,6 +21,7 @@ Python 3.11 以降を使用します。通常の再現手順は [開発ガイド
 | `drawing_corpus.py`, `capture_drawing_oracle.py`, `drawing_oracle_contract.py`, `validate_drawing_oracle.py` | IDWコーパスと[比較値スキーマ](../schemas/drawing-oracle-v1.schema.json)。オプションは各コマンドの`--help`を参照 |
 | `validate_drawing_inventory.py` | 回帰用IDWの構造・暫定フィールド・元バイト範囲を検証。[図面表示](../docs/drawing.ja.md)の適格化ではない |
 | `oracle_contract.py`, `compare_state_candidates.py`, `ezdxf_oracle.py` | オラクル契約と比較 |
+| `bump_version.py`, `versioning.py` | Cargoの代表版数とlockを一括更新。`--check --tag vX.Y.Z`で読取り専用の整合性検査 |
 | `check_assembly_writer.py` | 内部資料への依存がないtyped IAM初期値を検査 |
 | `smoke_writer.py` | 合成部品・STEP・移動可能なIAM bundleを使うインストール済みAPI/CLI writerの検査 |
 | `check_dependencies.py`, `check_distribution.py`, `smoke_distribution.py`, `check_release.py` | 依存・配布物・隔離インストール・公開ゲート |

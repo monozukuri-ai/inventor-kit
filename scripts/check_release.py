@@ -2,23 +2,17 @@
 import argparse
 import json
 from pathlib import Path
-import tomllib
 import urllib.error
 import urllib.request
 
 from check_distribution import check
+from versioning import check_versions
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def check_tag(tag):
-    version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
-    for crate in ('inventor-core', 'inventor-py'):
-        if tomllib.loads((ROOT/'crates'/crate/'Cargo.toml').read_text())['package']['version'] != version:
-            raise ValueError('Python and Rust package versions differ')
-    if tag and tag != 'v' + version:
-        raise ValueError(f'Release tag must be v{version}')
-    return version
+    return check_versions(ROOT, tag)
 
 
 def artifact_platform(name):

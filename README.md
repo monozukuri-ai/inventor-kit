@@ -25,7 +25,7 @@ See the [release notes](docs/release-notes-v0.5.0.md) for supported drawing prof
 line styles and platform checks. Drawing support remains experimental and partial;
 physical scale and native rendering equivalence are unverified.
 
-This checkout is the **0.7.0 release candidate**. Its writer requires cq-acis 0.3.11 or later in the 0.3 series; see the [writer guide](docs/part-writer.md).
+The release version is defined in [Cargo.toml](Cargo.toml); see [version management](docs/releasing.md#version-management) for the update command. The writer requires cq-acis 0.3.11 or later in the 0.3 series; see the [writer guide](docs/part-writer.md).
 
 ## Installation
 
@@ -112,7 +112,7 @@ diagnostics, and saved candidate selection.
 | [API](docs/api.md) | Metadata, saved candidates, units, reference resolution, and limits |
 | [Validation](docs/validation.md) | Regression and holdout checks, comparison evidence, and completed validation |
 | [Development](docs/development.md) | Builds, tests, fuzzing, and public directory roles |
-| [Experimental part writer](docs/part-writer.md) | 0.7.0 candidate: standalone IPTs from CadQuery or STEP |
+| [Experimental part writer](docs/part-writer.md) | Standalone IPTs from CadQuery or STEP |
 | [Releasing](docs/releasing.md) | Wheels, sdists, CI, and publication requirements |
 | [Format references](docs/format-reference.md) | Implementation references and licenses |
 

@@ -12,12 +12,17 @@ Rust は CI と同じ 1.93、maturin は 1.11.5 を検証用の基準にしま�
 `internal/` へ退避してからビルドしてください。`scripts/check_dependencies.py` は
 core と bridge がそれぞれ一つの公開 crate として解決されることを確認します。
 
+リリース版数はルートの `Cargo.toml` から継承します。版数とlockの一括更新には
+`python scripts/bump_version.py X.Y.Z` を使います。
+詳細は[バージョン管理](releasing.ja.md#バージョン管理)を参照してください。
+
 ```sh
 python3.11 -m venv .venv
 . .venv/bin/activate
 python -m pip install 'maturin[patchelf]==1.11.5'
 maturin develop --release --locked --extras validation
 python scripts/check_dependencies.py
+python scripts/bump_version.py --check
 python scripts/check_public_tree.py
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

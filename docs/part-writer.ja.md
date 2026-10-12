@@ -6,9 +6,9 @@
 1部品につき1 solidを受け取り、正確な形状を非パラメトリックな基本フィーチャとして保存します。
 表示用メッシュも別に保存します。既存ファイルやディレクトリは上書きしません。
 
-このAPIは **0.7.0リリース候補**の機能で、`cq-acis>=0.3.11,<0.4` が必要です。
-inventor-kit 0.7.0の公開までは、[配布ワークフロー](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml)
-の候補wheelをインストールしてください。以前の公開ビルドには含まれません。
+このcheckoutには `cq-acis>=0.3.11,<0.4` が必要です。未公開の変更を試す場合は、
+[配布ワークフロー](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml)
+の候補wheelをインストールしてください。パッケージ版数は[Cargo.toml](../Cargo.toml)で管理します。
 
 ## CadQueryから部品を作る
 

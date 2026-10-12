@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import tomllib
+from versioning import check_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_LICENSE = 'PolyForm-Noncommercial-1.0.0 AND MIT'
@@ -59,6 +60,7 @@ def check_archive_licenses(contents, meta, prefix, root=ROOT):
 
 
 def check(root=ROOT):
+    version = check_sources(root)
     check_pinned_texts(lambda p: (root/p).read_bytes())
     for path in ('LICENSE', 'README.md', 'README.ja.md'):
         text = (root/path).read_text(encoding='utf-8')
@@ -75,7 +77,7 @@ def check(root=ROOT):
     for name in ('inventor-core', 'inventor-py'):
         base = root/'crates'/name
         package = tomllib.loads((base/'Cargo.toml').read_text())['package']
-        if package['license'] != {'workspace': True} or package['version'] != project['version']:
+        if package['license'] != {'workspace': True}:
             raise ValueError('Unexpected crate license/version: ' + name)
         if (base/'LICENSE').read_bytes() != notice_bundle(root):
             raise ValueError('Stale crate license bundle: ' + name)
@@ -83,11 +85,8 @@ def check(root=ROOT):
         raise ValueError('Stale viewer license notice')
     viewer = json.loads((root/'viewer/package.json').read_text())
     lock = json.loads((root/'viewer/package-lock.json').read_text())
-    if (viewer['license'] != PROJECT_LICENSE or viewer['version'] != project['version']
-            or lock['version'] != project['version']
-            or lock['packages']['']['license'] != PROJECT_LICENSE
-            or lock['packages']['']['version'] != project['version']):
-        raise ValueError('Unexpected viewer license/version')
+    if viewer['license'] != PROJECT_LICENSE or lock['packages']['']['license'] != PROJECT_LICENSE:
+        raise ValueError('Unexpected viewer license')
     catalog = json.loads((root/'licenses/rust-dependencies.json').read_text())
     locked = tomllib.loads((root/'Cargo.lock').read_text())['package']
     expected = {(p['name'], p['version'], p.get('checksum')) for p in locked if p.get('source')}
@@ -99,7 +98,7 @@ def check(root=ROOT):
         raise ValueError('Rust notice inventory does not match Cargo.lock')
     if hashlib.sha256((root/'licenses/rust-dependencies.txt').read_bytes()).hexdigest() != catalog['notices_sha256']:
         raise ValueError('Rust notice catalog hash mismatch')
-    return project['version']
+    return version
 
 
 if __name__ == '__main__':

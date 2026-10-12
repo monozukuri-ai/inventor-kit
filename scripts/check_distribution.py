@@ -14,6 +14,7 @@ import zipfile
 from check_viewer_assets import check_bundle
 from check_license import DISTRIBUTION_LICENSE, check_archive_licenses, notice_bundle
 from check_dependencies import ACIS_VERSION, CQ_ACIS_BOUNDS
+from versioning import project_version
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,7 +33,7 @@ def check_metadata(meta, version):
 
 
 def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False):
-    version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
+    version = project_version()
     if path.name.endswith('.whl'):
         if not path.name.startswith(f'inventor_kit-{version}-'):
             raise ValueError('Wheel filename package/version mismatch')
@@ -84,6 +85,9 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         license_prefix = prefix
         package_prefix = prefix+'python/inventor_kit/'
         viewer_sources = prefix+'viewer/'
+        workspace = tomllib.loads(contents[prefix+'Cargo.toml'].decode())['workspace']
+        if workspace['package']['version'] != version:
+            raise ValueError('Source workspace version differs from distribution metadata')
         if prefix+'tests/data/drawing-linetype-controls.json' not in contents:
             raise ValueError('Missing native line-style regression manifest')
         for name in ('Cargo.toml', 'Cargo.lock', 'crates/inventor-core/src/analysis.rs', 'crates/inventor-core/src/candidate.rs', 'crates/inventor-core/src/document.rs', 'crates/inventor-core/src/property.rs', 'crates/inventor-core/src/thumbnail.rs', 'crates/inventor-py/src/lib.rs', 'python/inventor_kit/__init__.py', 'python/inventor_kit/document.py', 'python/inventor_kit/geometry.py', 'schemas/vendor-oracle-v1.schema.json', 'schemas/drawing-oracle-v1.schema.json', 'schemas/drawing-scene-v1.schema.json', 'schemas/drawing-report-v1.schema.json'):
@@ -101,7 +105,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         for name in ('allocation.rs', 'input.rs', 'wire.rs', 'profile.json'):
             if prefix + 'crates/inventor-core/src/write/assembly/' + name not in contents:
                 raise ValueError(f'Missing IAM writer build input: {name}')
-        for name in ('scripts/check_assembly_writer.py', 'tests/test_assembly_writer.py'):
+        for name in ('scripts/check_assembly_writer.py', 'tests/test_assembly_writer.py', 'scripts/versioning.py'):
             if prefix + name not in contents:
                 raise ValueError(f'Missing public IAM validation source: {name}')
         for name, content in contents.items():
@@ -121,6 +125,10 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
                             walk(v)
                 walk(data)
         lock = tomllib.loads(contents[prefix+'Cargo.lock'].decode())
+        for package in ('inventor-core', 'inventor-py'):
+            entries = [p for p in lock['package'] if p['name'] == package]
+            if len(entries) != 1 or entries[0]['version'] != version or 'source' in entries[0]:
+                raise ValueError(f'Stale local source lock version: {package}')
         for package in ('acis-core', 'acis-py-bridge'):
             entries = [p for p in lock['package'] if p['name'] == package]
             if len(entries) != 1 or entries[0]['version'] != ACIS_VERSION:

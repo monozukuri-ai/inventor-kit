@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 import tomllib
+from versioning import check_python_version_lock
 
 ROOT = Path(__file__).resolve().parents[1]
 _SHARED = tomllib.loads((ROOT/'Cargo.toml').read_text(encoding='utf-8'))['workspace']['dependencies']
@@ -16,12 +17,10 @@ CQ_ACIS_REQUIREMENT = f'cq-acis>={ACIS_VERSION},<0.4'
 
 
 def check_python_lock(root=ROOT):
+    check_python_version_lock(root)
     project = tomllib.loads((root/'pyproject.toml').read_text(encoding='utf-8'))['project']
     packages = tomllib.loads((root/'uv.lock').read_text(encoding='utf-8'))['package']
-    own = [p for p in packages if p['name'] == 'inventor-kit']
     shared = [p for p in packages if p['name'] == 'cq-acis']
-    if len(own) != 1 or own[0]['version'] != project['version']:
-        raise ValueError('uv.lock project version is stale; refresh after dependency publication')
     requirements = [p for p in project['dependencies'] if p.startswith('cq-acis')]
     if requirements != [CQ_ACIS_REQUIREMENT]:
         raise ValueError('Python dependency must match the shared ACIS workspace pin: ' + CQ_ACIS_REQUIREMENT)

@@ -12,12 +12,17 @@ overrides the bridge, move that configuration into `internal/` before building.
 `scripts/check_dependencies.py` verifies that core and bridge each resolve to a
 single published crate.
 
+Release versions are inherited from the root `Cargo.toml`. Use
+`python scripts/bump_version.py X.Y.Z` to update versions and locks together;
+see [version management](releasing.md#version-management).
+
 ```sh
 python3.11 -m venv .venv
 . .venv/bin/activate
 python -m pip install 'maturin[patchelf]==1.11.5'
 maturin develop --release --locked --extras validation
 python scripts/check_dependencies.py
+python scripts/bump_version.py --check
 python scripts/check_public_tree.py
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

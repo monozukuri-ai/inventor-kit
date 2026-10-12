@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "inventor-kit"
-version = "0.7.0"
+dynamic = ["version"]
 description = "Read Inventor files and write bounded IPT parts and flat IAM assemblies without Inventor"
 requires-python = ">=3.11"
 dependencies = ["cq-acis>=0.3.11,<0.4"]
@@ -48,6 +48,7 @@ include = [
     {path = "CLA.md", format = "sdist"},
     {path = "viewer/LICENSE.txt", format = "sdist"},
     {path = "scripts/check_license.py", format = "sdist"},
+    {path = "scripts/versioning.py", format = "sdist"},
     {path = "scripts/check_assembly_writer.py", format = "sdist"},
     {path = "tests/test_assembly_writer.py", format = "sdist"},
     {path = "scripts/sync_license_notices.py", format = "sdist"},
@@ -56,4 +57,15 @@ include = [
     {path = "schemas/vendor-oracle-v1.schema.json", format = "sdist"},
     {path = "schemas/drawing-oracle-v1.schema.json", format = "sdist"},
     {path = "python/inventor_kit/capabilities.json", format = "sdist"},
+]
+
+# Cargo controls the dynamic Python version and native extension build inputs.
+[tool.uv]
+cache-keys = [
+    {file = "pyproject.toml"},
+    {file = "Cargo.toml"},
+    {file = "Cargo.lock"},
+    {file = "crates/**/Cargo.toml"},
+    {file = "crates/**/*.rs"},
+    {file = "crates/**/profile.json"},
 ]

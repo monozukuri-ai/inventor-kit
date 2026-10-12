@@ -8,6 +8,7 @@ for standard reproduction steps. Detailed results default to
 
 | Tool | Purpose |
 | --- | --- |
+| `bump_version.py`, `versioning.py` | Update the single Cargo version and locks, or check them with `--check --tag vX.Y.Z` |
 | `fetch_public_samples.py`, `fetch_assembly_samples.py`, `fetch_drawing_samples.py` | Fetch fixtures from pinned sources |
 | `check_corpus.py`, `corpus_manifest.py`, `run_tests.py` | Verify hashes and dataset splits; run tests with no skips allowed |
 | `validate_public_samples.py` | Validate container, shared model, geometry, and optional oracle stages separately |

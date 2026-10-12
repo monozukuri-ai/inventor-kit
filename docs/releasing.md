@@ -11,7 +11,7 @@ registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.
 This guide does not assert that a release has been published or that CI has passed.
 
-The 0.7.0 candidate needs the semantic authoring API and JSON-spec fixes in cq-acis 0.3.11.
+The writer needs the semantic authoring API and JSON-spec fixes in cq-acis 0.3.11.
 Publish and verify acis-core, then its matching bridge and Python distribution,
 before resolving this project's Cargo and uv locks from public registries. A
 staged dependency build is useful for preparation but cannot pass the publish gate.
@@ -46,11 +46,10 @@ notices in every distribution and in the standalone viewer assets.
 1. In a clean checkout using published dependencies only, pass
    `scripts/check_dependencies.py`, normal CI, corpus checks, and holdout
    validation. Do not carry over `.cargo/config.toml`.
-2. Align the Python package, both Rust packages and Viewer versions. Refresh
-   `Cargo.lock`, `fuzz/Cargo.lock`, `uv.lock` and `viewer/package-lock.json`, then
-   rebuild the Viewer assets. Run `scripts/check_release.py --tag v<version>`,
+2. Run `python scripts/bump_version.py X.Y.Z` as described below. Rebuild Viewer
+   assets only when their inputs change. Run `scripts/check_release.py --tag v<version>`,
    `scripts/check_license.py` and `scripts/check_viewer_assets.py`.
-3. Manually run the `Python distributions` workflow. It produces four wheel
+3. Manually run the `Python distributions` workflow. It produces five wheel
    variants, an sdist, and viewer qualification reports as artifacts. The `qualify`
    job must pass even for a manual run. Manual runs do not publish to PyPI.
 4. Download each artifact and verify its hash, licenses, contents, and actual
@@ -60,6 +59,35 @@ notices in every distribution and in the standalone viewer assets.
    `monozukuri-ai/inventor-kit`, workflow `release.yml`, and environment `pypi`.
 6. Publish a GitHub Release tagged `v<version>` matching the package version.
    After all gates pass, the workflow publishes through Trusted Publishing.
+
+## Version management
+
+`[workspace.package].version` in the root [Cargo.toml](../Cargo.toml) is the
+only release-version definition. Both Rust crates inherit it; Maturin supplies
+the Python version through `project.dynamic = ["version"]`. The private Viewer
+has no separate release version. Documentation examples do not track the current
+release, and third-party dependency versions are managed separately.
+
+From the checkout, with Python 3.11+, Cargo and uv available, replace `X.Y.Z`
+with the new stable release version:
+
+```sh
+python scripts/bump_version.py X.Y.Z
+python scripts/bump_version.py --check --tag vX.Y.Z
+```
+
+The update command refreshes both Cargo locks and `uv.lock`, verifies consistency,
+and restores its four managed files if any step fails. It rejects unintended
+third-party dependency changes. Use `--offline` when the required dependencies
+are cached. Alternatively, edit only `Cargo.toml` and run the command without
+a version argument. `--check` is read-only and runs in CI and the release tag gate.
+No commit, tag or publication is created. Supported versions are stable `X.Y.Z`
+without leading zeros; prerelease versions are rejected explicitly.
+
+Dynamic editable packages can omit their version in `uv.lock`. The checker
+accepts that form but rejects an explicit stale version. uv's cache keys include
+Cargo manifests, locks and native build inputs so it refreshes metadata after a
+version change. Rebuild/reinstall local editable extensions after updating.
 
 ## CI distribution targets and checks
 
@@ -151,7 +179,7 @@ match. Different content or a lookup failure other than HTTP 404 stops the relea
 On reruns, `skip-existing` is allowed only after this check.
 
 The distribution workflow additionally requires installed-wheel SVG
-checks in Chromium on all four platforms with Python 3.12. It renders five public
+checks in Chromium on all five platforms with Python 3.12. It renders five public
 fixture sheets and one synthetic font/dash control, checking bounds, image counts
 and actual Japanese/diameter-symbol fonts. `drawing-browser-*` artifacts contain
 PNGs and browser/version evidence. These checks do not qualify platform-specific

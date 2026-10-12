@@ -22,7 +22,7 @@ v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwの�
 対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
 図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
 
-このcheckoutは **0.7.0リリース候補**です。writerにはcq-acis 0.3.11以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
+リリース版数は[Cargo.toml](Cargo.toml)で管理します。更新コマンドは[バージョン管理](docs/releasing.ja.md#バージョン管理)を参照してください。writerにはcq-acis 0.3.11以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
 
 ## インストール
 
@@ -106,7 +106,7 @@ print(ik.capabilities())
 | [API ガイド](docs/api.ja.md) | 属性、保存候補、単位、参照解決、上限 |
 | [検証](docs/validation.ja.md) | 回帰・保留検証、比較の根拠、実行済み範囲 |
 | [開発](docs/development.ja.md) | ビルド、テスト、fuzz、公開ディレクトリの役割 |
-| [実験段階のpart writer](docs/part-writer.ja.md) | 0.7.0候補: CadQuery・STEPから単独IPTを生成 |
+| [実験段階のpart writer](docs/part-writer.ja.md) | CadQuery・STEPから単独IPTを生成 |
 | [リリース](docs/releasing.ja.md) | wheel / sdist、CI、公開前の条件 |
 | [形式資料](docs/format-reference.ja.md) | 実装に使用した資料とライセンス |
 

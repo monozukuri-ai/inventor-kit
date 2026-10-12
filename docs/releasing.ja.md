@@ -34,11 +34,11 @@ CLA への明示的な同意を記録してください。
 
 1. 公開依存だけを使うクリーンな checkout で `scripts/check_dependencies.py`、
    通常 CI、コーパスと保留検証を通す。`.cargo/config.toml` を持ち込まない。
-2. Python・二つの Rust パッケージ・Viewerの版をそろえる。`Cargo.lock`・`fuzz/Cargo.lock`・
-   `uv.lock`・`viewer/package-lock.json`を更新し、Viewerアセットを再生成する。
+2. 下記の `python scripts/bump_version.py X.Y.Z` で版数とlockを更新する。
+   Viewerアセットの再生成は、その入力を変更した場合だけ行う。
    `scripts/check_release.py --tag v<version>`・`scripts/check_license.py`・
    `scripts/check_viewer_assets.py`を通す。
-3. `Python distributions` workflow を手動実行する。4 種類の wheel と sdist が
+3. `Python distributions` workflow を手動実行する。5 種類の wheel と sdist が
    viewer 配布検証レポートとともに artifact に保存される。手動実行でも `qualify` ジョブの
    通過を必須とする。手動実行は PyPI に公開しない。
 4. 各 artifact をダウンロードし、hash・ライセンス・配布内容・実インストール結果を確認する。
@@ -47,6 +47,34 @@ CLA への明示的な同意を記録してください。
    workflow `release.yml`、environment `pypi` に設定・確認する。
 6. パッケージ版と一致する `v<version>` の GitHub Release を公開する。
    全ゲート通過後に Trusted Publishing で配布する。
+
+## バージョン管理
+
+ルートの[Cargo.toml](../Cargo.toml)の `[workspace.package].version` が、
+リリース版数の唯一の定義元です。二つのRustクレートはこれを継承し、Pythonは
+`project.dynamic = ["version"]` によりMaturinから取得します。非公開Viewerには
+独立したリリース版数を持たせません。文書の例を毎回書き換える必要もありません。
+外部依存の版数は別に管理します。
+
+Python 3.11以降・Cargo・uvが使えるcheckoutで、`X.Y.Z` を新しい安定版の版数へ
+置き換えて実行してください。
+
+```sh
+python scripts/bump_version.py X.Y.Z
+python scripts/bump_version.py --check --tag vX.Y.Z
+```
+
+更新コマンドは二つのCargo lockと `uv.lock` を更新・照合し、途中で失敗した場合は
+管理対象4ファイルを実行前に戻します。意図しない外部依存の更新も拒否します。
+依存をキャッシュ済みなら `--offline` を指定できます。`Cargo.toml` だけを手編集して、
+版数引数なしで実行する方法にも対応します。`--check` は読取り専用で、CIと公開タグの
+検査でも実行します。commit・tag作成・公開は行いません。受け付ける版数は先頭ゼロの
+ない安定版 `X.Y.Z` で、prereleaseは明示的に拒否します。
+
+動的版数のeditableパッケージでは、`uv.lock` の版数が省略される場合があります。
+検査では省略を許容し、古い版数が明記されている場合は拒否します。uvのcache keyには
+Cargoのmanifest・lock・nativeのビルド入力を含め、版数変更後にmetadataを再取得します。
+ローカルのeditable拡張は、更新後に再ビルド・再インストールしてください。
 
 ## CI の配布対象と検査
 
@@ -102,7 +130,7 @@ Safari/WebKit、nativeフォント一致、実寸印刷の認定ではありま�
 シナリオとローカル実行コマンドは [viewer ガイド](viewer.ja.md)を参照してください。
 依存 wheel の不足や実行失敗は配布検証を失敗させます。未検証 OS を対応済みと扱わないでください。
 
-`qualify` ジョブは全 5 配布物と、4 種類の wheel × Python 3.11 / 3.12、Linux の sdist 再ビルド
+`qualify` ジョブは全 5 配布物と、5 種類の wheel × Python 3.11 / 3.12、Linux の sdist 再ビルド
 × Python 3.11 の計 9 レポートを要求します。実際の配布物の SHA-256 と対象 OS が一致し、
 公開依存によって全シナリオと正常終了が成功している必要があります。
 不足・重複・古い hash・失敗結果があると停止します。ダウンロード後の再検査は次の形です。
@@ -122,13 +150,13 @@ sdist には英語・日本語の README と公開 `docs/`、ビルド入力を�
 wheel には API・capabilities・ライセンスを含め、パッケージ説明には英語版 README を使います。
 リポジトリ用の取得・検証スクリプトと fixture 索引はソースリポジトリから使用します。
 
-Release workflow は全 4 プラットフォームと sdist の集合を検査し、同じ版の既存 PyPI
+Release workflow は全 5 プラットフォームと sdist の集合を検査し、同じ版の既存 PyPI
 ファイルがあれば SHA-256 一致を要求します。異なる内容や 404 以外の照合失敗は停止します。
 再実行時の `skip-existing` もこの検査後に限ります。
 
 ## writer対応版の公開条件
 
-0.7.0候補にはcq-acis 0.3.11の意味付き形状生成APIとJSON仕様の修正を使用します。
+writerにはcq-acis 0.3.11の意味付き形状生成APIとJSON仕様の修正を使用します。
 acis-coreを先に公開・照合し、対応するbridgeとPython配布物を公開した後、
 本プロジェクトのCargo・uv lockを公開registryから更新します。
 ローカル依存の候補ビルドは準備用であり、公開ゲートの合格には使いません。

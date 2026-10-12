@@ -6,7 +6,6 @@ import io
 from pathlib import Path
 import sys
 import tempfile
-import tomllib
 import unittest
 import zipfile
 
@@ -14,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_distribution import check
 from check_license import DISTRIBUTION_LICENSE, PINNED_TEXTS, check_pinned_texts, license_paths
+from versioning import project_version
 
 
 class WheelRecords(unittest.TestCase):
@@ -29,7 +29,7 @@ class WheelRecords(unittest.TestCase):
             self.validate(self.rows('/'))
 
     def setUp(self):
-        self.version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
+        self.version = project_version()
         info = f'inventor_kit-{self.version}.dist-info'
         self.record = info + '/RECORD'
         # This synthetic wheel exercises archive validation, not native loading.
