@@ -2,9 +2,15 @@ name: CI
 
 on:
   push:
+    branches: ['**']
   pull_request:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      skip_distribution_checks:
+        description: Release jobs build and qualify the actual wheel and sdist artifacts separately
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -32,7 +38,6 @@ jobs:
       - name: Verify registry dependencies and Rust
         run: |
           python scripts/bump_version.py --check
-          python -m unittest discover -s tests -p test_versioning.py -v
           python scripts/check_public_tree.py
           python scripts/check_assembly_writer.py
           python scripts/check_license.py
@@ -60,10 +65,13 @@ jobs:
           npm run build --prefix viewer
           git diff --exit-code -- python/inventor_kit/viewer/static
           python scripts/check_viewer_assets.py
-      - name: Viewer integration and browser dependencies
+      - name: Viewer integration
         run: |
           .venv/bin/python -m pip install 'ocp-tessellate==3.5.1'
           .venv/bin/python scripts/run_viewer_tests.py
+      - name: Prepare Chromium for installed browser checks
+        if: ${{ !inputs.skip_distribution_checks }}
+        run: |
           cd viewer
           npx playwright install --with-deps chromium
       - name: Python and corpus checks
@@ -83,7 +91,6 @@ jobs:
           .venv/bin/python scripts/validate_analytic_closure.py
           .venv/bin/python scripts/validate_revolution_trims.py
           .venv/bin/python scripts/validate_assembly.py
-          .venv/bin/python scripts/benchmark_parser.py
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
         with:
           toolchain: nightly-2026-02-02
@@ -96,19 +103,26 @@ jobs:
       - name: Prepare public validation summary
         run: .venv/bin/python scripts/summarize_validation.py --environment github-actions --output dist/validation-summary.json
       - name: Build and inspect distributions
+        if: ${{ !inputs.skip_distribution_checks }}
         run: |
           source .venv/bin/activate
           maturin build --release --locked --out dist
           maturin sdist --out dist
           python scripts/check_distribution.py dist/*.whl dist/*.tar.gz
-      - name: Install wheel and rebuild sdist outside checkout (including IPT and IAM writers)
-        run: |
-          .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl
-          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz
-      - name: Linux installed viewer and browser checks
+      # --viewer includes the API/writer smoke. Run the shared browser suite once;
+      # the sdist still gets an independent rebuild and installed viewer checks.
+      - name: Installed wheel browser checks and rebuilt sdist viewer checks
+        if: ${{ !inputs.skip_distribution_checks }}
         run: |
           .venv/bin/python scripts/smoke_distribution.py --wheel dist/*.whl --viewer --browser --report dist/viewer-wheel-smoke.json
-          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --browser --report dist/viewer-sdist-smoke.json
+          .venv/bin/python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report dist/viewer-sdist-smoke.json
+      - name: Preserve browser failure evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: viewer-browser-failure
+          path: viewer/test-results/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

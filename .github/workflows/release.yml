@@ -37,6 +37,8 @@ jobs:
   verify:
     needs: version
     uses: ./.github/workflows/ci.yml
+    with:
+      skip_distribution_checks: true
 
   wheels:
     needs: version
@@ -117,14 +119,33 @@ jobs:
           npm ci --prefix viewer
           cd viewer
           npx playwright install --with-deps chromium
+      - name: Install browser fixture dependencies
+        if: matrix.platform == 'linux-x86_64'
+        run: |
+          python - <<'PY'
+          import subprocess, sys, tomllib
+          from pathlib import Path
+          project = tomllib.loads(Path('pyproject.toml').read_text())['project']
+          subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:',
+                          *project['optional-dependencies']['validation']], check=True)
+          PY
       - name: Cold install, IPT/IAM writers, geometry, STEP and viewer on Python 3.11 and 3.12
         # Platform font/rendering evidence is collected from a cold installed wheel.
         # workflow_dispatch never reaches the publish job below.
         env:
           MINIMUM_PYTHON: ${{ steps.minimum.outputs.python-path }}
         run: |
-          python scripts/smoke_distribution.py --wheel dist/*.whl --python "$MINIMUM_PYTHON" --viewer --report qualification/${{ matrix.platform }}-3.11.json
+          browser=()
+          if [[ '${{ matrix.platform }}' == 'linux-x86_64' ]]; then browser=(--browser); fi
+          python scripts/smoke_distribution.py --wheel dist/*.whl --python "$MINIMUM_PYTHON" --viewer "${browser[@]}" --report qualification/${{ matrix.platform }}-3.11.json
           python scripts/smoke_distribution.py --wheel dist/*.whl --python python --viewer --drawing-browser drawing-browser --report qualification/${{ matrix.platform }}-3.12.json
+      - name: Preserve browser failure evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure() && matrix.platform == 'linux-x86_64'
+        with:
+          name: viewer-browser-failure-${{ matrix.platform }}
+          path: viewer/test-results/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

@@ -72,6 +72,9 @@ def viewer_reports(paths, artifacts):
             raise ValueError('Viewer qualification did not pass with published dependencies')
         if report['dependencies']['ocp-tessellate'] != '3.5.1':
             raise ValueError('Viewer qualification used an unexpected tessellator')
+        if (artifact_platform(key[0]) == 'linux-x86_64' and key[1] == '3.11'
+                and report.get('browser') != 'linux-chromium-passed'):
+            raise ValueError('Missing installed Linux wheel browser qualification')
         writer = report.get('writer', {})
         if (writer.get('status') != 'passed' or writer.get('single_parts') != 1
                 or writer.get('batch_occurrences') != 2 or writer.get('cli_occurrences') != 2
@@ -112,7 +115,7 @@ def viewer_reports(paths, artifacts):
                 raise ValueError('Drawing viewer qualification scenario failed')
         found.add(key)
     if found != set(expected):
-        raise ValueError('Incomplete viewer qualification: expected all four wheels on Python 3.11/3.12 and rebuilt sdist')
+        raise ValueError('Incomplete viewer qualification: expected all five wheels on Python 3.11/3.12 and rebuilt sdist')
     return len(found)
 
 

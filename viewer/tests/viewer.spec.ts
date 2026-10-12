@@ -137,48 +137,62 @@ for (const file of ['SamplePart.ipt', 'Cylinder.ipt', 'INV_nist_ftc_09_asme1_202
     expect(state.meshes[0].face_count).toBeGreaterThan(0);
     await expect(page.locator('#previews img').first()).toBeVisible();
     await expect(page.locator('#candidates')).toContainText('Selected');
-    // Fit must also recover a panned model, even when its zoom has not changed.
-    await page.getByRole('button', { name: 'Fit', exact: true }).click();
-    const iso = await page.locator('#cad canvas').screenshot();
-    const box = (await page.locator('#cad canvas').boundingBox())!;
-    async function drag(dx: number, dy: number) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.mouse.down();
-      for (let step = 1; step <= 10; step++) {
-        await page.mouse.move(box.x + box.width / 2 + dx * step / 10,
-          box.y + box.height / 2 + dy * step / 10);
-        // Let the viewer consume each pointer position before releasing it.
-        // Large software-rendered meshes can lag a burst of synthetic moves.
-        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
-      }
-      await page.mouse.up();
-    }
-    await page.keyboard.down('Shift');
-    await drag(120, 60);
-    await page.keyboard.up('Shift');
-    await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
-    await page.getByRole('button', { name: 'Fit', exact: true }).click();
-    await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(true);
-    await drag(100, 50);
-    await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
-    await page.getByRole('button', { name: 'Fit', exact: true }).click();
-    await page.getByRole('button', { name: 'Front', exact: true }).click();
-    await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
-    await page.getByRole('button', { name: 'Body 1', exact: true }).click();
-    await expect(page.locator('#selected')).toHaveAttribute('data-node-id', state.nodes[0].id);
-    const shown = await page.locator('#cad canvas').screenshot();
-    await page.getByLabel('Show Body 1', { exact: true }).uncheck();
-    await expect(page.getByLabel('Show Body 1', { exact: true })).not.toBeChecked();
-    const hidden = await page.locator('#cad canvas').screenshot();
-    expect(hidden.equals(shown)).toBe(false);
-    await page.getByLabel('Show Body 1', { exact: true }).check();
-    await page.getByLabel('Edges', { exact: true }).uncheck();
-    await page.getByLabel('Edges', { exact: true }).check();
-    await page.getByRole('button', { name: 'Isometric', exact: true }).click();
     await page.screenshot({ path: info.outputPath('viewer.png') });
     expect(await page.locator('body').getAttribute('data-display-error')).toBeNull();
   });
 }
+
+// Camera and tree controls are shared by every model. Exercise them once on a
+// small asymmetric part; the four cases above still check each mesh offline.
+test('part controls pan, rotate, fit, select and toggle visibility', async ({ page }, info) => {
+  const url = await open(page, 'SamplePart.ipt');
+  await expect(page.locator('#cad')).toHaveAttribute('data-rendered', 'true');
+  const state = await (await page.request.get(url + 'state.json')).json();
+  // Fit must also recover a panned model, even when its zoom has not changed.
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  const iso = await page.locator('#cad canvas').screenshot();
+  async function drag(dx: number, dy: number) {
+    const canvas = page.locator('#cad canvas');
+    // Unlike raw mouse coordinates, hover waits for a stable, reachable canvas.
+    // Resolve its position after any scrolling or layout update.
+    await canvas.hover();
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.down();
+    try {
+      for (let step = 1; step <= 10; step++) {
+        await page.mouse.move(box.x + box.width / 2 + dx * step / 10,
+          box.y + box.height / 2 + dy * step / 10);
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+      }
+    } finally {
+      await page.mouse.up();
+    }
+  }
+  await page.keyboard.down('Shift');
+  try { await drag(120, 60); }
+  finally { await page.keyboard.up('Shift'); }
+  await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(true);
+  await drag(100, 50);
+  await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
+  await page.getByRole('button', { name: 'Fit', exact: true }).click();
+  await page.getByRole('button', { name: 'Front', exact: true }).click();
+  await expect.poll(async () => (await page.locator('#cad canvas').screenshot()).equals(iso)).toBe(false);
+  await page.getByRole('button', { name: 'Body 1', exact: true }).click();
+  await expect(page.locator('#selected')).toHaveAttribute('data-node-id', state.nodes[0].id);
+  const shown = await page.locator('#cad canvas').screenshot();
+  await page.getByLabel('Show Body 1', { exact: true }).uncheck();
+  await expect(page.getByLabel('Show Body 1', { exact: true })).not.toBeChecked();
+  const hidden = await page.locator('#cad canvas').screenshot();
+  expect(hidden.equals(shown)).toBe(false);
+  await page.getByLabel('Show Body 1', { exact: true }).check();
+  await page.getByLabel('Edges', { exact: true }).uncheck();
+  await page.getByLabel('Edges', { exact: true }).check();
+  await page.getByRole('button', { name: 'Isometric', exact: true }).click();
+  await page.screenshot({ path: info.outputPath('viewer.png') });
+  expect(await page.locator('body').getAttribute('data-display-error')).toBeNull();
+});
 
 test('unsupported geometry keeps previews, properties and the conversion reason', async ({ page }) => {
   await open(page, 'EPFL_Elytron_140mm_v1.ipt');

@@ -116,13 +116,26 @@ python scripts/smoke_distribution.py --wheel dist/*.whl --viewer --report qualif
 python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qualification/sdist.json
 ```
 
-前提の Linux CI は、導入した wheel と別途再ビルドした sdist の両方で Chromium E2E を
-必須にします。同梱アセットは、固定した lockfile と Node の基準版による `npm ci`・
-再生成の結果に照合します。合成入力の作成は`smoke_distribution.py`を起動したPythonで行うため、
+再利用する `verify` ジョブは Rust・Python・固定コーパス・viewerアセットの再生成・
+ASan fuzzを検査します。配布workflowでは、アーカイブ検査・独立再ビルド・cold installを
+wheel/sdist専用ジョブへまとめ、`skip_distribution_checks` で `verify` の重複処理を省きます。
+Chromium E2EはLinux x86_64/Python 3.11ジョブで実際の配布wheelに対して1回実行し、
+`qualify` が配布物hashと結び付いた結果を要求します。通常のbranch/PR CIではwheelと
+sdistの導入検査を維持し、Chromium E2Eはwheelだけで実行します。viewer検査には
+基本APIとwriterの検査も含まれます。tag pushによる別のCI起動は省き、release workflowが
+tagのソースに対して `verify` を呼び出します。
+ホスト依存の時間計測は合否判定に使わないため自動実行から外し、
+必要時に `scripts/benchmark_parser.py` で実行します。
+
+4種類の部品のoffline表示検査は維持し、共通のパン・回転・Fit・選択・表示切替は
+軽量な非対称部品で1回検査します。ブラウザー失敗時はtraceと画像を
+`viewer-browser-failure*` に保存します。
+
+合成入力の作成は`smoke_distribution.py`を起動したPythonで行うため、
 この環境には`olefile`を含む`validation` extraが必要です。スクリプトが設定する
 `VIEWER_FIXTURE_PYTHON`は入力作成専用で、製品の実行にはクリーンな`wheel[viewer]`環境の
 `VIEWER_PYTHON`を使います。ブラウザ試験はソフトウェア描画であり、実機 GPUやInventorの現在のModel Stateの検証ではありません。
-配布workflowでは、4プラットフォームのPython 3.12 cold installに対して追加の
+配布workflowでは、5プラットフォームのPython 3.12 cold installに対して追加の
 Chromium SVG検査を要求します。公開fixtureの実5シートと合成1ケースを表示し、
 描画範囲・画像数・日本語/直径記号の使用フォントを確認します。PNGとブラウザー版を
 `drawing-browser-*` artifactへ保存します。これはSVGの表示検証で、各OSの3Dブラウザー操作、
@@ -130,8 +143,8 @@ Safari/WebKit、nativeフォント一致、実寸印刷の認定ではありま�
 シナリオとローカル実行コマンドは [viewer ガイド](viewer.ja.md)を参照してください。
 依存 wheel の不足や実行失敗は配布検証を失敗させます。未検証 OS を対応済みと扱わないでください。
 
-`qualify` ジョブは全 5 配布物と、5 種類の wheel × Python 3.11 / 3.12、Linux の sdist 再ビルド
-× Python 3.11 の計 9 レポートを要求します。実際の配布物の SHA-256 と対象 OS が一致し、
+`qualify` ジョブは全 6 配布物と、5 種類の wheel × Python 3.11 / 3.12、Linux の sdist 再ビルド
+× Python 3.11 の計 11 レポートを要求します。実際の配布物の SHA-256 と対象 OS が一致し、
 公開依存によって全シナリオと正常終了が成功している必要があります。
 不足・重複・古い hash・失敗結果があると停止します。ダウンロード後の再検査は次の形です。
 
@@ -139,9 +152,9 @@ Safari/WebKit、nativeフォント一致、実寸印刷の認定ではありま�
 python scripts/check_release.py --dist dist --viewer-reports qualification
 ```
 
-`dist/` には 5 配布物だけ、`qualification/` には 9 件の OS 別レポートだけを置きます。
-Linux CI の `validation-report` artifact は、別途選択したコーパスと viewer のブラウザ検証の
-集計を含みます。公開集計は件数、OS 種別・Python・依存版、配布物の hash に限定し、
+`dist/` には 6 配布物だけ、`qualification/` には 11 件の OS 別レポートだけを置きます。
+`validation-report` artifactには、選択したコーパスの集計を含みます。
+単独のCIではwheel/sdistのviewer検証集計も含みます。公開集計は件数、OS 種別・Python・依存版、配布物の hash に限定し、
 文書属性、参照パス、メッシュ、プレビュー、詳細診断、生ログを含めません。
 シーンの現在状態は引き続き未検証です。
 

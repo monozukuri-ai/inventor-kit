@@ -132,10 +132,23 @@ python scripts/smoke_distribution.py --wheel dist/*.whl --viewer --report qualif
 python scripts/smoke_distribution.py --sdist dist/*.tar.gz --viewer --report qualification/sdist.json
 ```
 
-The prerequisite Linux CI job must also pass Chromium E2E against both an
-installed wheel and a separately rebuilt sdist. It checks bundled assets against
-`npm ci` / asset regeneration using the pinned lockfile and Node baseline. Browser
-fixture generation uses the Python invoking `smoke_distribution.py`, which needs
+The reusable `verify` job checks Rust, Python, the pinned corpus, viewer asset
+regeneration and ASan fuzzing. Release wheel/sdist jobs own archive inspection,
+independent rebuilds and cold installation, so `verify` skips that duplicated
+work via `skip_distribution_checks`. The Linux x86_64/Python 3.11 wheel job also
+runs the full Chromium E2E suite against the actual release wheel; `qualify`
+requires that result in its archive-bound report. Normal branch/PR CI keeps local
+wheel and sdist qualification, with Chromium E2E on the wheel only. The viewer
+checks already include the basic API and writer smoke. Tag pushes do not start
+another CI run; the release workflow invokes `verify` for the tagged source.
+Host-dependent timing benchmarks remain available through
+`scripts/benchmark_parser.py` and are not part of the acceptance workflow.
+
+The four part fixtures each retain offline rendering checks. Shared pan, rotate,
+Fit, selection and visibility controls run once on a small asymmetric part.
+Browser failures retain a trace and screenshot in `viewer-browser-failure*`.
+
+Browser fixture generation uses the Python invoking `smoke_distribution.py`, which needs
 the `validation` extra (including `olefile`). The script sets
 `VIEWER_FIXTURE_PYTHON` for this preparation; `VIEWER_PYTHON` still points to the
 clean installed `wheel[viewer]` environment for all product execution. Browser
@@ -144,7 +157,7 @@ current Model State. The separate platform SVG checks are described below. The [
 describes the scenarios and local commands. Missing binary dependencies or runtime
 failures fail qualification; do not promote an untested platform to supported.
 
-The `qualify` job checks all five archives and requires nine reports: four wheel
+The `qualify` job checks all six archives and requires eleven reports: five wheel
 platforms on each of Python 3.11 / 3.12, plus the Linux sdist rebuild on 3.11. Reports
 must match the actual archive SHA-256 and platform, use published dependencies,
 and pass every scenario and shutdown check. Missing, duplicate, stale or failed
@@ -154,9 +167,9 @@ reports stop the workflow. To recheck downloaded packages and platform reports:
 python scripts/check_release.py --dist dist --viewer-reports qualification
 ```
 
-Keep only the five packages in `dist/` and the nine platform reports in
-`qualification/`. Linux CI's separate `validation-report` artifact includes
-selected corpus and viewer browser summaries. Public summaries contain counts,
+Keep only the six packages in `dist/` and the eleven platform reports in
+`qualification/`. The separate `validation-report` artifact includes selected
+corpus summaries and, in standalone CI, the wheel/sdist viewer summaries. Public summaries contain counts,
 platform/interpreter/dependency versions and distribution hashes; document
 properties, reference paths, meshes, previews, diagnostics and raw logs remain
 excluded. The scene's current-state status remains unverified.
@@ -168,7 +181,7 @@ capabilities, and licenses; their package description uses the English README.
 Use the source repository for fixture download and validation scripts and fixture
 indexes.
 
-The release workflow checks the complete set of four platforms and the sdist.
+The release workflow checks the complete set of five platforms and the sdist.
 Every installed-artifact report also requires the writer smoke: a named part
 with a hole, a two-occurrence STEP batch with nested rigid placements, the same
 batch through the CLI, preserved existing outputs and rejection of unsupported

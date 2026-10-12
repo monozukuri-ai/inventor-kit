@@ -121,6 +121,7 @@ class ReleaseGates(unittest.TestCase):
                                    mesh_buffers_fetched=4, shutdown='passed')
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         for report in reports:
+            report['browser'] = 'linux-chromium-passed' if report is reports[0] else 'not_run'
             report['writer'] = dict(status='passed', single_parts=1, batch_occurrences=2, cli_occurrences=2,
                 semantic_json_roundtrip=True,
                 iam_api_occurrences=2, iam_cli_occurrences=1, iam_local_relocation=True,
@@ -152,6 +153,7 @@ class ReleaseGates(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     viewer_reports(bad, artifacts)
             mutations = [
+                {'browser': 'not_run'}, {'browser': 'failed'}, {'browser': None},
                 {'writer': {}}, {'writer': {**reports[0]['writer'], 'cli_occurrences': 0}},
                 {'writer': {**reports[0]['writer'], 'iam_cli_occurrences': 0}},
                 {'writer': {**reports[0]['writer'], 'iam_local_relocation': False}},
