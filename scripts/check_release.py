@@ -76,7 +76,7 @@ def viewer_reports(paths, artifacts):
                 and report.get('browser') != 'linux-chromium-passed'):
             raise ValueError('Missing installed Linux wheel browser qualification')
         writer = report.get('writer', {})
-        if (writer.get('status') != 'passed' or writer.get('single_parts') != 1
+        if (writer.get('status') != 'passed' or writer.get('target_years') != [2026, 2027] or writer.get('single_parts') != 1
                 or writer.get('batch_occurrences') != 2 or writer.get('cli_occurrences') != 2
                 or writer.get('iam_api_occurrences') != 2 or writer.get('iam_cli_occurrences') != 1
                 or writer.get('iam_local_relocation') is not True

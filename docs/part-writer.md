@@ -7,9 +7,28 @@ Inventor API, or an existing IPT template. It accepts one solid per part and
 stores exact geometry as a nonparametric base feature. Display meshes accompany
 the geometry. Existing files and directories are never overwritten.
 
-This checkout requires `cq-acis>=0.3.11,<0.4`. For changes that are not yet
+This checkout requires `cq-acis>=0.3.12,<0.4`. For changes that are not yet
 published, install a candidate wheel from the [distribution workflow](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml).
 The package version comes from [Cargo.toml](../Cargo.toml).
+
+
+## Output version
+
+The default output remains Inventor 2027. Select 2026 with
+`new_part(..., target_year=2026)`, `write_step_parts(..., target_year=2026)`,
+or `new_assembly(..., target_year=2026)`. Both `write-step` and `write-assembly`
+accept `--target-year 2026`. IAMs and their IPT inputs must target the same year;
+mixed versions are rejected before publication. This authors new files, rather
+than converting an existing 2027 document to an older version.
+
+The 2026 profile uses RSe container schema 31, segment major 30, and ASM 23100.
+The integrated public API/CLI generated 32 parts and a flat assembly that passed
+Inventor 2026.4 (build `304435000`) open/save/reopen and moved-folder reference
+resolution/resave/reopen on 2026-10-16. Each part's result SAB matches the earlier
+constructor corpus that also passed additional machining; standalone machining
+was not repeated on the integrated build. This qualifies the bounded profile,
+not every future output: each output still reports `native_validation="not_run"`.
+The existing 2027 profile is retained.
 
 ## Create a part from CadQuery
 
@@ -25,7 +44,7 @@ print(report.path, report.report_path, report.native_validation)
 ```
 
 `new_part` accepts `name`, `title`, `part_number`, `units="mm"` and an optional
-`target_profile`. `add_body` accepts one valid CadQuery `Solid` in millimetres.
+`target_profile` and `target_year`. An explicit profile and year must agree. `add_body` accepts one valid CadQuery `Solid` in millimetres.
 Names, Title and Part Number may contain Unicode and must fit in 255 UTF-16
 units, without NUL or unpaired surrogates; document, body and feature names must
 be nonempty. Inventor's displayed document name follows its filename.

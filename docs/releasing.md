@@ -4,14 +4,14 @@ English | [日本語](releasing.ja.md)
 
 ## Dependency contract
 
-Rust requires `acis-core=0.3.11` and `acis-py-bridge=0.3.11`. Python requires
-`cq-acis>=0.3.11,<0.4` and shared model API 2. The minimum Python version is 3.11,
+Rust requires `acis-core=0.3.12` and `acis-py-bridge=0.3.12`. Python requires
+`cq-acis>=0.3.12,<0.4` and shared model API 2. The minimum Python version is 3.11,
 matching cq-acis. Dependencies must be published, and Cargo.lock must retain
 registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.
 This guide does not assert that a release has been published or that CI has passed.
 
-The writer needs the semantic authoring API and JSON-spec fixes in cq-acis 0.3.11.
+The writer uses the semantic authoring API and JSON-spec fixes introduced in cq-acis 0.3.11, plus the ASM 23100 profiles added in 0.3.12 for Inventor 2026.
 Publish and verify acis-core, then its matching bridge and Python distribution,
 before resolving this project's Cargo and uv locks from public registries. A
 staged dependency build is useful for preparation but cannot pass the publish gate.

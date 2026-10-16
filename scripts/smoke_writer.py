@@ -81,6 +81,12 @@ def installed_writer():
                 pass
             else:
                 raise AssertionError('Existing output was replaced')
+        old_part = ik.new_part(name='Inventor 2026', target_year=2026).add_body(body).saveas(root/'2026.ipt')
+        assert _compare(ik.read_file(old_part.path).to_cadquery().val(), body)['status'] == 'passed'
+        old_bundle = ik.new_assembly(name='Inventor 2026', target_year=2026).add_part(old_part.path).save_bundle(root/'iam-2026')
+        assert len(ik.read_assembly_file(old_bundle.path).instances) == 1
+        assert json.loads(old_part.report_path.read_text())['target_year'] == 2026
+        assert json.loads(old_bundle.report_path.read_text())['target_year'] == 2026
         bad = cq.Assembly(name='Unsupported')
         bad.add(body, name='Supported')
         bad.add(cq.Solid.makeSphere(3), name='Sphere')
@@ -91,7 +97,7 @@ def installed_writer():
             assert not (root/'rejected').exists()
         else:
             raise AssertionError('Unsupported batch was published')
-    return dict(status='passed', single_parts=1, batch_occurrences=2, cli_occurrences=2,
+    return dict(status='passed', target_years=[2026, 2027], single_parts=1, batch_occurrences=2, cli_occurrences=2,
                 iam_api_occurrences=2, iam_cli_occurrences=1, iam_local_relocation=True,
                 semantic_json_roundtrip=True,
                 nested_placement=True, repeated_definition=True, metadata=True,

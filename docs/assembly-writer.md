@@ -5,7 +5,26 @@ English | [日本語](assembly-writer.ja.md)
 The experimental IAM writer bundles **1–32 newly authored IPT occurrences** into
 a flat assembly without Inventor, COM, an existing IAM, or a native template.
 The bounded public profile passed Inventor 2027.1 (build `311270010`) qualification
-on 2026-10-12. These APIs are in the working tree and are not yet released.
+on 2026-10-12. The additional 2026 profile is described below.
+
+
+## Output version
+
+The default output remains Inventor 2027. Select 2026 with
+`new_part(..., target_year=2026)`, `write_step_parts(..., target_year=2026)`,
+or `new_assembly(..., target_year=2026)`. Both `write-step` and `write-assembly`
+accept `--target-year 2026`. IAMs and their IPT inputs must target the same year;
+mixed versions are rejected before publication. This authors new files, rather
+than converting an existing 2027 document to an older version.
+
+The 2026 profile uses RSe container schema 31, segment major 30, and ASM 23100.
+The integrated public API/CLI generated 32 parts and a flat assembly that passed
+Inventor 2026.4 (build `304435000`) open/save/reopen and moved-folder reference
+resolution/resave/reopen on 2026-10-16. Each part's result SAB matches the earlier
+constructor corpus that also passed additional machining; standalone machining
+was not repeated on the integrated build. This qualifies the bounded profile,
+not every future output: each output still reports `native_validation="not_run"`.
+The existing 2027 profile is retained.
 
 ## Python
 

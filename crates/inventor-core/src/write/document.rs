@@ -46,7 +46,7 @@ impl<'a> Graph<'a> {
             let role = string(rec, "role")?.to_owned();
             let ordinal = counts.entry(owner.clone()).or_default();
             let assigned = if rec["keyed"] == true {
-                let key = profile::Profile::initial_key(rec)?;
+                let key = profile.initial_key(rec)?;
                 if !keys.insert((owner.clone(), key)) {
                     return Err(Error("duplicate profile key".into()));
                 }

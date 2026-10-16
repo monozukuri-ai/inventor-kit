@@ -155,8 +155,12 @@ fn primitive(owner: &str) -> Vec<Value> {
     f.push(fixed("primitive_word22", "u32", 0));
     f
 }
-pub(super) fn construct(solid: &Solid, display: &Display) -> Result<profile::Profile> {
-    let mut p = profile::Profile::load()?;
+pub(super) fn construct(
+    solid: &Solid,
+    display: &Display,
+    target: TargetVersion,
+) -> Result<profile::Profile> {
+    let mut p = profile::Profile::load_for(target)?;
     let records = p.0["records"]
         .as_array_mut()
         .ok_or_else(|| Error("profile records absent".into()))?;

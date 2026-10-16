@@ -368,7 +368,7 @@ fn document_labels_bind_each_original_entity_and_retain_its_producer_id() {
     let shape = BoxSpec::new((7., 13., 2.).into(), (100., -50., 7.).into())
         .build()
         .unwrap();
-    let baseline_bytes = kernel_labels::geometry(&shape).unwrap();
+    let baseline_bytes = kernel_labels::geometry(&shape, TargetVersion::default()).unwrap();
     let baseline = acis_core::sab::parse_sab(
         &baseline_bytes,
         "label-ownership",
@@ -376,7 +376,7 @@ fn document_labels_bind_each_original_entity_and_retain_its_producer_id() {
     )
     .unwrap();
     for history in [History::Source, History::BaseFeature] {
-        let bytes = kernel_labels::encode(&shape, history).unwrap();
+        let bytes = kernel_labels::encode(&shape, history, TargetVersion::default()).unwrap();
         let parsed = acis_core::sab::parse_sab(
             &bytes,
             "label-ownership",

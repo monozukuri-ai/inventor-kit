@@ -7,7 +7,7 @@ pub(super) const GR: &str = "AmGraphicsSegment";
 pub(super) const BR: &str = "AmBrowserSegment";
 pub(super) const RX: &str = "AmRxSegment";
 
-fn layout(owner: &str, n: usize) -> Vec<(usize, Option<usize>)> {
+fn layout(owner: &str, n: usize, target: TargetVersion) -> Vec<(usize, Option<usize>)> {
     let mut out = Vec::new();
     let blocks: &[(usize, usize, bool)] = match owner {
         DC => &[(0, 8, false), (8, 9, true), (9, 21, false)],
@@ -33,7 +33,15 @@ fn layout(owner: &str, n: usize) -> Vec<(usize, Option<usize>)> {
             (8, 9, false),
             (9, 10, true),
         ],
-        "AmAppSegment" => &[(0, 201, false)],
+        "AmAppSegment" => &[(
+            0,
+            if target == TargetVersion::Inventor2026 {
+                200
+            } else {
+                201
+            },
+            false,
+        )],
         "NBNotebookSegment" => &[(0, 2, false)],
         "AmBREPSegment" => &[(0, 6, false)],
         "DesignViewSegment" => &[(0, 4, false)],
@@ -217,7 +225,7 @@ fn graph(seed: &Value, doc: &PreparedAssembly) -> Value {
     }
     for (owner, base) in original["owners"].as_object().unwrap() {
         let mut rows = Vec::new();
-        for (index, occ) in layout(owner, n) {
+        for (index, occ) in layout(owner, n, doc.target().unwrap()) {
             let mut r = base[index].clone();
             r["role"] = json!(role(index, occ));
             r["assigned_key"] = key(owner, index, occ, n, &r["assigned_key"]);
@@ -356,7 +364,8 @@ fn graph(seed: &Value, doc: &PreparedAssembly) -> Value {
         }
     }
     let r = &mut out["owners"]["DesignViewSegment"][3];
-    set(r, "view_state_slot_count_candidate", json!(7 + n));
+    let extra = usize::from(doc.target().unwrap() == TargetVersion::Inventor2026);
+    set(r, "view_state_slot_count_candidate", json!(7 + extra + n));
     let fs = fields(r);
     let pos = fs
         .iter()
@@ -364,10 +373,17 @@ fn graph(seed: &Value, doc: &PreparedAssembly) -> Value {
         .unwrap();
     fs[pos + 1]["value"] = json!(32771 + n);
     let tail = fs.last().unwrap().clone();
-    for i in 8..7 + n {
+    for i in 8 + extra..7 + extra + n {
         let mut f = tail.clone();
         f["name"] = json!(format!("view_state_packed_slot_unknown_{i}"));
         fs.push(f);
+    }
+    if extra == 1 {
+        for (i, f) in fs[pos + 1..].iter_mut().enumerate() {
+            if i >= 2 {
+                f["value"] = json!(if i == 4 + n { 1 } else { 0 });
+            }
+        }
     }
     out
 }
@@ -632,9 +648,13 @@ fn ufrx(seed: &Value, doc: &PreparedAssembly, bounds: &[f64; 6]) -> Vec<Value> {
 }
 
 pub(super) fn expand(doc: &PreparedAssembly) -> Result<Value> {
-    let seed: Value =
-        serde_json::from_str(include_str!("profile.json")).map_err(super::super::err)?;
-    if seed["schema"] != 1 || seed["profile"] != PROFILE_ID {
+    let target = doc.target()?;
+    let source = match target {
+        TargetVersion::Inventor2026 => include_str!("profile_2026.json"),
+        TargetVersion::Inventor2027 => include_str!("profile.json"),
+    };
+    let seed: Value = serde_json::from_str(source).map_err(super::super::err)?;
+    if seed["schema"] != 1 || seed["profile"] != doc.profile {
         return Err(Error("unsupported IAM defaults".into()));
     }
     let mut g = graph(&seed, doc);
@@ -722,7 +742,14 @@ pub(super) fn expand(doc: &PreparedAssembly) -> Result<Value> {
     );
     let table = tables(&seed, &g, n);
     let uf = ufrx(&seed, doc, &bounds);
-    if uf.len() != 343 + 220 * n + 38 * d {
+    if uf.len()
+        != (if target == TargetVersion::Inventor2026 {
+            341
+        } else {
+            343
+        }) + 220 * n
+            + 38 * d
+    {
         return Err(Error("IAM reference field census differs".into()));
     }
     Ok(json!({"graph":g,"tables":table,"ufrx_fields":uf}))

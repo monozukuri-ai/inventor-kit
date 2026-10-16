@@ -11,12 +11,12 @@ import sys
 import tempfile
 
 
-def _worker(source, directory, report_path):
+def _worker(target_year, source, directory, report_path):
     from .step_parts import StepPartWriteError, write_step_parts
     try:
-        result = write_step_parts(source, directory)
+        result = write_step_parts(source, directory, target_year=int(target_year))
         report = dict(status='success', part_count=result.part_count,
-                      source_sha256=result.source_sha256, native_validation='not_run')
+                      source_sha256=result.source_sha256, target_year=int(target_year), native_validation='not_run')
     except Exception as error:
         report = dict(status='error', native_validation='not_run', error=str(error))
         if isinstance(error, StepPartWriteError):
@@ -24,11 +24,13 @@ def _worker(source, directory, report_path):
     Path(report_path).write_text(json.dumps(report, ensure_ascii=False), encoding='utf-8')
 
 
-def write_job(source: Path, destination: Path, timeout: float) -> dict:
+def write_job(source: Path, destination: Path, timeout: float, *, target_year: int = 2027) -> dict:
     from .step_parts import _publish_directory
+    from .writer_profiles import PART_PROFILES, resolve_target
     report = dict(status='error', operation='write-step', native_validation='not_run',
                   source=str(source), output_directory=str(destination), published=False)
     try:
+        resolve_target(PART_PROFILES, target_year)
         if os.path.lexists(destination):
             raise FileExistsError(f'Output already exists: {destination}')
         with tempfile.TemporaryDirectory(prefix='.inventor-cli-write-', dir=destination.parent) as temporary:
@@ -37,7 +39,7 @@ def write_job(source: Path, destination: Path, timeout: float) -> dict:
             with tempfile.TemporaryFile(mode='w+') as log:
                 try:
                     child = subprocess.run(
-                        [sys.executable, '-m', 'inventor_kit.writer_cli', '_worker',
+                        [sys.executable, '-m', 'inventor_kit.writer_cli', '_worker', str(target_year),
                          str(source), str(staged), str(result_path)],
                         stdout=log, stderr=log, timeout=timeout, check=False)
                 except subprocess.TimeoutExpired:
@@ -62,17 +64,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Write each metric STEP solid occurrence as a new standalone IPT')
     parser.add_argument('source', type=Path)
     parser.add_argument('output_directory', type=Path, help='New directory; its parent must exist')
+    parser.add_argument('--target-year', type=int, choices=(2026, 2027), default=2027)
     parser.add_argument('--timeout', type=float, default=600, help='Total seconds, including native conversion (default: 600)')
     args = parser.parse_args(argv)
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error('--timeout must be finite and positive')
-    result = write_job(args.source.absolute(), args.output_directory.absolute(), args.timeout)
+    result = write_job(args.source.absolute(), args.output_directory.absolute(), args.timeout, target_year=args.target_year)
     print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
     return 0 if result['status'] == 'success' else 1
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 5 and sys.argv[1] == '_worker':
+    if len(sys.argv) == 6 and sys.argv[1] == '_worker':
         _worker(*sys.argv[2:])
     else:
         raise SystemExit(main())

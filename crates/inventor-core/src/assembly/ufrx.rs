@@ -127,15 +127,19 @@ pub(super) fn parse(
     for _ in 0..n {
         out.sections.push(r.u16()?);
     }
-    if schema != 15 || out.sections != SECTIONS {
+    let mut sections30 = SECTIONS;
+    sections30[1] = 31;
+    sections30[2] = 17;
+    let major = if out.sections == sections30 { 30 } else { 31 };
+    if schema != 15 || (out.sections != SECTIONS && out.sections != sections30) {
         return Err(Error(
-            "unsupported UFRx schema/section profile (only observed schema 15 / major 31 profile)"
+            "unsupported UFRx schema/section profile (observed schema 15 / major 30 or 31 profile)"
                 .into(),
         ));
     }
     let version: [u8; 8] = r.take(8)?.try_into().unwrap();
     out.save_version = Some(version);
-    require(version[2] as u32, 31)?;
+    require(version[2] as u32, major)?;
     r.skip(24)?;
     r.utf16()?;
     r.skip(32)?;

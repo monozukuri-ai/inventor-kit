@@ -11,6 +11,7 @@ pub(super) fn inspect(bytes: &[u8], part: &PartDefinition) -> Result<(String, [f
     if bytes.len() > 64 * 1024 * 1024 || part.document_id != part.database_revision_id {
         return Err(deny());
     }
+    let target = TargetVersion::from_major((part.target_year - 1996) as u8)?;
     let limits = Limits::default();
     let doc = crate::read(bytes, "IAM-part-binding", &limits)?;
     let summary = &doc.summary;
@@ -67,7 +68,7 @@ pub(super) fn inspect(bytes: &[u8], part: &PartDefinition) -> Result<(String, [f
     let names: BTreeSet<_> = inventory.segments.iter().map(|s| s.name.as_str()).collect();
     if names != expected.into_iter().collect()
         || inventory.segments.len() != 8
-        || inventory.revisions.len() != 565
+        || inventory.revisions.len() != target.protocols() + 1
         || inventory
             .revisions
             .last()
@@ -118,7 +119,7 @@ pub(super) fn inspect(bytes: &[u8], part: &PartDefinition) -> Result<(String, [f
         return Err(deny());
     }
     let payload = &roots[0].payload.0;
-    let profile = super::super::profile::Profile::load()?;
+    let profile = super::super::profile::Profile::load_for(target)?;
     let recipe = array(&profile.0, "records")?
         .iter()
         .find(|r| {
@@ -150,7 +151,9 @@ pub(super) fn inspect(bytes: &[u8], part: &PartDefinition) -> Result<(String, [f
         return Err(deny());
     }
     let carrier = summary.carrier.as_ref().ok_or_else(deny)?;
-    if carrier.delta_state != 3 || carrier.header_scale != Some(10.) || carrier.segment_major != 31
+    if carrier.delta_state != 3
+        || carrier.header_scale != Some(10.)
+        || carrier.segment_major != target.major()
     {
         return Err(deny());
     }

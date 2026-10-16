@@ -1,10 +1,11 @@
-//! Experimental semantic single-solid authoring. Requires the unreleased analytic
-//! acis-core authoring API; no file, template, SAB or record profile is accepted.
+//! Bounded semantic single-solid authoring for explicit Inventor targets.
+//! No file, template, SAB or record profile is accepted as input.
 use super::*;
 use acis_core::authoring::brep as b;
 use serde::Deserialize;
 mod graphics;
 pub use graphics::{Display, EdgeDisplay, FaceDisplay};
+pub const PROFILE_2026: &str = "inventor-ipt-rse31-major30-metric-analytic-base-feature-v1";
 pub const PROFILE: &str = "inventor-ipt-rse31-metric-analytic-base-feature-v21";
 
 #[derive(Debug, Clone, Deserialize)]
@@ -179,13 +180,15 @@ pub struct PartDocument {
 }
 impl PartDocument {
     pub fn encode(&self) -> Result<Vec<u8>> {
-        if self.profile != PROFILE {
-            return Err(Error("unsupported analytic writer profile".into()));
-        }
+        let target = match self.profile.as_str() {
+            PROFILE => TargetVersion::Inventor2027,
+            PROFILE_2026 => TargetVersion::Inventor2026,
+            _ => return Err(Error("unsupported analytic writer profile".into())),
+        };
         self.metadata.validate()?;
         let authored = self.solid.build()?;
         self.display.validate(&self.solid)?;
-        let profile = graphics::construct(&self.solid, &self.display)?;
+        let profile = graphics::construct(&self.solid, &self.display, target)?;
         let expected = array(&profile.0, "records")?.len();
         let bounds = self.display.bounds_mm;
         // Workplanes and standard document scaffolding use the enclosing box.
@@ -204,12 +207,17 @@ impl PartDocument {
         input.body_name = self.metadata.body_name.clone();
         let bbox = input.shape.build().map_err(err)?;
         let mut graph = document::Graph::new(profile, &input, bbox)?;
-        let (source, labels) =
-            kernel_labels::encode_analytic(&authored, &self.solid, kernel_labels::History::Source)?;
+        let (source, labels) = kernel_labels::encode_analytic(
+            &authored,
+            &self.solid,
+            kernel_labels::History::Source,
+            target,
+        )?;
         let (result, other) = kernel_labels::encode_analytic(
             &authored,
             &self.solid,
             kernel_labels::History::BaseFeature,
+            target,
         )?;
         if labels != other {
             return Err(Error("source/result label census differs".into()));

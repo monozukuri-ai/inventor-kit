@@ -12,7 +12,10 @@ import os
 from pathlib import Path
 import tempfile
 
-ANALYTIC_PROFILE = 'inventor-ipt-rse31-metric-analytic-base-feature-v21'
+from .writer_profiles import PART_PROFILES, resolve_target
+
+ANALYTIC_PROFILE = PART_PROFILES[2027]
+ANALYTIC_PROFILE_2026 = PART_PROFILES[2026]
 
 
 class PartWriteError(ValueError):
@@ -83,12 +86,14 @@ class PartBuilder:
     ``name`` is an authored document label; Inventor DisplayName follows the
     saved filename. Title and Part Number are separate iProperties.
     """
-    def __init__(self, *, name: str, units: str = 'mm', target_profile: str = ANALYTIC_PROFILE,
+    def __init__(self, *, name: str, units: str = 'mm', target_profile: str | None = None, target_year: int | None = None,
                  title: str = '', part_number: str = ''):
         if units != 'mm':
             raise PartWriteError('only explicit millimetre geometry is supported')
-        if target_profile != ANALYTIC_PROFILE:
-            raise PartWriteError('unsupported writer target profile')
+        try:
+            self._target_year, self._target_profile = resolve_target(PART_PROFILES, target_year, target_profile)
+        except ValueError as error:
+            raise PartWriteError(str(error)) from error
         self._metadata = dict(document_name=_name(name), title=_name(title, empty=True),
                               part_number=_name(part_number, empty=True))
         self._body_json: str | None = None
@@ -139,7 +144,7 @@ class PartBuilder:
             if os.path.lexists(target):
                 raise FileExistsError(target)
         body = json.loads(self._body_json)
-        spec = dict(profile=ANALYTIC_PROFILE, solid=body['solid'], display=body['display'],
+        spec = dict(profile=self._target_profile, solid=body['solid'], display=body['display'],
                     metadata={**self._metadata, 'body_name': body['name'], 'feature_name': body['feature_name']})
         from . import _inventor
         try:
@@ -147,7 +152,7 @@ class PartBuilder:
         except ValueError as exc:
             raise PartWriteError(str(exc)) from exc
         digest = hashlib.sha256(data).hexdigest()
-        report = dict(schema_version=1, target_profile=ANALYTIC_PROFILE, native_validation='not_run',
+        report = dict(schema_version=1, target_profile=self._target_profile, target_year=self._target_year, native_validation='not_run',
             profile_qualification='native-qualified-bounded-corpus',
             profile_qualification_scope=dict(inventor_build='311270010', generated_cases=11,
                 controls=2, evidence='M4-V21', native_machining_save_reopen=True,
@@ -157,6 +162,15 @@ class PartBuilder:
             bounds_mm=body['display']['bounds_mm'],
             topology=dict(faces=len(body['solid']['faces']), edges=len(body['solid']['edges']),
                           vertices=len(body['solid']['vertices_mm'])))
+        if self._target_year == 2026:
+            report['profile_qualification'] = 'native-qualified-bounded-corpus'
+            report['profile_qualification_scope'] = dict(inventor_build='304435000',
+                generated_cases=32, controls=1, evidence='Inventor-2026-Drawing-v2',
+                native_machining_save_reopen=True, development_build_only=True,
+                machining_evidence_scope='prior-constructor-corpus',
+                integrated_build_native_validation='qualified-bounded-corpus',
+                integrated_build_evidence='Inventor-2026-Public-v1',
+                integrated_build_scope='32 parts in a flat IAM: open/save/reopen and moved-bundle resolution/resave/reopen; exact result SAB parity with the prior machining corpus')
         with tempfile.TemporaryDirectory(prefix='.inventor-write-', dir=path.parent) as staging:
             ipt, sidecar = Path(staging)/'part', Path(staging)/'report'
             for target, payload in ((ipt, data), (sidecar, (json.dumps(report, ensure_ascii=False, indent=2)+'\n').encode('utf-8'))):
@@ -176,10 +190,10 @@ class PartBuilder:
                 except FileNotFoundError:
                     pass
                 raise
-        return PartWriteReport(path, report_path, digest, len(data), ANALYTIC_PROFILE)
+        return PartWriteReport(path, report_path, digest, len(data), self._target_profile)
 
 
-def new_part(*, name: str, units: str = 'mm', target_profile: str = ANALYTIC_PROFILE,
+def new_part(*, name: str, units: str = 'mm', target_profile: str | None = None, target_year: int | None = None,
              title: str = '', part_number: str = '') -> PartBuilder:
     """Start a new independent metric part; see :class:`PartBuilder`."""
-    return PartBuilder(name=name, units=units, target_profile=target_profile, title=title, part_number=part_number)
+    return PartBuilder(name=name, units=units, target_profile=target_profile, target_year=target_year, title=title, part_number=part_number)

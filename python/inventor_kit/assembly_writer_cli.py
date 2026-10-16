@@ -15,22 +15,24 @@ def _worker(request_path, result_path):
     from .assembly_writer import new_assembly
     try:
         request = json.loads(Path(request_path).read_text(encoding='utf-8'))
-        assembly = new_assembly(name=request['name'], part_number=request['part_number'])
+        assembly = new_assembly(name=request['name'], part_number=request['part_number'], target_year=request['target_year'])
         for part in request['parts']:
             assembly.add_part(part)
         result = assembly.save_bundle(request['staging'], filename=request['filename'])
         report = dict(status='success', definition_count=result.definition_count,
-                      occurrence_count=result.occurrence_count, sha256=result.sha256)
+                      occurrence_count=result.occurrence_count, sha256=result.sha256, target_year=request['target_year'])
     except Exception as error:
         report = dict(status='error', error=str(error))
     Path(result_path).write_text(json.dumps(report, ensure_ascii=False), encoding='utf-8')
 
 
-def write_job(parts, destination, *, name='Assembly', part_number=None, filename='assembly.iam', timeout=120):
+def write_job(parts, destination, *, name='Assembly', part_number=None, filename='assembly.iam', timeout=120, target_year=2027):
     from .step_parts import _publish_directory
+    from .writer_profiles import ASSEMBLY_PROFILES, resolve_target
     report = dict(status='error', operation='write-assembly', published=False,
                   output_directory=str(destination), native_validation='not_run')
     try:
+        resolve_target(ASSEMBLY_PROFILES, target_year)
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('timeout must be finite and positive')
         destination = Path(destination).absolute()
@@ -42,7 +44,7 @@ def write_job(parts, destination, *, name='Assembly', part_number=None, filename
             root = Path(temporary)
             request_path, result_path, staging = root/'request.json', root/'result.json', root/'bundle'
             request_path.write_text(json.dumps(dict(parts=[str(Path(p).absolute()) for p in parts],
-                staging=str(staging), name=name, part_number=part_number, filename=filename)), encoding='utf-8')
+                staging=str(staging), name=name, part_number=part_number, filename=filename, target_year=target_year)), encoding='utf-8')
             with tempfile.TemporaryFile(mode='w+') as log:
                 try:
                     child = subprocess.run([sys.executable, '-m', 'inventor_kit.assembly_writer_cli',
@@ -71,12 +73,13 @@ def main(argv=None):
     parser.add_argument('--name', default='Assembly')
     parser.add_argument('--part-number')
     parser.add_argument('--filename', default='assembly.iam')
+    parser.add_argument('--target-year', type=int, choices=(2026, 2027), default=2027)
     parser.add_argument('--timeout', type=float, default=120)
     args = parser.parse_args(argv)
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error('--timeout must be finite and positive')
     result = write_job(args.parts, args.output_directory, name=args.name, part_number=args.part_number,
-                       filename=args.filename, timeout=args.timeout)
+                       filename=args.filename, timeout=args.timeout, target_year=args.target_year)
     print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
     return 0 if result['status'] == 'success' else 1
 
