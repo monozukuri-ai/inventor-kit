@@ -16,6 +16,7 @@ impl TargetVersion {
     pub(super) fn major(self) -> u8 {
         (self.year() - 1996) as u8
     }
+    #[cfg(feature = "iam-writer")]
     pub(super) fn from_major(major: u8) -> Result<Self> {
         match major {
             30 => Ok(Self::Inventor2026),
@@ -53,12 +54,14 @@ impl TargetVersion {
             Self::Inventor2027 => PROFILE_ID,
         }
     }
+    #[cfg(feature = "iam-writer")]
     pub(super) fn asm_version(self) -> &'static str {
         match self {
             Self::Inventor2026 => "231.6.4.65535",
             Self::Inventor2027 => "232.6.0.65535",
         }
     }
+    #[cfg(feature = "iam-writer")]
     pub(super) fn sab_version(self) -> u32 {
         match self {
             Self::Inventor2026 => 23100,

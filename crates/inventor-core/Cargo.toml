@@ -11,7 +11,7 @@ default = ["analytic-writer"]
 fuzzing = []
 # Bounded exact analytic part writer.
 analytic-writer = []
-# Bounded flat IAM writer; qualified with Inventor build 311270010.
+# Bounded flat IAM writer; qualified with Inventor builds 311270010 and 304435000.
 iam-writer = []
 
 [dependencies]

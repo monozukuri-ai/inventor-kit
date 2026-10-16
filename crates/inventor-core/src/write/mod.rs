@@ -2,11 +2,12 @@
 //!
 //! The default route emits one metric box and one nonparametric base feature.
 //! A separately gated development route supports bounded analytic solids.
-//! The profile is frozen to Inventor 2027.1 RSe31. Five generated cases passed the
-//! native M3 gate on build 311270010; self-reading alone does not establish acceptance.
+//! Inventor 2027 is the default; 2026 selects an independently qualified profile.
+//! Bounded native gates passed on builds 311270010 and 304435000; self-reading
+//! alone does not establish acceptance of an individual output.
 #[cfg(feature = "analytic-writer")]
 pub mod analytic;
-/// Bounded flat IAM encoding, qualified with Inventor build 311270010.
+/// Bounded flat IAM encoding, qualified with Inventor builds 311270010 and 304435000.
 #[cfg(feature = "iam-writer")]
 pub mod assembly;
 mod carrier;
