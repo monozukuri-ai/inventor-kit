@@ -6,9 +6,25 @@
 1部品につき1 solidを受け取り、正確な形状を非パラメトリックな基本フィーチャとして保存します。
 表示用メッシュも別に保存します。既存ファイルやディレクトリは上書きしません。
 
-このcheckoutには `cq-acis>=0.3.11,<0.4` が必要です。未公開の変更を試す場合は、
+このcheckoutには `cq-acis>=0.3.12,<0.4` が必要です。未公開の変更を試す場合は、
 [配布ワークフロー](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml)
 の候補wheelをインストールしてください。パッケージ版数は[Cargo.toml](../Cargo.toml)で管理します。
+
+
+## 出力するInventorの版
+
+既定の出力は2027です。2026向けには `new_part(..., target_year=2026)`、
+`write_step_parts(..., target_year=2026)`、`new_assembly(..., target_year=2026)` を使用します。
+CLIの `write-step` と `write-assembly` は `--target-year 2026` に対応します。
+IAMと参照するIPTは同じ出力版にそろえてください。混在する入力は生成前に拒否します。
+2027ファイルを読み込んで2026へ変換する機能ではありません。
+
+2026はRSeコンテナーschema 31、segment major 30、ASM 23100です。
+統合後の公開API/CLIで生成した32部材と1階層のIAMは、2026-10-16に
+Inventor 2026.4（build `304435000`）で保存・再読込、フォルダー移動後の参照解決・再保存・再読込に合格しました。
+形状SABは追加加工にも合格した先行生成版と完全一致していますが、統合版の単品追加加工は再実施していません。
+これは限定profileの検証結果であり、個々の出力を実機検査するものではありません。
+各出力の `native_validation` は常に `not_run` とします。2027の既存profileは維持しています。
 
 ## CadQueryから部品を作る
 
@@ -23,7 +39,7 @@ report = part.saveas("円筒部品.ipt")
 print(report.path, report.report_path, report.native_validation)
 ```
 
-`new_part` は `name`、`title`、`part_number`、`units="mm"`、任意の `target_profile` を受け取ります。
+`new_part` は `name`、`title`、`part_number`、`units="mm"`、任意の `target_profile` と `target_year` を受け取ります。両方を指定する場合は対応する版をそろえてください。
 `add_body` の入力はmm単位の有効なCadQuery `Solid` 1個です。
 名前・Title・Part NumberはUnicodeに対応し、NUL・不正なサロゲートを含まない255 UTF-16単位以内です。
 文書・body・feature名は空にできません。Inventorに表示される文書名はファイル名に従います。

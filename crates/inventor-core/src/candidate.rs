@@ -144,7 +144,7 @@ fn warning(code: &str, message: impl Into<String>, source: Option<SourceSpan>) -
 fn allowed(major: u8, version: u32) -> bool {
     matches!(
         (major, version),
-        (19, 22000) | (25, 22600) | (26, 22700) | (28, 22900) | (31, 23200)
+        (19, 22000) | (25, 22600) | (26, 22700) | (28, 22900) | (30, 23100) | (31, 23200)
     )
 }
 fn unpack(
@@ -313,7 +313,7 @@ pub(crate) fn scan(
                 entry.status = "identity_only";
                 return Ok(());
             }
-            if !matches!(reg.major, 19 | 25 | 26 | 28 | 31) {
+            if !matches!(reg.major, 19 | 25 | 26 | 28 | 30 | 31) {
                 entry.status = "unsupported";
                 return Err(Error(format!(
                     "unsupported PmBRep segment major {}",
@@ -325,7 +325,7 @@ pub(crate) fn scan(
                 max_records: record_budget,
                 ..limits.clone()
             };
-            let meta = if reg.major == 31 {
+            let meta = if matches!(reg.major, 30 | 31) {
                 rse::meta_layout_budgeted(
                     &bytes,
                     &bounded,

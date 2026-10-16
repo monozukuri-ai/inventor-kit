@@ -1,8 +1,6 @@
 use super::document::Graph;
 use super::*;
 use std::collections::BTreeMap;
-const CREATION: [u16; 4] = [10, 16415, 1, 27000];
-const SAVE: [u16; 4] = [0, 16415, 0, 15500];
 
 fn versions(w: &mut Wire, a: &[u16]) {
     for &v in a {
@@ -11,7 +9,7 @@ fn versions(w: &mut Wire, a: &[u16]) {
 }
 fn revision_info(g: &Graph<'_>) -> Result<Vec<u8>> {
     let mut w = Wire::default();
-    w.words(&[3, 565]);
+    w.words(&[3, g.profile.1.protocols() as u32 + 1]);
     for row in array(&g.profile.0, "protocols")? {
         let id = guid(string(row, "guid")?)?;
         if id == g.birth {
@@ -51,8 +49,8 @@ fn revision_info(g: &Graph<'_>) -> Result<Vec<u8>> {
     w.u32(0x841);
     w.u16(65535);
     w.u8(0);
-    versions(&mut w, &CREATION);
-    versions(&mut w, &SAVE);
+    versions(&mut w, &g.profile.1.creation());
+    versions(&mut w, &g.profile.1.save());
     Ok(w.0)
 }
 fn private_properties() -> Result<Vec<u8>> {
@@ -167,14 +165,18 @@ fn interfaces() -> Result<Vec<u8>> {
     Ok(w.0)
 }
 fn ufrx(g: &Graph<'_>) -> Vec<u8> {
-    let sections = [
+    let mut sections = [
         31, 32, 18, 28, 3, 12, 7, 4, 1, 5, 1, 2, 7, 2, 3, 7, 0, 5, 5, 0, 1, 0, 1, 0, 3, 2, 2,
     ];
+    if g.profile.1 == TargetVersion::Inventor2026 {
+        sections[1] = 31;
+        sections[2] = 17;
+    }
     let mut w = Wire::default();
     w.u16(15);
     w.u16(sections.len() as u16);
     versions(&mut w, &sections);
-    versions(&mut w, &SAVE);
+    versions(&mut w, &g.profile.1.save());
     w.0.resize(w.0.len() + 24, 0);
     w.text("");
     w.0.resize(w.0.len() + 32, 0);
@@ -201,7 +203,7 @@ fn ufrx(g: &Graph<'_>) -> Vec<u8> {
     let mut version = Wire::default();
     // M1 V24's accepted constructor uses the canonical version in these
     // empty suffix branches; the save version belongs to the prefix only.
-    versions(&mut version, &[0, 16415, 0, 0]);
+    versions(&mut version, &[0, 16384 + g.profile.1.major() as u16, 0, 0]);
     for start in [11, 27, 59] {
         suffix[start..start + 8].copy_from_slice(&version.0);
     }
@@ -279,9 +281,9 @@ pub(super) fn streams(g: &Graph<'_>) -> Result<BTreeMap<String, Vec<u8>>> {
     let mut db = Wire::default();
     db.id(&g.birth);
     db.u32(31);
-    versions(&mut db, &CREATION);
+    versions(&mut db, &g.profile.1.creation());
     db.u64(time);
-    versions(&mut db, &SAVE);
+    versions(&mut db, &g.profile.1.save());
     db.u64(time);
     db.utf16("");
     let mut streams = BTreeMap::from([

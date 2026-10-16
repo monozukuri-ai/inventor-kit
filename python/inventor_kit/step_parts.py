@@ -17,7 +17,7 @@ import sys
 import tempfile
 import unicodedata
 
-from .writer import ANALYTIC_PROFILE, PartWriteError, _bounds, _name, new_part
+from .writer import PartWriteError, _bounds, _name, new_part
 
 
 @dataclass(frozen=True)
@@ -252,7 +252,7 @@ def _compare(actual, expected):
 
 
 def write_step_parts(source: str | os.PathLike, output_directory: str | os.PathLike, *,
-                     target_profile: str = ANALYTIC_PROFILE,
+                     target_profile: str | None = None, target_year: int | None = None,
                      limits: StepPartLimits | None = None) -> StepPartWriteReport:
     """Write each metric STEP solid occurrence as a standalone IPT in a new directory.
 
@@ -265,7 +265,8 @@ def write_step_parts(source: str | os.PathLike, output_directory: str | os.PathL
     limits = StepPartLimits() if limits is None else limits
     if not isinstance(limits, StepPartLimits):
         raise TypeError('limits must be StepPartLimits')
-    new_part(name='batch', target_profile=target_profile)
+    builder = new_part(name='batch', target_profile=target_profile, target_year=target_year)
+    target_year, target_profile = builder._target_year, builder._target_profile
     source, target = Path(source).absolute(), Path(output_directory).absolute()
     if os.path.lexists(target):
         raise FileExistsError(target)
@@ -317,7 +318,7 @@ def write_step_parts(source: str | os.PathLike, output_directory: str | os.PathL
             with source.open('rb') as f:
                 if f.read(limits.max_file_bytes + 1) != data:
                     raise PartWriteError('source STEP changed during batch generation')
-            batch = dict(schema_version=1, status='local-validated', target_profile=target_profile,
+            batch = dict(schema_version=1, status='local-validated', target_profile=target_profile, target_year=target_year,
                          source=dict(path=str(source), bytes=len(data), sha256=digest), units=units,
                          placement='world coordinates; occurrence location applied exactly once',
                          geometry_deduplication=False, appearance_imported=False, product_Inventor_API_dependency=False,

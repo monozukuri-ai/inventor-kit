@@ -9,11 +9,13 @@ def check(path):
     profile = json.loads(path.read_text(encoding='utf-8'))
     if set(profile) != {'schema', 'profile', 'graph', 'tables', 'ufrx_fields'}:
         raise ValueError('IAM defaults contain undeclared top-level data')
-    if profile['schema'] != 1 or profile['profile'] != 'inventor-iam-rse31-fixed-parts-v1':
+    if profile['schema'] != 1 or profile['profile'] not in ('inventor-iam-rse31-fixed-parts-v1', 'inventor-iam-rse31-major30-fixed-parts-v1'):
         raise ValueError('Unknown IAM defaults profile')
     counts = dict(AmDcSegment=37, AmGraphicsSegment=204, AmBrowserSegment=25,
                   AmAppSegment=201, NBNotebookSegment=2, AmRxSegment=10,
                   AmBREPSegment=6, DesignViewSegment=4)
+    if profile['profile'] == 'inventor-iam-rse31-major30-fixed-parts-v1':
+        counts['AmAppSegment'] = 200
     graph = profile['graph']
     if (graph['occurrence_count'], graph['reference_count']) != (1, 1):
         raise ValueError('IAM defaults must describe one expandable role layout')
@@ -67,5 +69,5 @@ def check(path):
 
 
 if __name__ == '__main__':
-    count = check(ROOT/'crates/inventor-core/src/write/assembly/profile.json')
+    count = sum(check(path) for path in sorted((ROOT/'crates/inventor-core/src/write/assembly').glob('profile*.json')))
     print(f'IAM defaults passed: {count} typed fields; no source-file or opaque payload dependency')

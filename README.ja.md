@@ -22,11 +22,11 @@ v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwの�
 対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
 図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
 
-リリース版数は[Cargo.toml](Cargo.toml)で管理します。更新コマンドは[バージョン管理](docs/releasing.ja.md#バージョン管理)を参照してください。writerにはcq-acis 0.3.11以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
+リリース版数は[Cargo.toml](Cargo.toml)で管理します。更新コマンドは[バージョン管理](docs/releasing.ja.md#バージョン管理)を参照してください。writerにはcq-acis 0.3.12以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
 
 ## インストール
 
-Python 3.11 以降、`cq-acis>=0.3.11,<0.4`、共通モデル API 2 を使用します。
+Python 3.11 以降、`cq-acis>=0.3.12,<0.4`、共通モデル API 2 を使用します。
 公開済みの互換 wheel がある環境では、次のようにインストールできます。
 
 ```sh
@@ -34,7 +34,7 @@ python -m pip install inventor-kit
 ```
 
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.3.11 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
+0.3.12 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
 [リリース条件](docs/releasing.ja.md)を参照してください。
 
 ## 部品の読み込み
@@ -110,7 +110,7 @@ print(ik.capabilities())
 | [リリース](docs/releasing.ja.md) | wheel / sdist、CI、公開前の条件 |
 | [形式資料](docs/format-reference.ja.md) | 実装に使用した資料とライセンス |
 
-生成したIPTをIAMにまとめる `new_assembly` / `write-assembly` は[アセンブリwriter](docs/assembly-writer.ja.md)を参照してください。限定profileで実機の保存・再読込・移動後の参照解決まで検証済みです。
+生成したIPTをIAMにまとめる `new_assembly` / `write-assembly` は[アセンブリwriter](docs/assembly-writer.ja.md)を参照してください。APIの `target_year`／CLIの `--target-year` で2026または2027を選択できます（既定2027）。両版の限定profileで、実機の保存・再読込・移動後の参照解決まで検証済みです。
 
 公開サンプルは hash と出典を固定して検証し、CAD ファイル自体は配布パッケージに含めません。
 

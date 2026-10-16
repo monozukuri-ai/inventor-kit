@@ -23,6 +23,7 @@
       25,
       26,
       28,
+      30,
       31
     ],
     "observed_sab_save_versions": [
@@ -30,6 +31,7 @@
       22600,
       22700,
       22900,
+      23100,
       23200
     ],
     "codecs": [
@@ -73,12 +75,76 @@
       2,
       2
     ],
-    "scope": "saved references and placements; exact observed section profile only",
+    "scope": "saved references and placements; exact observed section profiles only",
     "current_state_verified": false,
     "native_appearance_decoded": false,
     "constraint_solver": false,
     "ipj_resolution": false,
-    "step_transport": "checked XDE hierarchy, names, rigid placement, leaf RGB and solid metrics"
+    "step_transport": "checked XDE hierarchy, names, rigid placement, leaf RGB and solid metrics",
+    "save_majors": [
+      30,
+      31
+    ],
+    "section_profiles": {
+      "30": [
+        31,
+        31,
+        17,
+        28,
+        3,
+        12,
+        7,
+        4,
+        1,
+        5,
+        1,
+        2,
+        7,
+        2,
+        3,
+        7,
+        0,
+        5,
+        5,
+        0,
+        1,
+        0,
+        1,
+        0,
+        3,
+        2,
+        2
+      ],
+      "31": [
+        31,
+        32,
+        18,
+        28,
+        3,
+        12,
+        7,
+        4,
+        1,
+        5,
+        1,
+        2,
+        7,
+        2,
+        3,
+        7,
+        0,
+        5,
+        5,
+        0,
+        1,
+        0,
+        1,
+        0,
+        3,
+        2,
+        2
+      ]
+    }
   },
   "limitations": [
     "No neighboring-version compatibility is inferred",
@@ -171,7 +237,23 @@
       "scope": "bounded development corpus: 11 analytic parts and a separate 32-part assembly; representative native machining and save/reopen"
     },
     "cli": "write-step",
-    "default_timeout_seconds": 600
+    "default_timeout_seconds": 600,
+    "default_target_year": 2027,
+    "target_profiles": {
+      "2027": {
+        "profile": "inventor-ipt-rse31-metric-analytic-base-feature-v21",
+        "status": "native-qualified-bounded-corpus"
+      },
+      "2026": {
+        "profile": "inventor-ipt-rse31-major30-metric-analytic-base-feature-v1",
+        "status": "native-qualified-bounded-corpus",
+        "inventor_build": "304435000",
+        "integrated_build_native_validation": "qualified-bounded-corpus",
+        "date": "2026-10-16",
+        "integrated_build_evidence": "Inventor-2026-Public-v1",
+        "scope": "32 authored parts in a flat assembly and one control: open/save/reopen and moved-bundle resolution/resave/reopen; per-output native validation is not run"
+      }
+    }
   },
   "assembly_writer": {
     "api_version": 1,
@@ -200,6 +282,22 @@
       "scope": "initial writer IPTs: one part, two definitions with three placements, 32 repeated placements, and a separate 32-part assembly; open/save/reopen and moved-bundle resolution/resave/reopen; no constraints or arbitrary transforms"
     },
     "cli": "write-assembly",
-    "default_timeout_seconds": 120
+    "default_timeout_seconds": 120,
+    "default_target_year": 2027,
+    "target_profiles": {
+      "2027": {
+        "profile": "inventor-iam-rse31-fixed-parts-v1",
+        "status": "native-qualified-bounded-corpus"
+      },
+      "2026": {
+        "profile": "inventor-iam-rse31-major30-fixed-parts-v1",
+        "status": "native-qualified-bounded-corpus",
+        "inventor_build": "304435000",
+        "integrated_build_native_validation": "qualified-bounded-corpus",
+        "date": "2026-10-16",
+        "integrated_build_evidence": "Inventor-2026-Public-v1",
+        "scope": "32 authored parts in a flat assembly and one control: open/save/reopen and moved-bundle resolution/resave/reopen; per-output native validation is not run"
+      }
+    }
   }
 }

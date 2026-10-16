@@ -45,7 +45,7 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
             raise ValueError('Missing ABI3 native extension')
         package_prefix = 'inventor_kit/'
         viewer_sources = None
-        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'writer_profiles.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
             if 'inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python API: {name}')
         metadata = [v for k, v in contents.items() if k.endswith('.dist-info/METADATA')]
@@ -99,12 +99,15 @@ def check(path, *, allow_unpublished_bridge=False, allow_unpublished_core=False)
         for name in ('mod.rs', 'ufrx.rs', 'records.rs', 'matrix.rs', 'resolve.rs', 'tests.rs'):
             if prefix + 'crates/inventor-core/src/assembly/' + name not in contents:
                 raise ValueError(f'Missing assembly Rust source: {name}')
-        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
+        for name in ('drawing.py', 'drawing_output.py', 'viewer/drawing.py', 'assembly.py', 'assembly_step.py', 'conversion.py', 'cli.py', '_cli_worker.py', 'limits.py', 'capabilities.json', 'writer.py', 'writer_profiles.py', 'step_parts.py', 'writer_cli.py', 'assembly_writer.py', 'assembly_writer_cli.py'):
             if prefix + 'python/inventor_kit/' + name not in contents:
                 raise ValueError(f'Missing assembly Python source: {name}')
-        for name in ('allocation.rs', 'input.rs', 'wire.rs', 'profile.json'):
+        for name in ('allocation.rs', 'input.rs', 'wire.rs', 'profile.json', 'profile_2026.json'):
             if prefix + 'crates/inventor-core/src/write/assembly/' + name not in contents:
                 raise ValueError(f'Missing IAM writer build input: {name}')
+        for name in ('version.rs', 'profile.json', 'profile_2026.json'):
+            if prefix + 'crates/inventor-core/src/write/' + name not in contents:
+                raise ValueError(f'Missing versioned writer build input: {name}')
         for name in ('scripts/check_assembly_writer.py', 'tests/test_assembly_writer.py', 'scripts/versioning.py'):
             if prefix + name not in contents:
                 raise ValueError(f'Missing public IAM validation source: {name}')

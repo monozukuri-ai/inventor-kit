@@ -9,7 +9,10 @@ from pathlib import Path
 import stat
 import tempfile
 
-ASSEMBLY_PROFILE = 'inventor-iam-rse31-fixed-parts-v1'
+from .writer_profiles import ASSEMBLY_PROFILES, resolve_target
+
+ASSEMBLY_PROFILE = ASSEMBLY_PROFILES[2027]
+ASSEMBLY_PROFILE_2026 = ASSEMBLY_PROFILES[2026]
 MAX_PART_BYTES = 64 * 1024 * 1024
 MAX_BUNDLE_BYTES = 256 * 1024 * 1024
 
@@ -63,10 +66,14 @@ class AssemblyBuilder:
     constraints, nested IAMs and nonidentity transforms are unsupported.
     """
 
-    def __init__(self, *, name: str, part_number: str | None = None):
+    def __init__(self, *, name: str, part_number: str | None = None, target_year: int = 2027):
         from . import _inventor
         if not hasattr(_inventor, 'encode_fixed_assembly'):
             raise AssemblyWriteError('This build does not include the IAM writer')
+        try:
+            self._target_year, self._target_profile = resolve_target(ASSEMBLY_PROFILES, target_year)
+        except ValueError as error:
+            raise AssemblyWriteError(str(error)) from error
         self._name = _name(name)
         self._part_number = _name(name if part_number is None else part_number)
         self._parts = []
@@ -110,6 +117,8 @@ class AssemblyBuilder:
                 if old['document_id'] == metadata['document_id'] and old_data != data:
                     raise AssemblyWriteError('Conflicting IPT bytes with the same document identity')
             index = len(self._parts)
+        if metadata['target_year'] != self._target_year:
+            raise AssemblyWriteError('IAM and IPT target versions must match')
         count = sum(o['part'] == index for o in self._occurrences) + 1
         occurrence_name = _name(name if name is not None else f"{metadata['display_name']}:{count}")
         if occurrence_name.casefold() in {o['name'].casefold() for o in self._occurrences}:
@@ -134,7 +143,7 @@ class AssemblyBuilder:
             raise FileExistsError(target)
         if not self._occurrences:
             raise AssemblyWriteError('At least one part occurrence is required')
-        spec = dict(name=self._name, part_number=self._part_number, occurrences=self._occurrences)
+        spec = dict(target_year=self._target_year, name=self._name, part_number=self._part_number, occurrences=self._occurrences)
         try:
             data, raw = _inventor.encode_fixed_assembly(
                 json.dumps(spec, ensure_ascii=False, allow_nan=False),
@@ -143,7 +152,7 @@ class AssemblyBuilder:
             raise AssemblyWriteError(str(error)) from error
         identity = _artifact(filename, data)
         report = dict(schema_version=1, operation='write-assembly', status='success',
-                      target_profile=ASSEMBLY_PROFILE, units='mm', native_validation='not_run',
+                      target_profile=self._target_profile, target_year=self._target_year, units='mm', native_validation='not_run',
                       assembly=identity, document=json.loads(raw),
                       parts=[_artifact(name, data) for name, data, _ in self._parts])
         report_data = (json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + '\n').encode('utf-8')
@@ -158,8 +167,8 @@ class AssemblyBuilder:
             (staging / 'bundle.json').write_bytes(report_data)
             _publish_directory(staging, target)
         return AssemblyWriteReport(target, target / filename, target / 'bundle.json',
-                                   len(self._parts), len(self._occurrences), identity['sha256'])
+                                   len(self._parts), len(self._occurrences), identity['sha256'], self._target_profile)
 
 
-def new_assembly(*, name: str, part_number: str | None = None) -> AssemblyBuilder:
-    return AssemblyBuilder(name=name, part_number=part_number)
+def new_assembly(*, name: str, part_number: str | None = None, target_year: int = 2027) -> AssemblyBuilder:
+    return AssemblyBuilder(name=name, part_number=part_number, target_year=target_year)

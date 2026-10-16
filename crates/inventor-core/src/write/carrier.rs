@@ -24,6 +24,7 @@ pub(super) fn record(g: &Graph<'_>, r: &Value) -> Result<Vec<u8>> {
                 } else {
                     History::Source
                 },
+                g.profile.1,
             )?
         };
         w.0.extend(sab);

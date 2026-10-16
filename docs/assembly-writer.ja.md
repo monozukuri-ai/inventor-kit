@@ -5,7 +5,23 @@
 実験段階のIAM writerは、新規生成したIPTの**1～32配置**を平坦なアセンブリへまとめます。
 Inventor・COM・既存IAM・nativeテンプレートは使いません。
 限定profileは2026-10-12にInventor 2027.1（build `311270010`）で検証済みです。
-APIは作業ツリーへ実装済みですが、リリースは未実施です。
+追加した2026 profileの検証範囲は下記を参照してください。
+
+
+## 出力するInventorの版
+
+既定の出力は2027です。2026向けには `new_part(..., target_year=2026)`、
+`write_step_parts(..., target_year=2026)`、`new_assembly(..., target_year=2026)` を使用します。
+CLIの `write-step` と `write-assembly` は `--target-year 2026` に対応します。
+IAMと参照するIPTは同じ出力版にそろえてください。混在する入力は生成前に拒否します。
+2027ファイルを読み込んで2026へ変換する機能ではありません。
+
+2026はRSeコンテナーschema 31、segment major 30、ASM 23100です。
+統合後の公開API/CLIで生成した32部材と1階層のIAMは、2026-10-16に
+Inventor 2026.4（build `304435000`）で保存・再読込、フォルダー移動後の参照解決・再保存・再読込に合格しました。
+形状SABは追加加工にも合格した先行生成版と完全一致していますが、統合版の単品追加加工は再実施していません。
+これは限定profileの検証結果であり、個々の出力を実機検査するものではありません。
+各出力の `native_validation` は常に `not_run` とします。2027の既存profileは維持しています。
 
 ## Python
 

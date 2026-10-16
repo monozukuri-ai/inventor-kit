@@ -15,8 +15,8 @@ a valid solid while retaining all required source faces. See
 
 ## Reproducing the checks
 
-Rust requires `acis-core=0.3.11` and `acis-py-bridge=0.3.11`.
-Python requires `cq-acis>=0.3.11,<0.4` and shared model API 2.
+Rust requires `acis-core=0.3.12` and `acis-py-bridge=0.3.12`.
+Python requires `cq-acis>=0.3.12,<0.4` and shared model API 2.
 
 ```sh
 python scripts/validate_components.py

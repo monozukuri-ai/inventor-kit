@@ -284,7 +284,7 @@ fn decode<'a>(
             )
             .map_err(|e| Error(e.to_string()))?;
             rse::charge(work, parsed.model.entities().len())?;
-            if parsed.header.save_version != 23200
+            if !matches!(parsed.header.save_version, 23100 | 23200)
                 || parsed.header.integer_width != 4
                 || parsed.header.scale != 10.0
             {

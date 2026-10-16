@@ -15,6 +15,8 @@ mod document;
 mod geometry;
 mod kernel_labels;
 mod profile;
+mod version;
+pub use version::TargetVersion;
 mod properties;
 mod rse;
 
@@ -22,6 +24,8 @@ use crate::{Error, Result};
 use acis_core::authoring::BoxSpec;
 use serde_json::Value;
 
+pub const PROFILE_ID_2026: &str =
+    "inventor-ipt-cfb3-rse31-major30-metric-single-base-feature-box-v1";
 pub const PROFILE_ID: &str =
     "inventor-ipt-cfb3-rse31-metric-single-base-feature-box-app-root-table-v44";
 /// The frozen profile passed M3 for five box cases on Inventor 2027.1 build 311270010.
@@ -52,6 +56,11 @@ impl BoxDocument {
 
     /// Assemble an entire CFB3 file in memory. Does not read the filesystem.
     pub fn encode(&self) -> Result<Vec<u8>> {
+        self.encode_for(TargetVersion::default())
+    }
+
+    /// Encode for an explicit Inventor version; the default remains 2027.
+    pub fn encode_for(&self, target: TargetVersion) -> Result<Vec<u8>> {
         for name in [&self.document_name, &self.feature_name, &self.body_name] {
             if name.is_empty() || name.contains('\0') || name.encode_utf16().count() > 255 {
                 return Err(Error(
@@ -60,7 +69,7 @@ impl BoxDocument {
             }
         }
         let shape = self.shape.build().map_err(err)?;
-        let p = profile::Profile::load()?;
+        let p = profile::Profile::load_for(target)?;
         let graph = document::Graph::new(p, self, shape)?;
         let streams = rse::streams(&graph)?;
         let bytes = cfb::encode(streams)?;
@@ -79,7 +88,7 @@ impl BoxDocument {
                 .iter()
                 .map(|s| s.records.len())
                 .sum::<usize>()
-                != 789
+                != target.records()
         {
             return Err(Error(
                 "writer self-read segment/record census differs".into(),

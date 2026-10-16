@@ -237,7 +237,9 @@ pub(super) fn scan(
         .filter(|r| matches!(r.kind.as_str(), "AmDcSegmentType" | "AmGRxSegmentType"))
     {
         let result: Result<()> = (|| {
-            require(reg.major as u32, 31)?;
+            if !matches!(reg.major, 30 | 31) {
+                return Err(Error("unsupported assembly segment major".into()));
+            }
             let matches = owners
                 .get(&reg.id)
                 .ok_or_else(|| Error("assembly segment has no metadata owner".into()))?;

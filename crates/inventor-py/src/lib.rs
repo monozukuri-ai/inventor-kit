@@ -264,6 +264,7 @@ fn encode_fixed_assembly<'py>(
     #[serde(deny_unknown_fields)]
     struct Spec {
         name: String,
+        target_year: Option<u16>,
         part_number: String,
         occurrences: Vec<Occurrence>,
     }
@@ -292,7 +293,13 @@ fn encode_fixed_assembly<'py>(
                 definitions
                     .push(PartDefinition::from_authored_ipt(name, b).map_err(|e| e.to_string())?);
             }
+            let target = match spec.target_year.unwrap_or(2027) {
+                2026 => inventor_core::write::TargetVersion::Inventor2026,
+                2027 => inventor_core::write::TargetVersion::Inventor2027,
+                _ => return Err("unsupported target year".into()),
+            };
             let mut doc = AssemblyDocument::empty(&spec.name)
+                .and_then(|d| d.with_target(target))
                 .and_then(|d| d.with_part_number(&spec.part_number))
                 .map_err(|e| e.to_string())?;
             let mut used = std::collections::BTreeSet::new();

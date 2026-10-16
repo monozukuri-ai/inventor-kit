@@ -2,7 +2,6 @@ use super::document::Graph;
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 
-const VERSION: [u16; 4] = [0, 16415, 0, 15500];
 const TERMINAL: &str = "9744e6a4-11d1-8dd8-0008-2998bedddc09";
 pub(super) fn token(id: &[u8; 16]) -> String {
     let alphabet = b"abcdefghijklmnopqrstuvwxyz123456";
@@ -89,7 +88,7 @@ fn meta(g: &Graph<'_>, owner: &Value, payloads: &[Vec<u8>]) -> Result<Vec<u8>> {
     let mut rev = Wire::default();
     rev.words(&[0, 0]);
     rev.u16(0);
-    rev.u32(564);
+    rev.u32(g.profile.1.protocols() as u32);
     rev.u32(alloc);
     rev.u16(0);
     counts[2] = 2;
@@ -293,7 +292,7 @@ fn registry(g: &Graph<'_>) -> Result<Vec<u8>> {
         for v in array(owner, "type_words")? {
             w.u32(number(v)?);
         }
-        for v in VERSION {
+        for v in g.profile.1.save() {
             w.u16(v);
         }
         // The retained native profile distinguishes owners with external

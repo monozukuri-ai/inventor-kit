@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from check_corpus import verify
 from check_release import artifact_set, check_tag, pypi_conflicts, viewer_reports
 from check_distribution import check_metadata
-from check_dependencies import check_python_lock
+from check_dependencies import ACIS_VERSION, CQ_ACIS_REQUIREMENT, check_python_lock
 from check_license import DISTRIBUTION_LICENSE
 import inventor_kit as ik
 
@@ -25,13 +25,13 @@ class ReleaseGates(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root/'Cargo.toml').write_text('[workspace.package]\nversion = "1.2.3"\n')
-            (root/'pyproject.toml').write_text('[project]\ndynamic = ["version"]\ndependencies = ["cq-acis>=0.3.11,<0.4"]\n')
+            (root/'pyproject.toml').write_text(f'[project]\ndynamic = ["version"]\ndependencies = ["{CQ_ACIS_REQUIREMENT}"]\n')
             valid = ('[[package]]\nname = "inventor-kit"\nversion = "1.2.3"\nsource = {editable = "."}\n'
-                     '[[package]]\nname = "cq-acis"\nversion = "0.3.11"\n'
+                     f'[[package]]\nname = "cq-acis"\nversion = "{ACIS_VERSION}"\n'
                      'source = {registry = "https://pypi.org/simple"}\n')
             (root/'uv.lock').write_text(valid)
             check_python_lock(root)
-            for content in (valid.replace('1.2.3','1.2.2'), valid.replace('0.3.11','0.3.10'),
+            for content in (valid.replace('1.2.3','1.2.2'), valid.replace(ACIS_VERSION,'0.0.0'),
                             valid.replace('registry = "https://pypi.org/simple"','path = "local"'),
                             valid.replace('https://pypi.org/simple','https://example.test/simple')):
                 (root/'uv.lock').write_text(content)
@@ -59,7 +59,7 @@ class ReleaseGates(unittest.TestCase):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
                             ('License-Expression', DISTRIBUTION_LICENSE), ('Requires-Python', '>=3.11'),
-                            ('Requires-Dist', 'cq-acis<0.4,>=0.3.11'), ('Provides-Extra', 'viewer'),
+                            ('Requires-Dist', f'cq-acis<0.4,>={ACIS_VERSION}'), ('Provides-Extra', 'viewer'),
                             ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value
         check_metadata(meta, '0.1.0')
@@ -122,7 +122,7 @@ class ReleaseGates(unittest.TestCase):
                         for name, parts, occurrences, omissions in [('part', 1, 1, 0), ('assembly', 1, 1, 0), ('partial_assembly', 5, 7, 2), ('partial_part', 1, 3, 2)]}))
         for report in reports:
             report['browser'] = 'linux-chromium-passed' if report is reports[0] else 'not_run'
-            report['writer'] = dict(status='passed', single_parts=1, batch_occurrences=2, cli_occurrences=2,
+            report['writer'] = dict(status='passed', target_years=[2026, 2027], single_parts=1, batch_occurrences=2, cli_occurrences=2,
                 semantic_json_roundtrip=True,
                 iam_api_occurrences=2, iam_cli_occurrences=1, iam_local_relocation=True,
                 nested_placement=True, repeated_definition=True, metadata=True,
@@ -158,6 +158,7 @@ class ReleaseGates(unittest.TestCase):
                 {'writer': {**reports[0]['writer'], 'iam_cli_occurrences': 0}},
                 {'writer': {**reports[0]['writer'], 'iam_local_relocation': False}},
                 {'writer': {**reports[0]['writer'], 'semantic_json_roundtrip': False}},
+                {'writer': {**reports[0]['writer'], 'target_years': [2027]}},
                 {'writer': {**reports[0]['writer'], 'native_validation': 'passed'}},
                 {'artifact': {**reports[0]['artifact'], 'sha256': 'bad'}},
                 {'platform': 'windows-x86_64'}, {'python': '3.13.0'},

@@ -2,6 +2,7 @@
 //! Encoding does not call Inventor or read templates. This bounded profile was
 //! qualified with Inventor build 311270010; individual outputs are not opened.
 
+use super::TargetVersion;
 use crate::{Error, Limits, Result};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -11,6 +12,7 @@ mod input;
 mod wire;
 
 pub const NATIVE_QUALIFIED: bool = true;
+pub const PROFILE_ID_2026: &str = "inventor-iam-rse31-major30-fixed-parts-v1";
 pub const PROFILE_ID: &str = "inventor-iam-rse31-fixed-parts-v1";
 
 /// Identity of an existing part, bound to its bytes and a portable package path.
@@ -18,6 +20,7 @@ pub const PROFILE_ID: &str = "inventor-iam-rse31-fixed-parts-v1";
 #[derive(Debug, Clone, Serialize)]
 pub struct PartDefinition {
     relative_path: String,
+    target_year: u16,
     document_id: String,
     database_revision_id: String,
     bytes: usize,
@@ -39,11 +42,14 @@ impl PartDefinition {
         if doc.kind != "part"
             || doc.ufrx.status != "identity_only"
             || doc.ufrx.schema != Some(15)
-            || doc.ufrx.save_version.is_none_or(|v| v[2] != 31)
+            || doc
+                .ufrx
+                .save_version
+                .is_none_or(|v| !matches!(v[2], 30 | 31))
             || !doc.diagnostics.is_empty()
         {
             return Err(Error(
-                "IAM requires an IPT with the observed schema15/major31 identity profile".into(),
+                "IAM requires an IPT with the observed schema15/major30 or major31 identity profile".into(),
             ));
         }
         let identifier = |value: Option<String>| -> Result<String> {
@@ -56,6 +62,7 @@ impl PartDefinition {
         };
         Ok(Self {
             relative_path: relative_path.into(),
+            target_year: TargetVersion::from_major(doc.ufrx.save_version.unwrap()[2])?.year(),
             document_id: identifier(doc.ufrx.document_id)?,
             database_revision_id: identifier(doc.ufrx.database_revision_id)?,
             bytes: bytes.len(),
@@ -102,6 +109,7 @@ impl PartDefinition {
 #[derive(Debug, Clone)]
 pub struct AssemblyDocument {
     name: String,
+    target: TargetVersion,
     part_number: String,
     parts: Vec<(PartDefinition, String)>,
 }
@@ -111,9 +119,22 @@ impl AssemblyDocument {
         validate_name(name)?;
         Ok(Self {
             name: name.into(),
+            target: TargetVersion::default(),
             part_number: name.into(),
             parts: Vec::new(),
         })
+    }
+
+    pub fn with_target(mut self, target: TargetVersion) -> Result<Self> {
+        if self
+            .parts
+            .iter()
+            .any(|(p, _)| p.target_year != target.year())
+        {
+            return Err(Error("IAM and IPT target versions must match".into()));
+        }
+        self.target = target;
+        Ok(self)
     }
 
     pub fn single_part(name: &str, part: PartDefinition, occurrence_name: &str) -> Result<Self> {
@@ -132,6 +153,9 @@ impl AssemblyDocument {
     /// Add a placement. Repeating one filename reuses its external definition.
     pub fn add_part(&mut self, part: PartDefinition, name: &str) -> Result<&mut Self> {
         validate_name(name)?;
+        if part.target_year != self.target.year() {
+            return Err(Error("IAM and IPT target versions must match".into()));
+        }
         if self.parts.len() >= 32
             || self
                 .parts
@@ -230,7 +254,10 @@ impl AssemblyDocument {
             });
         }
         PreparedAssembly {
-            profile: PROFILE_ID,
+            profile: match self.target {
+                TargetVersion::Inventor2026 => PROFILE_ID_2026,
+                TargetVersion::Inventor2027 => PROFILE_ID,
+            },
             native_qualified: NATIVE_QUALIFIED
                 && !self.parts.is_empty()
                 && self.parts.iter().all(|(p, _)| p.bounds_cm.is_some()),
@@ -258,6 +285,13 @@ pub struct PreparedAssembly {
     pub occurrences: Vec<Placement>,
 }
 impl PreparedAssembly {
+    pub(super) fn target(&self) -> Result<TargetVersion> {
+        match self.profile {
+            PROFILE_ID => Ok(TargetVersion::Inventor2027),
+            PROFILE_ID_2026 => Ok(TargetVersion::Inventor2026),
+            _ => Err(Error("unsupported IAM profile".into())),
+        }
+    }
     /// Encode a prepared document after validating all publicly mutable fields.
     pub fn encode(&self) -> Result<Vec<u8>> {
         self.validate()?;
@@ -280,7 +314,11 @@ impl PreparedAssembly {
     fn validate(&self) -> Result<()> {
         validate_name(&self.document_name)?;
         validate_name(&self.part_number)?;
-        if self.profile != PROFILE_ID
+        let target = self.target()?;
+        if self
+            .definitions
+            .iter()
+            .any(|d| d.part.target_year != target.year())
             || !(1..=32).contains(&self.occurrences.len())
             || self.definitions.is_empty()
             || self.definitions.len() > self.occurrences.len()
@@ -437,43 +475,49 @@ mod tests {
 
     #[test]
     fn authored_parts_encode_dynamic_flat_assemblies() {
-        let mut box_doc = super::super::BoxDocument::new(acis_core::authoring::BoxSpec::new(
-            (20., 30., 40.).into(),
-            (0., 0., 0.).into(),
-        ));
-        box_doc.document_name = "Test part".into();
-        let bytes = box_doc.encode().unwrap();
-        let part = PartDefinition::from_authored_ipt("box.ipt", &bytes).unwrap();
-        assert_eq!(part.bounds_cm, Some([0., 0., 0., 2., 3., 4.]));
-        for n in [1, 3, 32] {
-            let mut doc = AssemblyDocument::empty("Test assembly").unwrap();
-            for i in 0..n {
-                doc.add_part(part.clone(), &format!("Box:{}", i + 1))
+        for target in [TargetVersion::Inventor2026, TargetVersion::Inventor2027] {
+            let mut box_doc = super::super::BoxDocument::new(acis_core::authoring::BoxSpec::new(
+                (20., 30., 40.).into(),
+                (0., 0., 0.).into(),
+            ));
+            box_doc.document_name = "Test part".into();
+            let bytes = box_doc.encode_for(target).unwrap();
+            let part = PartDefinition::from_authored_ipt("box.ipt", &bytes).unwrap();
+            assert_eq!(part.bounds_cm, Some([0., 0., 0., 2., 3., 4.]));
+            for n in [1, 3, 32] {
+                let mut doc = AssemblyDocument::empty("Test assembly")
+                    .unwrap()
+                    .with_target(target)
                     .unwrap();
-            }
-            let prepared = doc.prepare();
-            assert!(prepared.native_qualified);
-            let output = prepared.encode().unwrap();
-            let read = crate::assembly::inspect(&output, "test", &Limits::default()).unwrap();
-            assert_eq!(read.ufrx.occurrences.len(), n);
-            assert_eq!(read.ufrx.references.len(), 1);
-            assert_eq!(read.ufrx.references[0].path, "box.ipt");
-            assert_eq!(prepared.encode().unwrap(), output);
-            let mut bad = prepared.clone();
-            bad.occurrences[0].matrix_mm[0][3] = 10.;
-            assert!(bad.encode().is_err());
-            let mut bad = prepared.clone();
-            bad.creation_revision_id = bad.document_id.clone();
-            assert!(bad.encode().is_err());
-            if n > 1 {
+                for i in 0..n {
+                    doc.add_part(part.clone(), &format!("Box:{}", i + 1))
+                        .unwrap();
+                }
+                let prepared = doc.prepare();
+                assert!(prepared.native_qualified);
+                let output = prepared.encode().unwrap();
+                let read = crate::assembly::inspect(&output, "test", &Limits::default()).unwrap();
+                assert_eq!(read.ufrx.save_version.unwrap()[2], target.major());
+                assert_eq!(read.ufrx.occurrences.len(), n);
+                assert_eq!(read.ufrx.references.len(), 1);
+                assert_eq!(read.ufrx.references[0].path, "box.ipt");
+                assert_eq!(prepared.encode().unwrap(), output);
                 let mut bad = prepared.clone();
-                let mut alias = bad.definitions[0].clone();
-                alias.reference_id = 2;
-                alias.part.relative_path = "changed.ipt".into();
-                alias.part.sha256 = "different bytes".into();
-                bad.definitions.push(alias);
-                bad.occurrences[1].reference_id = 2;
+                bad.occurrences[0].matrix_mm[0][3] = 10.;
                 assert!(bad.encode().is_err());
+                let mut bad = prepared.clone();
+                bad.creation_revision_id = bad.document_id.clone();
+                assert!(bad.encode().is_err());
+                if n > 1 {
+                    let mut bad = prepared.clone();
+                    let mut alias = bad.definitions[0].clone();
+                    alias.reference_id = 2;
+                    alias.part.relative_path = "changed.ipt".into();
+                    alias.part.sha256 = "different bytes".into();
+                    bad.definitions.push(alias);
+                    bad.occurrences[1].reference_id = 2;
+                    assert!(bad.encode().is_err());
+                }
             }
         }
     }

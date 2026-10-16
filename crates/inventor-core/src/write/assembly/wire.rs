@@ -13,8 +13,6 @@ pub(super) const ANCHORS: [&str; 8] = [
     "38a42066-1ce6-11d6-8e0b-00b0d03d3835",
     "d25c16f6-229d-4df5-8539-a7c5f63edb55",
 ];
-const CREATION: [u16; 4] = [10, 16415, 1, 27000];
-const SAVE: [u16; 4] = [0, 16415, 0, 15500];
 fn shorts(w: &mut Wire, values: &[u16]) {
     for &v in values {
         w.u16(v);
@@ -81,7 +79,13 @@ fn asm_tokens(w: &mut Wire, rows: &[(u8, i32)]) {
         }
     }
 }
-fn carrier(owner: &str, key: u16, ordinal: usize, helper: Option<usize>) -> Result<Vec<u8>> {
+fn carrier(
+    owner: &str,
+    key: u16,
+    ordinal: usize,
+    helper: Option<usize>,
+    target: TargetVersion,
+) -> Result<Vec<u8>> {
     let dc = owner == allocation::DC;
     if !dc && owner != "AmBREPSegment" {
         return Err(Error("unknown IAM carrier owner".into()));
@@ -91,8 +95,12 @@ fn carrier(owner: &str, key: u16, ordinal: usize, helper: Option<usize>) -> Resu
     w.u16(key);
     w.words(&[if dc { 0x357 } else { 0x31d }, 44]);
     w.0.extend(b"ASM BinaryFile4");
-    w.words(&[23200, 0, 1, 3]);
-    for text in ["inventor-kit", "ASM 232.6.0.65535 NT", ""] {
+    w.words(&[target.sab_version(), 0, 1, 3]);
+    for text in [
+        "inventor-kit",
+        &format!("ASM {} NT", target.asm_version()),
+        "",
+    ] {
         asm_text(&mut w, text);
     }
     for v in [10., 1e-6, 1e-10] {
@@ -101,7 +109,7 @@ fn carrier(owner: &str, key: u16, ordinal: usize, helper: Option<usize>) -> Resu
     }
     asm_name(&mut w, "asmheader");
     asm_tokens(&mut w, &[(12, -1), (4, -1)]);
-    asm_text(&mut w, "232.6.0.65535");
+    asm_text(&mut w, target.asm_version());
     w.u8(17);
     asm_name(&mut w, "Begin-of-ASM-History-Data");
     asm_name(&mut w, "history_stream");
@@ -190,6 +198,7 @@ fn graph(plan: &Value, doc: &PreparedAssembly) -> Result<BTreeMap<String, Vec<Ve
                     number(&r["assigned_key"])? as u16,
                     i,
                     helper,
+                    doc.target()?,
                 )?);
                 continue;
             }
@@ -475,7 +484,7 @@ fn registry(table: &Value, doc: &PreparedAssembly) -> Result<Vec<u8>> {
         words(&mut w, &p["registry_state"])?;
         w.utf16(string(p, "kind")?);
         words(&mut w, &p["type_words"])?;
-        shorts(&mut w, &SAVE);
+        shorts(&mut w, &doc.target()?.save());
         w.u32(u32::from(objects.is_empty()));
         for (slot, target) in objects.iter().enumerate() {
             w.id(&revision);
@@ -627,12 +636,34 @@ pub(super) fn streams(plan: &Value, doc: &PreparedAssembly) -> Result<BTreeMap<S
     let mut out = BTreeMap::new();
     let payloads = graph(plan, doc)?;
     let table = &plan["tables"];
+    for owner in array(table, "owners")? {
+        let name = string(owner, "name")?;
+        let rows = array(&plan["graph"]["owners"], name)?;
+        let allocator = number(&owner["meta6"]["allocator"])?;
+        let mut keys = BTreeSet::new();
+        if number(&owner["registry_state"][3])? as usize != rows.len() {
+            return Err(Error(format!("IAM record census differs: {name}")));
+        }
+        for record in rows {
+            if !record["assigned_key"].is_null() {
+                let key = number(&record["assigned_key"])?;
+                if key == 0 || key > allocator || !keys.insert(key) {
+                    return Err(Error(format!(
+                        "IAM key allocation exceeds or conflicts with owner: {name}"
+                    )));
+                }
+            }
+        }
+        if name == "AmAppSegment" && number(&owner["registry_state"][4])? as usize != keys.len() {
+            return Err(Error("IAM App keyed record census differs".into()));
+        }
+    }
     let mut db = Wire::default();
     db.id(&guid(&doc.document_id)?);
     db.u32(31);
-    shorts(&mut db, &CREATION);
+    shorts(&mut db, &doc.target()?.creation());
     db.u64(0);
-    shorts(&mut db, &SAVE);
+    shorts(&mut db, &doc.target()?.save());
     db.u64(0);
     db.u32(0);
     out.insert("/RSeStorage/V1/RSeDb".into(), db.0);
@@ -656,8 +687,8 @@ pub(super) fn streams(plan: &Value, doc: &PreparedAssembly) -> Result<BTreeMap<S
     revisions.u32(0x810);
     revisions.u16(65535);
     revisions.u8(0);
-    shorts(&mut revisions, &CREATION);
-    shorts(&mut revisions, &SAVE);
+    shorts(&mut revisions, &doc.target()?.creation());
+    shorts(&mut revisions, &doc.target()?.save());
     out.insert("/RSeStorage/RSeDbRevisionInfo".into(), revisions.0);
     out.insert("/RSeStorage/RSeSegInfo".into(), registry(table, doc)?);
     out.insert("/\u{5}Qz4dgm1gRjudbpksAayal4qdGf".into(), properties(doc)?);

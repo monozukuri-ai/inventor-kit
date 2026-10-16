@@ -1,5 +1,5 @@
 //! Bounded part wire inventory for native-writer research. No writer or history evaluator.
-//! The sole admitted envelope is the independently observed M0 schema31/major31 band.
+//! Admitted envelopes use the independently observed schema31/major30 and major31 bands.
 use crate::{
     document::{Diagnostic, SourceSpan},
     property::{guid, Binary},
@@ -684,7 +684,7 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<PartInve
                 diagnostics: vec![],
             };
             let framed: Result<()> = (|| {
-                if reg.major != 31
+                if !matches!(reg.major, 30 | 31)
                     || !matches!(
                         reg.kind.as_str(),
                         "PmGRxSegmentType"
@@ -874,7 +874,11 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<PartInve
             } else {
                 "partial"
             };
-        out.profile = Some("ipt-cfb3-rse31-meta8-major31-framing-v1");
+        out.profile = Some(if out.segments.iter().all(|s| s.major == 30) {
+            "ipt-cfb3-rse31-meta8-major30-framing-v1"
+        } else {
+            "ipt-cfb3-rse31-meta8-major31-framing-v1"
+        });
     }
     Ok(out)
 }

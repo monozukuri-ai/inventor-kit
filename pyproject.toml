@@ -7,7 +7,7 @@ name = "inventor-kit"
 dynamic = ["version"]
 description = "Read Inventor files and write bounded IPT parts and flat IAM assemblies without Inventor"
 requires-python = ">=3.11"
-dependencies = ["cq-acis>=0.3.11,<0.4"]
+dependencies = ["cq-acis>=0.3.12,<0.4"]
 license = "PolyForm-Noncommercial-1.0.0 AND MIT AND Apache-2.0 AND BSD-3-Clause AND CC-BY-4.0 AND Zlib"
 license-files = ["LICENSE", "COMMERCIAL-LICENSE.md", "THIRD_PARTY_NOTICES.md", "licenses/*.txt", "licenses/*.md", "licenses/*.json"]
 readme = "README.md"
@@ -67,5 +67,5 @@ cache-keys = [
     {file = "Cargo.lock"},
     {file = "crates/**/Cargo.toml"},
     {file = "crates/**/*.rs"},
-    {file = "crates/**/profile.json"},
+    {file = "crates/**/profile*.json"},
 ]
