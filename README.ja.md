@@ -116,7 +116,7 @@ print(ik.capabilities())
 
 ## ライセンス
 
-inventor-kit は **[PolyForm Noncommercial 1.0.0](licenses/PolyForm-Noncommercial-1.0.0.md)** で提供しています。
+現行の inventor-kit 配布物は **[PolyForm Noncommercial 1.0.0](licenses/PolyForm-Noncommercial-1.0.0.md)** で提供しています。
 PolyForm の許諾範囲外の利用については、UnRobotics Inc. が別途
 [商用ライセンス](COMMERCIAL-LICENSE.md)を提供しています。
 適用範囲、過去の MIT 許諾、第三者コンポーネントの条件は、
@@ -124,4 +124,4 @@ PolyForm の許諾範囲外の利用については、UnRobotics Inc. が別途
 
 Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
 
-Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
+Required Notice: This inventor-kit release is offered under PolyForm Noncommercial 1.0.0 or a separate commercial agreement; earlier MIT permissions and third-party terms remain in effect.

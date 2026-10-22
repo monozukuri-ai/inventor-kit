@@ -2,10 +2,30 @@
 
 English | [日本語](license.ja.md)
 
-Starting with **0.3.0**, inventor-kit offers new project material under the
+The current inventor-kit release is offered as a **combined distribution** under the
 [PolyForm Noncommercial License 1.0.0](../licenses/PolyForm-Noncommercial-1.0.0.md),
 with separate commercial licenses from **UnRobotics Inc.** It is source-available.
-The [license notice](../LICENSE) defines the earlier-MIT and third-party boundaries.
+The [license notice](../LICENSE) also preserves the independent permissions for
+earlier MIT material and the terms of third-party components.
+
+## Scope of the current distribution
+
+The release includes project source, the native library, Python modules and
+the bundled Viewer. Its licensing is not a feature-by-feature choice. Using,
+modifying or redistributing the combined release requires permission for all
+material involved. Calling only an API or feature that existed in 0.2.0 does
+not, by itself, exempt the later additions and modifications included in a
+current distribution from their applicable terms.
+
+| Material being used | Applicable permissions |
+| --- | --- |
+| A current combined distribution containing material offered under the new terms | PolyForm or a separate commercial agreement for that material, together with the applicable MIT and third-party terms |
+| An earlier MIT release or identifiable previously MIT-published material | The surviving MIT permissions for that material; later material must be assessed separately |
+
+Commercial agreements identify covered releases, deliverables and uses, rather
+than charging for individual API calls or only newly added features. Use already
+permitted by PolyForm, MIT or another applicable license does not require
+purchasing the same rights from us.
 
 ## Choosing a license
 
@@ -29,7 +49,7 @@ the recipient commercial execution or development rights are separate questions.
 See [commercial licensing](../COMMERCIAL-LICENSE.md) for scope, quotation,
 contract expiry, OEM end-user rights and support. No online activation is required.
 
-## Earlier versions and source
+## Surviving MIT permissions
 
 The MIT grants for 0.1.0, 0.2.0 and previously published MIT source remain in
 effect, including source at
@@ -39,6 +59,11 @@ Their original notice is retained in
 The source transition is recorded by the first commit introducing the new
 LICENSE notice; the package transition begins with 0.3.0. Earlier MIT rights
 are not revoked by copying that material into a newer package.
+
+Those MIT permissions remain independently available for that material,
+including where it is identifiable in current source. This guide does not
+retroactively change the terms of earlier distributions. A version number or
+an API name alone does not determine which permissions cover a particular use.
 
 Users requiring the old distribution can pin `inventor-kit==0.2.0` and retain
 their dependency lockfile. Pinning does not promise future fixes or compatibility.

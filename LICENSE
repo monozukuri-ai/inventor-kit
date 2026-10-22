@@ -3,28 +3,53 @@ inventor-kit License Notice
 Licensor and commercial contracting entity: UnRobotics Inc.
 https://www.un-robotics.com/
 
-Starting with version 0.3.0, the inventor-kit material offered under the new
-terms is available under the PolyForm Noncommercial License 1.0.0, unless
-you have a separate written commercial agreement with UnRobotics Inc.
+Current release: terms for the combined distribution
+
+This inventor-kit release is offered as a combined distribution under the
+PolyForm Noncommercial License 1.0.0, or under a separate written commercial
+agreement with UnRobotics Inc., subject to the surviving MIT permissions
+and third-party terms below. This covers the project source, native library,
+Python package and bundled Viewer as supplied in the release; it is not a
+license or pricing schedule for individual features or APIs.
+
+Using, modifying or redistributing the combined release requires permission
+for all material involved. Calling only an API or feature that also existed
+in an MIT release does not, by itself, make the current distribution
+MIT-licensed or exempt its later additions and modifications from their
+applicable terms. Independently available MIT rights remain as stated below.
 
 The unmodified PolyForm terms are in:
   licenses/PolyForm-Noncommercial-1.0.0.md
   https://polyformproject.org/licenses/noncommercial/1.0.0
 
-For use outside those permissions, including commercial internal use and
-commercial product integration, see COMMERCIAL-LICENSE.md or contact:
+For use outside those permissions that is not already covered by other
+applicable rights, including commercial internal use and commercial product
+integration, a separate written commercial agreement is required. See
+COMMERCIAL-LICENSE.md or contact:
   https://www.un-robotics.com/#contact
 The commercial information document does not itself grant a license.
 
-Earlier MIT material and third-party components
+Surviving MIT permissions
 
 Versions 0.1.0 and 0.2.0, and source previously made available under MIT,
 retain their MIT permissions. This includes the public source at commit
 440f149fe96a4c8e7f207ce621919284f6a1f621. Applying a new version number or
 including that material in a later distribution does not revoke those rights.
 The original notice is preserved verbatim in
-licenses/inventor-kit-legacy-MIT.txt. It does not grant MIT permissions to
-all subsequent additions made available only under the new terms.
+licenses/inventor-kit-legacy-MIT.txt.
+
+Those MIT permissions remain independently available for the previously
+MIT-licensed material, including when that material is present in this
+release. Use, modification and redistribution of that material under MIT
+remain subject to MIT's conditions. This does not extend MIT permissions
+to later additions or modifications offered only under the new terms.
+
+The licensing transition began with version 0.3.0 and the source commit
+introducing the new LICENSE notice. This notice describes the release it
+accompanies; it does not retroactively change the terms of earlier
+distributions or create new restrictions merely by changing a version number.
+
+Third-party components and license metadata
 
 Third-party material retains its own licenses and copyright notices.
 See THIRD_PARTY_NOTICES.md and the accompanying license texts. The separate
@@ -32,5 +57,9 @@ cq-acis, acis-core and acis-py-bridge projects are not relicensed by this notice
 Copyright ownership remains with the respective holders; identifying the
 licensor here does not transfer ownership to UnRobotics Inc.
 
+Composite SPDX expressions in package metadata describe the applicable
+licenses of included material. They are not a choice to use the complete
+release under MIT or any other single component's license.
+
 Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
-Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
+Required Notice: This inventor-kit release is offered under PolyForm Noncommercial 1.0.0 or a separate commercial agreement; earlier MIT permissions and third-party terms remain in effect.

@@ -15,7 +15,7 @@ PINNED_TEXTS = {
 }
 REQUIRED_NOTICES = (
     'Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).',
-    'Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.',
+    'Required Notice: This inventor-kit release is offered under PolyForm Noncommercial 1.0.0 or a separate commercial agreement; earlier MIT permissions and third-party terms remain in effect.',
 )
 
 

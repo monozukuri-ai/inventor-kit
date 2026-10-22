@@ -6,7 +6,7 @@
     "npm": "10.9.3"
   },
   "inputs": {
-    "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
+    "LICENSE.txt": "9c17c652901cd781c1821d4e3cf8305ab79a6021084dacb0cadab408ddf88cf9",
     "index.html": "877eab6cb0d4dde06ad170402957a7e942cc9a1f444ad32b16f7fd441c589567",
     "package-lock.json": "9876d33da1eceaaee733fe7c0c10cf07f8b578867fe47bb88b05c02b1a7621f6",
     "package.json": "44dcd8dfbb1e461deceaeb8af6a6490ad3649b15683d9912b61690b3e02296ed",
@@ -22,7 +22,7 @@
     "vite.config.ts": "632e8b4536dc9b476a8e64db12ac7aa7fbd271f8c90b998615986751ff7dabff"
   },
   "outputs": {
-    "LICENSE.txt": "7521f695bf0bc9f86f50b17e6d56eb0f32c3c443245c0299e19db245df94ba66",
+    "LICENSE.txt": "9c17c652901cd781c1821d4e3cf8305ab79a6021084dacb0cadab408ddf88cf9",
     "THIRD_PARTY_LICENSES.txt": "c76f9cf7e6e3cebf8d331a4aec0e25756460820e7596377ac5afcc5d14d0962c",
     "assets/index-DjwfgRpY.js": "d77b7b59dd963ba054fd3a10faca53b396ba58acc7af848da5cb2d403971d49e",
     "assets/index-o5G6nt2e.css": "b0e9409817339e6641737468c521f0189a668de8df64d705742a23adbbe9d660",

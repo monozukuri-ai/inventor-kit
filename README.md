@@ -123,7 +123,7 @@ themselves are excluded from distribution packages.
 
 ## License
 
-inventor-kit is source-available under
+The current inventor-kit distribution is source-available under
 **[PolyForm Noncommercial 1.0.0](licenses/PolyForm-Noncommercial-1.0.0.md)**.
 For use outside PolyForm's permissions, UnRobotics Inc. offers separate
 [commercial licenses](COMMERCIAL-LICENSE.md).
@@ -132,4 +132,4 @@ and third-party license conditions.
 
 Required Notice: inventor-kit is licensed by UnRobotics Inc. (https://www.un-robotics.com/).
 
-Required Notice: inventor-kit 0.3.0 and later offer new material under PolyForm Noncommercial 1.0.0; separate commercial licenses are available.
+Required Notice: This inventor-kit release is offered under PolyForm Noncommercial 1.0.0 or a separate commercial agreement; earlier MIT permissions and third-party terms remain in effect.
