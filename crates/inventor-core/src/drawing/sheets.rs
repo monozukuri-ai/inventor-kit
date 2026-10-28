@@ -121,7 +121,8 @@ fn collect(
         {
             return Err(Error("ambiguous or unsupported sheet definition".into()));
         }
-        let name = text(definition, "name")?;
+        // A prefix-only definition (unobserved links layout) has no name yet.
+        let name = text(definition, "name").unwrap_or("");
         rse::charge(work, name.len())?;
         let mut sheet = StoredSheet {
             id: format!("sheet-{}-{ordinal}", segment.registry.id),
@@ -136,6 +137,7 @@ fn collect(
             diagnostics: vec![],
         };
         let mut matches = vec![];
+        let mut binding_errors: Vec<String> = vec![];
         for sm in &doc.segments {
             rse::charge(work, 1)?;
             if sm.status != "framed"
@@ -157,9 +159,18 @@ fn collect(
             let binding = scene::word(space, "definition_reference").and_then(|raw| {
                 scene::resolve_cached(doc, sm, raw, "DlDocDcSegmentType", work, &mut cache)
             });
-            if let Ok((target, object, sources, _)) = binding {
-                if target.registry.id == segment.registry.id && object.record_ordinal == ordinal {
-                    matches.push((sm, space, sources));
+            match binding {
+                Ok((target, object, sources, _)) => {
+                    if target.registry.id == segment.registry.id && object.record_ordinal == ordinal
+                    {
+                        matches.push((sm, space, sources));
+                    }
+                }
+                Err(e) => {
+                    let text = e.to_string();
+                    if !binding_errors.contains(&text) && binding_errors.len() < 4 {
+                        binding_errors.push(text);
+                    }
                 }
             }
         }
@@ -178,6 +189,11 @@ fn collect(
             sheet
                 .diagnostics
                 .push("missing_or_ambiguous_sheet_space_binding".into());
+            // Why no SM space bound: the resolution errors seen while probing
+            // the candidate SM segments (deduplicated, at most four).
+            for text in binding_errors {
+                sheet.diagnostics.push(format!("space_binding: {text}"));
+            }
         }
         sheets.push(sheet);
     }

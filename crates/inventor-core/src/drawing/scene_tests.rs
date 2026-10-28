@@ -1201,19 +1201,33 @@ fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
     let inherited = experimental_scene(&d, &Limits::default());
     assert_eq!(inherited.spaces[0].items[0].style.width, Some(0.06));
     assert_eq!(inherited.spaces[0].items[0].style.dash, Some(vec![]));
-    for (name, value) in [
-        ("stroke_width", FieldValue::F32(vec![-2.])),
-        ("stroke_kind", w(7)),
-        ("stroke_pattern_copy", w(28102)),
+    // Other nonpositive widths fail closed; -1 with a tuple that is not the
+    // native major31 default stays inherited but flagged (observed on
+    // production major17/26/28/30 drawings).
+    for (name, value, admitted) in [
+        ("stroke_width", FieldValue::F32(vec![-2.]), false),
+        ("stroke_width", FieldValue::F32(vec![0.]), false),
+        ("stroke_kind", w(7), true),
+        ("stroke_pattern_copy", w(28102), true),
         (
             "stroke_parameters",
             FieldValue::F32(vec![-10000., 2., -0.038]),
+            true,
         ),
     ] {
         let stroke = d.segments[1].observations.last_mut().unwrap();
         let field = stroke.fields.iter_mut().find(|f| f.name == name).unwrap();
         let original = std::mem::replace(&mut field.value, value);
-        assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+        let result = experimental_scene(&d, &Limits::default());
+        if admitted {
+            let style = &result.spaces[0].items[0].style;
+            assert_eq!(style.width, Some(0.06));
+            assert!(style
+                .unresolved
+                .contains(&"stroke_override_width_inherited_unverified"));
+        } else {
+            assert!(result.spaces.is_empty(), "{name}");
+        }
         let stroke = d.segments[1].observations.last_mut().unwrap();
         stroke
             .fields
@@ -1222,6 +1236,51 @@ fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
             .unwrap()
             .value = original;
     }
+    // Production major26/28/30 drawings keep -1 with a dashed tuple: the width
+    // stays inherited and flagged while the dashes still apply.
+    let dashed = [
+        ("stroke_pattern", FieldValue::U16(28103)),
+        (
+            "stroke_dashes",
+            FieldValue::F64(vec![0.912, -0.114, 0.019, -0.114]),
+        ),
+        ("stroke_pattern_copy", w(28103)),
+        ("stroke_kind", w(2)),
+    ];
+    let mut originals = vec![];
+    for (name, value) in dashed {
+        let stroke = d.segments[1].observations.last_mut().unwrap();
+        let field = stroke.fields.iter_mut().find(|f| f.name == name).unwrap();
+        originals.push((name, std::mem::replace(&mut field.value, value)));
+    }
+    let flagged = experimental_scene(&d, &Limits::default());
+    let style = &flagged.spaces[0].items[0].style;
+    assert_eq!(style.width, Some(0.06));
+    assert_eq!(style.dash, Some(vec![0.912, 0.114, 0.019, 0.114]));
+    assert!(style
+        .unresolved
+        .contains(&"stroke_override_width_inherited_unverified"));
+    for (name, value) in originals {
+        let stroke = d.segments[1].observations.last_mut().unwrap();
+        stroke
+            .fields
+            .iter_mut()
+            .find(|f| f.name == name)
+            .unwrap()
+            .value = value;
+    }
+    // A zero layer width (observed on production major29 drawings) keeps the
+    // item without a width and flags it; a negative width still fails closed.
+    d.segments[2].observations[0].fields[3].value = FieldValue::F64(vec![0.]);
+    let zero = experimental_scene(&d, &Limits::default());
+    assert_eq!(zero.spaces[0].items[0].style.width, None);
+    assert!(zero.spaces[0].items[0]
+        .style
+        .unresolved
+        .contains(&"layer_width_zero_unverified"));
+    d.segments[2].observations[0].fields[3].value = FieldValue::F64(vec![-0.01]);
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
+    d.segments[2].observations[0].fields[3].value = FieldValue::F64(vec![0.03]);
     // Duplicated object keys cannot be resolved by first-match or by label.
     d.segments[2].observations.push(observation(
         8,
@@ -1534,6 +1593,47 @@ fn unknown_color_omits_only_its_subtree_without_guessing_a_visible_style() {
         .omitted
         .iter()
         .any(|o| o.record_ordinal == 1 && o.reason == "display_color_mask_not_interpreted"));
+}
+
+#[test]
+fn display_color_sentinel_keeps_the_inherited_color_and_flags_it() {
+    // Observed on a production major30 drawing: a mask-1 color override that
+    // carries the layer "no color" sentinel. Partial sentinels still fail closed.
+    let mut d = placement_doc();
+    let mut params = vec![-2.; 4];
+    params.extend([0.; 17]);
+    attach_attribute(
+        &mut d,
+        1,
+        observation(
+            101,
+            "display_color_candidate",
+            vec![
+                ("color_mask", w(1)),
+                ("color_rgba_parameters", FieldValue::F32(params.clone())),
+            ],
+        ),
+    );
+    let s = experimental_scene(&d, &Limits::default());
+    let item = s.spaces[0]
+        .items
+        .iter()
+        .find(|i| i.record_ordinal == 1)
+        .unwrap();
+    assert_eq!(item.style.rgba, None);
+    assert!(item
+        .style
+        .unresolved
+        .contains(&"display_color_sentinel_unverified"));
+    params[3] = 0.5;
+    let color = d
+        .segments
+        .iter_mut()
+        .flat_map(|s| s.observations.iter_mut())
+        .find(|o| o.proposed_role == "display_color_candidate")
+        .unwrap();
+    color.fields[1].value = FieldValue::F32(params);
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
 }
 
 #[test]

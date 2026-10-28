@@ -66,6 +66,19 @@ pub(super) fn links(f: &mut Fields<'_, '_>) -> Result<()> {
     } else {
         f.r.skip(f.profile.link_suffix)?;
     }
+    let extra = f.r.bytes.len().saturating_sub(f.r.pos);
+    if f.profile.major >= 29 && (1..=16).contains(&extra) {
+        // Observed on production major29 (2 bytes) and major30 (6 bytes, on
+        // two of five sheets) drawings. Keep the bytes visible as an
+        // unresolved field rather than discarding the sheet.
+        let start = f.r.pos;
+        let tail = f.r.take(extra)?.to_vec();
+        f.add(
+            "sheet_link_tail_unresolved",
+            start,
+            super::FieldValue::U32(tail.iter().map(|b| u32::from(*b)).collect()),
+        );
+    }
     f.r.finish()
 }
 

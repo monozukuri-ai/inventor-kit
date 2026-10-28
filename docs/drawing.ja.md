@@ -171,7 +171,25 @@ boolean mask=2、値0は、非表示として扱います。対象166要素す�
 全10件は採取時dirtyで、8件に外部モデル欠落があり、原本の前後ハッシュと文書状態は一致しました。
 major24の検証入力はテンプレートのみです。埋め込みPNG/JPEGはビュー画像キャッシュと別に扱います。
 追加版の物理単位・現在状態・native描画精度・独立holdoutでの受入判定は未検証です。
-major21・25・27・30など、一覧にない版は未対応のままです。
+
+major15・16・17・18・21・22・27・30は本番の失敗入力(2026-10、51件)で観測した版で、native採取はありません。
+**候補プロファイル**(`idw-rse31-meta8-majorNN-…-framing-candidate`)として枠付けします。
+major27はmajor26の30バイト文書プレフィックスにmajor28のレイアウト、major30はmajor31のzstd・
+モノクロのビュー画像キャッシュ・PART31のApp segment Metaレイアウトにmajor23の履歴コンテキスト、
+major15〜22はmajor23のレイアウトを使い、シート定義のlinksレイアウトが合わないときは
+先頭のキーだけの観測(`idw-sheet-links-prefix-fallback`、シート名なし)を残します。
+表示は`experimental_partial`で、認定した項目はありません。major14・19・20・25など一覧にない版、
+schema 31以外のRSeDb(26・29・30 は Inventor 2010/2011 世代の図面で観測。RSeSegInfo の末尾とノードの並びが異なる)は未対応のままです。Meta stream version 7 はヘッダ(識別子・名前・時刻・zlib 本体)がversion 8 と同じ並びなので読みますが(major14 の図面で観測)、major14 のレコード配置は枠付けできず、表示キャッシュの無い図面として終わります。
+
+同じ入力で、1件の値のためにシート全体を捨てる代わりにフラグを付けて残す許容を追加しました:
+ノード数0のレジストリ項目、全プロファイルでの空の表示属性リスト、3の倍数(最大3,072頂点)の
+保存三角形バッチ、native major31の組以外の継承線幅-1(`stroke_override_width_inherited_unverified`)、
+線幅0のレイヤ(`layer_width_zero_unverified`)、major29/30のシート定義suffix後の余剰バイト
+(`sheet_link_tail_unresolved`、バイト列を保持)、未デコードのビュー画像キャッシュ(`view_cache_not_decoded`)、
+不正な画像配置(`unsupported_image_placement`)、major24 以外の色マスク 8
+(`display_color_mask8_unverified`、native と照合済みの major24 と同じ並びで読み、部分木を捨てない。
+本番の major29 図面 2 件が全要素に書く)。束縛できなかったシートにはSM segment探索時の
+エラーを`space_binding: …`として残します。
 
 fixture manifestには取得元コミット・サイズ・SHA-256を固定しています。
 CAD入力は検証用に別途ダウンロードし、配布物には同梱しません。manifestは再配布権を付与しません。

@@ -308,7 +308,7 @@ fn scan(
                 limits,
                 expanded,
                 work,
-                super::profile::meta_layout(&reg.kind),
+                super::profile::meta_layout(&reg.kind, reg.major),
             )?;
             let mpath = owner.source.stream.as_str();
             let bpath = bulk.stream.as_str();

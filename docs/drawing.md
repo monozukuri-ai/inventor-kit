@@ -221,8 +221,38 @@ captures were dirty and eight had missing external models; source hashes and
 before/after document state were preserved. Major24
 has template evidence only. Embedded PNG/JPEG assets are independent of the
 view-cache decoder. Native unit/state accuracy and independent holdout acceptance
-have not been qualified for these profiles. Majors 21, 25, 27, 30 and other
-unlisted versions remain unsupported.
+have not been qualified for these profiles.
+
+Majors 15, 16, 17, 18, 21, 22, 27 and 30 were observed on production drawings
+(51 failed uploads, 2026-10) without native captures. They are framed as
+*candidate profiles* (`idw-rse31-meta8-majorNN-…-framing-candidate`): major27
+keeps the 30-byte document prefix of major26 with the major28 layouts; major30
+uses the zstd envelope, monochrome view caches and PART31 App-segment Meta
+layout of major31 with the historical target context of major23; majors 15–22
+reuse the major23 layouts, and their sheet definitions keep a prefix-only
+observation (`idw-sheet-links-prefix-fallback`, no sheet name) when the full
+links layout does not frame. Their displays are `experimental_partial` and
+nothing about them is qualified. Majors 14, 19, 20, 25 and other unlisted
+versions remain unsupported, as do RSeDb schemas other than 31 (26, 29 and 30
+were observed on Inventor 2010/2011-era drawings; their RSeSegInfo registry
+tails and node records differ). Meta stream version 7 is read with the version
+8 header grammar (identity, name, timestamps, zlib body; observed on major14
+drawings), but the major14 record layouts fail to frame, so those drawings
+still end without a decodable stored display.
+
+The same drawings exercised flagged tolerances that keep a sheet displayable
+instead of discarding it: registry entries with a zero node count, empty display
+attribute lists on every profile, saved triangle batches of any multiple of
+three vertices (at most 3,072), inherited stroke width (-1) outside the native
+major31 tuple (`stroke_override_width_inherited_unverified`), zero layer width
+(`layer_width_zero_unverified`), trailing bytes after the sheet definition
+suffix on major29/30 (`sheet_link_tail_unresolved`, the bytes stay visible),
+view caches that are not decoded (`view_cache_not_decoded`), invalid image
+placements (`unsupported_image_placement`) and color mask 8 outside major24
+(`display_color_mask8_unverified`: read like the native-matched major24
+override instead of omitting the subtree; two production major29 drawings
+write it for every sheet element). Unbound sheets list the binding
+errors seen while probing SM segments (`space_binding: …`).
 
 The fixture manifest pins source commits, sizes and SHA-256 hashes. CAD inputs
 are downloaded separately for validation; they are not bundled in releases and

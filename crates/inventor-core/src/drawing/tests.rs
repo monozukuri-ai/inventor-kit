@@ -208,7 +208,7 @@ fn full_types_ordinals_spans_and_unresolved_references_are_preserved() {
 #[test]
 fn old_majors_and_unknown_kinds_remain_inventory_only() {
     for (major, kind) in [
-        (22, "DlSheetDlSegmentType"),
+        (13, "DlSheetDlSegmentType"),
         (25, "DlSheetDlSegmentType"),
         (31, "UnqualifiedType"),
     ] {
@@ -806,7 +806,7 @@ fn added_profiles_require_their_exact_envelope_and_codec() {
         b.extend(zlib(b"synthetic record bytes"));
         assert!(profile::bulk_for_major(&b, major).is_ok());
         assert!(profile::bulk_for_major(&b, 31).is_err());
-        for unknown in [21, 25, 27, 30, 32] {
+        for unknown in [14, 25, 32] {
             assert!(profile::bulk_for_major(&b, unknown).is_err());
             assert!(!profile::admits("DlSheetDlSegmentType", unknown));
         }
@@ -918,7 +918,20 @@ fn sheet_links_require_profile_prefix_and_complete_suffix() {
             b[last] = 0;
         }
         b.push(0);
-        assert!(parse(&b).is_err());
+        if major == 29 {
+            // Trailing bytes after the suffix were observed on production
+            // major29/30 drawings; they stay visible and flagged.
+            let o = parse(&b).unwrap().unwrap();
+            assert!(o
+                .fields
+                .iter()
+                .any(|f| f.name == "sheet_link_tail_unresolved"
+                    && matches!(&f.value, FieldValue::U32(v) if v == &[0])));
+            b.extend([0; 16]);
+            assert!(parse(&b).is_err());
+        } else {
+            assert!(parse(&b).is_err());
+        }
     }
 }
 
@@ -1559,4 +1572,136 @@ fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts()
             );
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Candidate profiles and tolerances observed on production drawings (2026-10).
+// These admit framing for additional majors and keep sheets displayable when a
+// single stored value falls outside the pinned fixtures; none of them qualifies
+// a new semantic profile.
+
+#[test]
+fn candidate_profiles_frame_production_majors() {
+    for major in [15, 16, 17, 18, 21, 22, 27, 30] {
+        let p = super::profile::get(major).unwrap_or_else(|| panic!("major {major}"));
+        assert_eq!(p.major, major);
+        assert!(super::profile::name(major).contains("candidate"));
+        assert!(p.fields_name().contains("candidate"));
+        assert!(super::profile::admits("DlSheetSmSegmentType", major));
+    }
+    for major in [13, 14, 19, 20, 25, 32] {
+        assert!(super::profile::get(major).is_none());
+    }
+    // 30 shares the zstd envelope and monochrome caches of 31; 27 keeps the
+    // 30-byte document prefix of 26 with the SM layouts of 28.
+    let p30 = super::profile::get(30).unwrap();
+    assert!(p30.zstd && p30.document_prefix == 34 && p30.view_extra_references);
+    assert_eq!(p30.bitmap, Some(super::profile::BitmapLayout::Monochrome));
+    let p27 = super::profile::get(27).unwrap();
+    assert!(!p27.zstd && p27.document_prefix == 30 && p27.compact_references);
+    assert_eq!(p27.triangle_flags(), Some(8));
+    assert_eq!(super::profile::get(31).unwrap().document_prefix, 34);
+}
+
+#[test]
+fn saved_triangle_batches_admit_multiples_of_three() {
+    for (count, ok) in [(9usize, true), (12, true), (7, false), (0, false)] {
+        let mut b = vec![0; 26];
+        for n in [0x30000002, count as u32, count as u32, 0x102] {
+            word(&mut b, n);
+        }
+        for _ in 0..count.div_ceil(3) {
+            for v in [0f32, 0., 0., 1., 0., 0., 0., 1., 0.] {
+                b.extend(v.to_le_bytes());
+            }
+        }
+        for n in [0x30000002, count as u32, count as u32, 8] {
+            word(&mut b, n);
+        }
+        for n in 0..count as u32 {
+            word(&mut b, n);
+        }
+        for n in [0x30000002, 0, 0x30000002, 0, 0x105, 0x30000002, 0, 0, 0] {
+            word(&mut b, n);
+        }
+        let parsed = observed_major(28, "DlSheetSmSegmentType", TRIANGLES_TYPE, &b, &mut 1000);
+        if ok {
+            let o = parsed.unwrap().unwrap();
+            assert_eq!(o.proposed_role, "stored_triangles_candidate");
+            assert!(
+                matches!(&o.fields.last().unwrap().value, FieldValue::U32(v) if v.len() == count)
+            );
+        } else {
+            assert!(parsed.is_err(), "count {count}");
+        }
+    }
+}
+
+#[test]
+fn empty_display_attribute_lists_are_admitted_for_every_profile() {
+    const ATTRIBUTES_TYPE: &str = "48eb8607-11d2-070c-6000-f99ac5361ab0";
+    let mut b = vec![];
+    for n in [0x30000002, 0] {
+        word(&mut b, n);
+    }
+    for major in [23, 28, 30, 31] {
+        let o = observed_major(major, "DlSheetDlSegmentType", ATTRIBUTES_TYPE, &b, &mut 100)
+            .unwrap()
+            .unwrap();
+        assert_eq!(o.proposed_role, "display_attributes_candidate");
+    }
+    let mut trailing = b.clone();
+    trailing.push(0);
+    assert!(observed_major(
+        31,
+        "DlSheetDlSegmentType",
+        ATTRIBUTES_TYPE,
+        &trailing,
+        &mut 100
+    )
+    .is_err());
+}
+
+#[test]
+fn sheet_definition_keeps_a_prefix_observation_when_its_layout_is_unobserved() {
+    const LINKS_TYPE: &str = "a200fb76-11d1-6107-0008-70bdec18db09";
+    let mut b = vec![];
+    word(&mut b, 0x1234);
+    b.extend(7u16.to_le_bytes());
+    b.extend([0xff; 40]); // not the observed links layout
+    let o = observed_major(21, "DlDocDcSegmentType", LINKS_TYPE, &b, &mut 100)
+        .unwrap()
+        .unwrap();
+    assert_eq!(o.proposed_role, "sheet_segment_links_candidate");
+    assert_eq!(o.layout, "idw-sheet-links-prefix-fallback");
+    assert_eq!(o.fields.len(), 2);
+    assert!(matches!(&o.fields[1].value, FieldValue::U16(7)));
+    // A record shorter than the key is still rejected.
+    assert!(observed_major(21, "DlDocDcSegmentType", LINKS_TYPE, &b[..5], &mut 100).is_err());
+}
+
+#[test]
+fn registry_entries_with_a_zero_node_count_have_no_nodes() {
+    let mut out = vec![];
+    word(&mut out, 1);
+    wide(&mut out, "DlDocDc");
+    out.extend([1; 16]); // id
+    out.extend([0; 20]); // revision id + state
+    word(&mut out, 1); // one object
+    out.extend([0; 24]);
+    wide(&mut out, "DlDocDcSegmentType");
+    out.extend([0; 8]);
+    out.extend([0, 0, 30, 0, 0, 0, 0, 0]);
+    out.extend([0; 4]);
+    // object: revision id, 9 flag bytes, segment id, state, node count 0
+    out.extend([2; 16]);
+    out.extend([0; 9]);
+    out.extend([3; 16]);
+    word(&mut out, 0);
+    word(&mut out, 0);
+    out.extend([0; 12]);
+    let segments = crate::rse::registry_budgeted(&out, &mut 1000).unwrap();
+    assert_eq!(segments.len(), 1);
+    assert_eq!(segments[0].major, 30);
+    assert_eq!(segments[0].kind, "DlDocDcSegmentType");
 }

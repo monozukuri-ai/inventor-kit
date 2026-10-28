@@ -537,7 +537,9 @@ fn geometry_budgeted(
             };
             let indices = references(o, "triangle_indices")?;
             let count = raw.len() / 3;
-            if !matches!(count, 3 | 6)
+            if count == 0
+                || count % 3 != 0
+                || count > super::geometry::MAX_TRIANGLE_VERTICES
                 || raw.len() != count * 3
                 || indices.len() != count
                 || indices.iter().any(|&i| i as usize >= count)
@@ -1041,7 +1043,14 @@ pub fn experimental_scene_with_limits(
                         return Err(error("invalid image format"));
                     };
                     if size.iter().any(|x| *x <= 0.) || reference == 0 || !matches!(format, 0 | 2) {
-                        return Err(error("unsupported image placement"));
+                        // Observed on a production major27 drawing. Skip the
+                        // image and keep the rest of the sheet.
+                        space.omitted.push(Omission {
+                            segment_id: sm.registry.id.clone(),
+                            record_ordinal: id,
+                            reason: "unsupported_image_placement",
+                        });
+                        continue;
                     }
                     rse::charge(&mut work, 32)?;
                     let world = compose(&parent, &matrix(node)?)?;
@@ -1128,11 +1137,28 @@ pub fn experimental_scene_with_limits(
                         diagnostics: vec!["view_type_parent_rotation_and_clip_unverified"],
                     };
                     let raw = word(node, "view_bitmap_reference")?;
+                    let mut cache = None;
                     if raw != 0 {
                         let id = slot(raw)?;
-                        let bitmap = nodes
-                            .get(&id)
-                            .ok_or_else(|| error("view bitmap not decoded"))?;
+                        match nodes.get(&id) {
+                            Some(bitmap) => cache = Some((id, bitmap)),
+                            None if !ordinals.contains(&id) => {
+                                return Err(error("dangling view bitmap reference"));
+                            }
+                            None => {
+                                // The saved cache record was not decoded (for example
+                                // the major29 bitmap layout). Keep the view without
+                                // its image instead of discarding the sheet.
+                                view.diagnostics.push("view_cache_not_decoded");
+                                space.omitted.push(Omission {
+                                    segment_id: sm.registry.id.clone(),
+                                    record_ordinal: id,
+                                    reason: "view_cache_not_decoded",
+                                });
+                            }
+                        }
+                    }
+                    if let Some((id, bitmap)) = cache {
                         if bitmap.proposed_role != "stored_view_bitmap_candidate" {
                             return Err(error("invalid view bitmap target"));
                         }

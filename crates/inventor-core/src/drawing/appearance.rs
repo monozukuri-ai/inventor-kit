@@ -142,10 +142,17 @@ pub(super) fn apply<'a>(
                 style.sources.extend(sources);
                 let width = doubles(layer, "layer_width", 1)?[0];
                 let scale = floats(attr, "stroke_scale", 1)?[0] as f64;
-                if width <= 0. || scale <= 0. || !(width * scale).is_finite() {
+                if width < 0. || scale <= 0. || !(width * scale).is_finite() {
                     return Err(error("invalid layer width/scale"));
                 }
-                style.width = Some(width * scale);
+                if width == 0. {
+                    // Observed on production major29 drawings (layers "0",
+                    // "CUT", "signature"). Keep the default width and flag it
+                    // instead of discarding the sheet.
+                    style.unresolved.push("layer_width_zero_unverified");
+                } else {
+                    style.width = Some(width * scale);
+                }
                 let rgba = floats(layer, "layer_rgba", 4)?;
                 style.rgba = if rgba == [-2.; 4] {
                     None
@@ -176,16 +183,22 @@ pub(super) fn apply<'a>(
                 if mask == 8 {
                     let width = floats(attr, "stroke_width", 1)?[0] as f64;
                     // A default sketch style writes -1 for inherited width.
-                    // Admit only the complete major31 tuple observed in native
-                    // controls; other nonpositive values still fail closed.
-                    let inherited = width == -1.
-                        && segment.registry.major == 31
-                        && default_sketch_stroke(attr)?;
+                    // The complete major31 tuple was observed in native
+                    // controls. Production major17/26/28/30 drawings write -1
+                    // with continuous, dashed and user-style tuples (kinds 2,
+                    // 4 and 6, 550 records in eight drawings); those stay
+                    // inherited but flagged. Other nonpositive values still
+                    // fail closed.
+                    let inherited = width == -1.;
                     if width <= 0. && !inherited {
                         return Err(error("invalid stroke override width"));
                     }
                     if !inherited {
                         style.width = Some(width);
+                    } else if !(segment.registry.major == 31 && default_sketch_stroke(attr)?) {
+                        style
+                            .unresolved
+                            .push("stroke_override_width_inherited_unverified");
                     }
                     let FieldValue::F64(dashes) = field(attr, "stroke_dashes")? else {
                         return Err(error("invalid stroke dashes"));
@@ -211,7 +224,15 @@ pub(super) fn apply<'a>(
                 if mask != 1 && !(segment.registry.major == 24 && mask == 8) {
                     style.unresolved.push("display_color_mask_not_interpreted");
                 } else {
-                    style.rgba = Some(color(&floats(attr, "color_rgba_parameters", 21)?[..4])?);
+                    let rgba = &floats(attr, "color_rgba_parameters", 21)?[..4];
+                    if rgba == [-2.; 4] {
+                        // Observed on a production major30 drawing (13 records): the
+                        // layer "no color" sentinel inside a mask-1 override. Keep the
+                        // inherited color and flag it instead of discarding the sheet.
+                        style.unresolved.push("display_color_sentinel_unverified");
+                    } else {
+                        style.rgba = Some(color(rgba)?);
+                    }
                 }
             }
             _ => style.unresolved.push("attribute_semantics_not_decoded"),

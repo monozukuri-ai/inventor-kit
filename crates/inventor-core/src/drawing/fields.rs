@@ -456,7 +456,28 @@ pub(super) fn decode(
     };
     rse::charge(work, 1)?;
     let mut fields = Fields::new(bytes, source.clone(), work, profile, context.types);
-    decoder(&mut fields)?;
+    if let Err(e) = decoder(&mut fields) {
+        if role != "sheet_segment_links_candidate" || !profile.candidate() {
+            return Err(e);
+        }
+        // The sheet definition's full layout differs on production major16/17/
+        // 18/21 drawings. Its object key (the first six bytes) is enough for the
+        // SM space binding, so keep a prefix observation; the sheet name stays
+        // unresolved and the rest of the record remains opaque.
+        drop(fields);
+        let mut prefix = Fields::new(bytes, source.clone(), work, profile, context.types);
+        prefix.word("header_flags")?;
+        prefix.short("object_id")?;
+        return Ok(Some(PayloadObservation {
+            record_ordinal: ordinal,
+            type_id: type_id.into(),
+            source,
+            layout: "idw-sheet-links-prefix-fallback",
+            proposed_role: role,
+            status: "unqualified",
+            fields: prefix.fields,
+        }));
+    }
     Ok(Some(PayloadObservation {
         record_ordinal: ordinal,
         type_id: type_id.into(),

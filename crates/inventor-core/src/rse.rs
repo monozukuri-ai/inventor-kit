@@ -108,9 +108,9 @@ pub(crate) fn registry_table_budgeted(
                 });
             }
         }
-        let count = node_count
-            .checked_sub(1)
-            .ok_or_else(|| Error("zero registry node count".into()))?;
+        // Observed on production IDWs: an entry may store 0 here. It is read as
+        // "no nodes follow"; a misread entry still fails on the next name/id.
+        let count = node_count.saturating_sub(1);
         charge(work, count)?;
         let mut nodes = Vec::new();
         for _ in 0..count {
@@ -308,11 +308,24 @@ impl MetaLayout {
         part31_meta6: true,
     };
 }
-pub(crate) fn meta_identity(bytes: &[u8]) -> Result<([u8; 16], String)> {
-    let mut r = Reader::new(bytes);
-    if r.text()? != "RSe Meta Stream Version 8" || r.u16()? != 8 {
+/// Meta stream versions whose header grammar (8 words, name, id, 3 state words,
+/// 2 timestamps, body form, zlib body) was observed: 8 (pinned fixtures) and 7
+/// (production major14 drawings saved by Inventor 2010/2011).
+pub(crate) const META_STREAM_VERSIONS: &[u16] = &[7, 8];
+
+fn meta_version(r: &mut Reader<'_>) -> Result<u16> {
+    let text = r.text()?;
+    let version = r.u16()?;
+    let expected = format!("RSe Meta Stream Version {version}");
+    if text != expected || !META_STREAM_VERSIONS.contains(&version) {
         return Err(Error("unsupported RSe meta profile".into()));
     }
+    Ok(version)
+}
+
+pub(crate) fn meta_identity(bytes: &[u8]) -> Result<([u8; 16], String)> {
+    let mut r = Reader::new(bytes);
+    meta_version(&mut r)?;
     r.skip(16)?;
     let name = r.utf16()?;
     Ok((r.id()?, name))
@@ -340,9 +353,7 @@ pub(crate) fn meta_layout_budgeted(
     layout: MetaLayout,
 ) -> Result<Meta> {
     let mut r = Reader::new(bytes);
-    if r.text()? != "RSe Meta Stream Version 8" || r.u16()? != 8 {
-        return Err(Error("unsupported RSe meta profile".into()));
-    }
+    meta_version(&mut r)?;
     let header_words = [
         r.u16()?,
         r.u16()?,
@@ -747,6 +758,39 @@ pub(crate) fn record_table(
         opaque_start: r.pos,
     })
 }
+#[cfg(test)]
+mod meta_version_tests {
+    use super::*;
+    fn header(text: &str, version: u16) -> Vec<u8> {
+        let mut bytes = (text.len() as u32).to_le_bytes().to_vec();
+        bytes.extend(text.as_bytes());
+        bytes.extend(version.to_le_bytes());
+        bytes
+    }
+    #[test]
+    fn meta_version_admits_observed_versions_only() {
+        for version in [7u16, 8] {
+            let bytes = header(&format!("RSe Meta Stream Version {version}"), version);
+            let mut r = Reader::new(&bytes);
+            assert_eq!(meta_version(&mut r).unwrap(), version);
+            assert_eq!(r.pos, bytes.len());
+        }
+        for (text, version) in [
+            ("RSe Meta Stream Version 6", 6u16),
+            ("RSe Meta Stream Version 9", 9),
+            ("RSe Meta Stream Version 8", 7),
+            ("RSe Meta Stream Version 7", 8),
+            ("RSe Meta Stream", 8),
+        ] {
+            let bytes = header(text, version);
+            assert!(
+                meta_version(&mut Reader::new(&bytes)).is_err(),
+                "{text} / {version}"
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod meta6_tests {
     use super::*;

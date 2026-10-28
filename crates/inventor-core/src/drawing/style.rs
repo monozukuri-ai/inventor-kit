@@ -35,7 +35,10 @@ pub(super) fn attributes(f: &mut Fields<'_, '_>) -> Result<()> {
     f.require(0x30000002)?;
     let n = f.r.count(65536)?;
     rse::charge(f.work, n)?;
-    if n == 0 && f.profile.empty_attributes {
+    // Empty lists were first observed on major23/26/28/29 and later on
+    // production major31 drawings (Inventor 2025/2026 saves); finish() still
+    // rejects any trailing bytes, so admitting them for every profile is safe.
+    if n == 0 {
         return f.r.finish();
     }
     if n == 0 || f.r.u32()? < n as u32 {

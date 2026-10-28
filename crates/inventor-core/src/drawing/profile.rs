@@ -28,10 +28,15 @@ pub(super) struct Profile {
     pub external_children: bool,
 }
 impl Profile {
+    /// Framing observed only on production drawings (no pinned fixture).
+    /// Candidates admit prefix fallbacks that pinned profiles keep rejecting.
+    pub fn candidate(self) -> bool {
+        matches!(self.major, 15..=18 | 21 | 22 | 27 | 30)
+    }
     pub fn triangle_flags(self) -> Option<u32> {
         match self.major {
             26 => Some(0),
-            28 | 29 => Some(8),
+            27..=30 => Some(8),
             _ => None,
         }
     }
@@ -48,7 +53,7 @@ impl Profile {
                         | "4e52b139-11d1-d3ba-6000-46bead9287b0"
                         | "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86"
                 ))
-            || (self.major == 28
+            || (matches!(self.major, 27 | 28)
                 && matches!(
                     type_id,
                     "d3a55702-11d1-ebbb-62ae-0297584063da"
@@ -60,11 +65,19 @@ impl Profile {
     }
     pub fn fields_name(self) -> &'static str {
         match self.major {
+            15 => "idw-major15-typed-fields-candidate",
+            16 => "idw-major16-typed-fields-candidate",
+            17 => "idw-major17-typed-fields-candidate",
+            18 => "idw-major18-typed-fields-candidate",
+            21 => "idw-major21-typed-fields-candidate",
+            22 => "idw-major22-typed-fields-candidate",
             23 => "idw-major23-typed-fields-v1",
             24 => "idw-major24-typed-fields-v1",
             26 => "idw-major26-typed-fields-v1",
+            27 => "idw-major27-typed-fields-candidate",
             28 => "idw-major28-typed-fields-v1",
             29 => "idw-major29-typed-fields-v1",
+            30 => "idw-major30-typed-fields-candidate",
             31 => "idw-major31-typed-fields-v1",
             _ => unreachable!("profiles are constructed only by get"),
         }
@@ -91,6 +104,9 @@ pub(super) fn get(major: u8) -> Option<Profile> {
     };
     match major {
         23 => (),
+        // Candidate profiles observed on production drawings (no native
+        // captures yet): framed like their nearest observed neighbour.
+        15 | 16 | 17 | 18 | 21 | 22 => (),
         24 => {
             p.layer_prefix = 21;
             // No view-cache fixture for this profile yet. Preserve omissions.
@@ -110,26 +126,28 @@ pub(super) fn get(major: u8) -> Option<Profile> {
             p.historical_context = false;
             p.external_children = false;
         }
-        28 | 29 | 31 => {
-            p.zstd = major == 31;
-            p.document_prefix = 34;
+        27..=31 => {
+            p.zstd = major >= 30;
+            // Production major27 drawings keep the 30-byte document prefix of
+            // major26 while their SM layouts follow major28.
+            p.document_prefix = if major == 27 { 30 } else { 34 };
             p.link_suffix = 8;
             p.reference_flags = 0x10;
-            p.compact_references = major == 28;
+            p.compact_references = major <= 28;
             p.legacy_fonts = false;
             p.layer_prefix = 21;
             p.empty_attributes = major != 31;
-            p.view_extra_references = major == 31;
+            p.view_extra_references = major >= 30;
             p.view_suffix_guid = true;
-            p.bitmap = if major == 28 {
+            p.bitmap = if major <= 28 {
                 Some(BitmapLayout::Rgba)
-            } else if major == 31 {
+            } else if major >= 30 {
                 Some(BitmapLayout::Monochrome)
             } else {
                 None
             };
             p.legacy_records = false;
-            p.historical_context = false;
+            p.historical_context = major == 30;
             p.external_children = false;
         }
         _ => return None,
@@ -139,6 +157,14 @@ pub(super) fn get(major: u8) -> Option<Profile> {
 
 pub(super) fn name(major: u8) -> &'static str {
     match major {
+        15 => "idw-rse31-meta8-major15-zlib-framing-candidate",
+        16 => "idw-rse31-meta8-major16-zlib-framing-candidate",
+        17 => "idw-rse31-meta8-major17-zlib-framing-candidate",
+        18 => "idw-rse31-meta8-major18-zlib-framing-candidate",
+        21 => "idw-rse31-meta8-major21-zlib-framing-candidate",
+        22 => "idw-rse31-meta8-major22-zlib-framing-candidate",
+        27 => "idw-rse31-meta8-major27-zlib-framing-candidate",
+        30 => "idw-rse31-meta8-major30-zstd-framing-candidate",
         23 => "idw-rse31-meta8-major23-zlib-framing-v1",
         24 => "idw-rse31-meta8-major24-zlib-framing-v1",
         26 => "idw-rse31-meta8-major26-zlib-framing-v1",
@@ -148,10 +174,13 @@ pub(super) fn name(major: u8) -> &'static str {
         _ => "unsupported",
     }
 }
-pub(super) fn meta_layout(kind: &str) -> crate::rse::MetaLayout {
+pub(super) fn meta_layout(kind: &str, major: u8) -> crate::rse::MetaLayout {
     match kind {
         "DlDocDcSegmentType" => crate::rse::MetaLayout::DRAWING_DOC_DC,
         "DlSheetDcSegmentType" => crate::rse::MetaLayout::DRAWING_SHEET_DC,
+        // Production major30 App (layer table) segments carry the schema-31
+        // part-style Meta6 discriminator observed on IPT files.
+        "AppSegmentType" if major >= 30 => crate::rse::MetaLayout::PART31,
         _ => crate::rse::MetaLayout::STANDARD,
     }
 }

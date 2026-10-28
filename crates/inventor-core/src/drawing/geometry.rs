@@ -4,6 +4,9 @@ use crate::{rse, Error, Result};
 // Observed indexed triangle batches used by saved dimension arrowheads. Their
 // vertex type is resolved through the owning Meta table; index flags are kept
 // as wire evidence, not interpreted as styles.
+/// Vertex cap for one saved triangle batch (1,024 triangles).
+pub(super) const MAX_TRIANGLE_VERTICES: usize = 3 * 1024;
+
 pub(super) fn triangles(f: &mut Fields<'_, '_>) -> Result<()> {
     let index_flags = f
         .profile
@@ -11,8 +14,10 @@ pub(super) fn triangles(f: &mut Fields<'_, '_>) -> Result<()> {
         .ok_or_else(|| Error("unsupported saved triangle profile".into()))?;
     f.display_header()?;
     f.require(0x30000002)?;
-    let count = f.r.count(6)?;
-    if !matches!(count, 3 | 6) || f.r.u32()? < count as u32 {
+    // Observed batches hold 1..2 triangles in the pinned fixtures and up to
+    // 149 vertices (hatch and arrowhead fills) in production major28 drawings.
+    let count = f.r.count(MAX_TRIANGLE_VERTICES)?;
+    if count == 0 || count % 3 != 0 || f.r.u32()? < count as u32 {
         return Err(Error("unsupported saved triangle vertex count".into()));
     }
     let start = f.r.pos;

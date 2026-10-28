@@ -215,15 +215,19 @@ pub(crate) fn fuzz_pair(meta_bytes: &[u8], bulk_bytes: &[u8], limits: &crate::Li
         } else {
             ""
         };
+        let major = if bulk_bytes.get(17) == Some(&1) {
+            23
+        } else {
+            31
+        };
         let meta = crate::rse::meta_layout_budgeted(
             meta_bytes,
             limits,
             &mut expanded,
             &mut work,
-            profile::meta_layout(kind),
+            profile::meta_layout(kind, major),
         )?;
         let compressed = profile::bulk(bulk_bytes)?;
-        let major = if bulk_bytes[17] == 1 { 23 } else { 31 };
         let (body, _) =
             crate::rse::inflate_budgeted(compressed, limits.max_inflated_bytes, &mut expanded)?;
         crate::rse::record_table(&body, &meta, major, &mut work, true)?;
