@@ -7,6 +7,9 @@ English | [日本語](api.ja.md)
 ## Body selection and reports (v0.4.0)
 
 Use `doc.convert_bodies()` to retain every body result and explicitly select solids.
+`doc.convert_bodies(backend="occt")` and `doc.to_occt()` return OCCT `TopoDS_Shape`
+objects and need only `inventor-kit[occt]` (0.10.0). Bodies built from B-spline fits
+stored in the file carry a warning.
 See [body selection](body-conversion.md) and [CLI/batches](cli.md).
 
 ## Document metadata
@@ -125,6 +128,12 @@ Graph-wide traversal is limited separately by `FileSystemResolver` parameters:
 `max_documents`, `max_instances`, `max_depth`, `max_total_file_bytes`, and
 `max_directory_entries`. These limits do not guarantee bounds on process RSS,
 runtime, or OCCT computation.
+
+The B-rep stream of a part is stored compressed. In the public regression parts
+its inflated size is at most about 1.2 times the size of the whole file, so the
+default `max_inflated_bytes` of 64 MiB is reached by parts of roughly 50 MB.
+Larger parts stop with the inflated-byte diagnostic; the defaults are ceilings
+and cannot be raised through `Limits`.
 
 ## Native part authoring
 

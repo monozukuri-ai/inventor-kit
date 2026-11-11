@@ -114,3 +114,74 @@ class Bodies(unittest.TestCase):
         self.assertEqual(result.bodies[1].id, self.results[0].bodies[1].id)
         self.assertEqual(len(result.report()['omissions']), 2)
         self.assertFalse(result.geometry_complete)
+
+
+class Backends(unittest.TestCase):
+    """The OCCT backend gives the same bodies and metrics without CadQuery shapes."""
+
+    def test_occt_backend_matches_cadquery_and_returns_topods_shapes(self):
+        from OCP.TopoDS import TopoDS_Shape
+        import cadquery as cq
+        document = ik.read_file(CORPUS / 'INV_nist_ftc_06_asme1_2021.ipt')
+        expected = document.convert_bodies(backend='cadquery')
+        result = document.convert_bodies(backend='occt')
+        self.assertEqual((expected.backend, result.backend), ('cadquery', 'occt'))
+        self.assertEqual([b.id for b in result.bodies], [b.id for b in expected.bodies])
+        self.assertEqual([b.status for b in result.bodies], [b.status for b in expected.bodies])
+        self.assertEqual([b.diagnostics for b in result.bodies], [b.diagnostics for b in expected.bodies])
+        self.assertEqual(result.bodies[0].metrics, expected.bodies[0].metrics)
+        self.assertIsInstance(expected.bodies[0].shape, cq.Shape)
+        self.assertIsInstance(result.bodies[0].shape, TopoDS_Shape)
+        self.assertNotIsInstance(result.bodies[0].shape, cq.Shape)
+        self.assertEqual({k: v for k, v in result.report().items() if k != 'dependencies'},
+                         {k: v for k, v in expected.report().items() if k != 'dependencies'})
+        shapes = result.to_occt(body_ids=[result.bodies[0].id], allow_partial=True)
+        self.assertEqual(len(shapes), 1)
+        self.assertTrue(shapes[0].IsSame(result.bodies[0].shape))
+        # The CadQuery result exposes the same OCCT shapes.
+        self.assertIsInstance(expected.to_occt(body_ids=[expected.bodies[0].id], allow_partial=True)[0], TopoDS_Shape)
+        with self.assertRaises(ik.BodyConversionError):
+            result.to_occt()
+        for call in (result.to_cadquery, lambda **k: result.export_step('unused.step', **k)):
+            with self.assertRaisesRegex(ValueError, 'CadQuery shapes'):
+                call(body_ids=[result.bodies[0].id])
+        with self.assertRaisesRegex(ValueError, 'unknown backend'):
+            document.convert_bodies(backend='mesh')
+
+    def test_document_to_occt_converts_every_body_or_raises(self):
+        from OCP.BRepGProp import BRepGProp
+        from OCP.GProp import GProp_GProps
+        shapes = ik.read_file(CORPUS / 'SamplePart.ipt').to_occt()
+        self.assertEqual(len(shapes), 1)
+        properties = GProp_GProps()
+        BRepGProp.VolumeProperties_s(shapes[0], properties)
+        self.assertAlmostEqual(properties.Mass(), 3750, places=6)
+        with self.assertRaises(CadQueryConversionError):
+            ik.read_file(CORPUS / 'INV_nist_ftc_06_asme1_2021.ipt').to_occt()
+        with self.assertRaisesRegex(ValueError, 'not requested'):
+            ik.inspect_file(CORPUS / 'SamplePart.ipt').to_occt()
+
+    def test_stored_fits_convert_with_a_warning_on_both_backends(self):
+        document = ik.read_file(CORPUS / 'INV_nist_ftc_10_asme1_2024.ipt')
+        results = [document.convert_bodies(backend=backend) for backend in ('cadquery', 'occt')]
+        for result in results:
+            with self.subTest(backend=result.backend):
+                body, = result.bodies
+                self.assertEqual(body.status, 'converted_solid')
+                self.assertEqual(body.diagnostics, ())
+                warning, = body.warnings
+                self.assertEqual((warning.code, warning.severity),
+                                 ('geometry.approximated_from_stored_spline', 'warning'))
+                self.assertEqual(len(body.approximations), 22)
+                self.assertIn('22 stored B-spline fit(s)', warning.message)
+                self.assertTrue(all(a['fit_tolerance_mm'] > 0 for a in body.approximations))
+                # A warned body is usable; the report carries the warning.
+                self.assertTrue(result.geometry_complete)
+                report = result.report()
+                self.assertEqual(report['status'], 'success')
+                self.assertEqual(report['bodies'][0]['warnings'][0]['code'], warning.code)
+                jsonschema.validate(report, json.loads((ROOT/'schemas/conversion-report-v1.schema.json').read_text()))
+        self.assertEqual(results[0].bodies[0].metrics, results[1].bodies[0].metrics)
+        exact = ik.read_file(CORPUS / 'SamplePart.ipt').convert_bodies()
+        self.assertEqual(exact.bodies[0].warnings, ())
+        self.assertEqual(exact.report()['bodies'][0]['warnings'], [])

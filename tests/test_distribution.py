@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from check_distribution import check
 from check_license import DISTRIBUTION_LICENSE, PINNED_TEXTS, check_pinned_texts, license_paths
 from versioning import project_version
-from check_dependencies import CQ_ACIS_REQUIREMENT
+from check_dependencies import CQ_ACIS_EXTRAS, CQ_ACIS_REQUIREMENT
 
 
 class WheelRecords(unittest.TestCase):
@@ -43,7 +43,10 @@ class WheelRecords(unittest.TestCase):
             ).encode(),
             info + '/WHEEL': b'Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: cp310-abi3-win_amd64\n',
         }
-        self.contents[info+'/METADATA'] = self.contents[info+'/METADATA'].rstrip() + b'\nProvides-Extra: viewer\nRequires-Dist: ocp-tessellate==3.5.1; extra == "viewer"\n\n'
+        self.contents[info+'/METADATA'] = self.contents[info+'/METADATA'].rstrip() + (
+            '\nProvides-Extra: cadquery\nRequires-Dist: ' + CQ_ACIS_EXTRAS['cadquery'] + '; extra == "cadquery"'
+            '\nProvides-Extra: occt\nRequires-Dist: ' + CQ_ACIS_EXTRAS['occt'] + '; extra == "occt"'
+            '\nProvides-Extra: viewer\nRequires-Dist: ocp-tessellate==3.5.1; extra == "viewer"\n\n').encode()
         for path in (ROOT/'python/inventor_kit/viewer').rglob('*'):
             if path.is_file() and (path.suffix == '.py' or 'static' in path.parts):
                 self.contents['inventor_kit/viewer/'+path.relative_to(ROOT/'python/inventor_kit/viewer').as_posix()] = path.read_bytes()

@@ -6,7 +6,7 @@ English | [日本語](development.ja.md)
 
 The library and development scripts require Python 3.11 or later. Use Rust 1.93
 to match CI; maturin 1.11.5 is the validation baseline. Normal development and
-CI require `acis-core` / `acis-py-bridge` 0.3.12 and `cq-acis>=0.3.12,<0.4`
+CI require `acis-core` / `acis-py-bridge` 0.4.2 and `cq-acis>=0.4.2,<0.5`
 from public registries. If an earlier development `.cargo/config.toml`
 overrides the bridge, move that configuration into `internal/` before building.
 `scripts/check_dependencies.py` verifies that core and bridge each resolve to a
@@ -20,7 +20,7 @@ see [version management](releasing.md#version-management).
 python3.11 -m venv .venv
 . .venv/bin/activate
 python -m pip install 'maturin[patchelf]==1.11.5'
-maturin develop --release --locked --extras validation
+maturin develop --release --locked --extras validation,cadquery
 python scripts/check_dependencies.py
 python scripts/bump_version.py --check
 python scripts/check_public_tree.py

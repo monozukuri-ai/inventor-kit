@@ -11,9 +11,17 @@ _SHARED = tomllib.loads((ROOT/'Cargo.toml').read_text(encoding='utf-8'))['worksp
 ACIS_VERSION = _SHARED['acis-core'].removeprefix('=')
 if _SHARED['acis-core'] != '=' + ACIS_VERSION or _SHARED['acis-py-bridge'] != '=' + ACIS_VERSION:
     raise ValueError('The shared ACIS core and bridge must have matching exact workspace pins')
-ACIS_MINIMUM = tuple(map(int, ACIS_VERSION.split('.')))
-CQ_ACIS_BOUNDS = {f'>={ACIS_VERSION}', '<0.4'}
-CQ_ACIS_REQUIREMENT = f'cq-acis>={ACIS_VERSION},<0.4'
+# The Python package may require a later patch of the same minor line than the
+# Rust pin: conversion fixes ship in cq-acis without a model or bridge change.
+CQ_ACIS_VERSION = '0.4.2'
+ACIS_MINIMUM = tuple(map(int, CQ_ACIS_VERSION.split('.')))
+if ACIS_MINIMUM < tuple(map(int, ACIS_VERSION.split('.'))) or ACIS_MINIMUM[:2] != tuple(map(int, ACIS_VERSION.split('.')))[:2]:
+    raise ValueError('The cq-acis floor must be in the minor line of the ACIS workspace pin and not below it')
+CQ_ACIS_UPPER = (ACIS_MINIMUM[0], ACIS_MINIMUM[1] + 1, 0)
+CQ_ACIS_BOUNDS = {f'>={CQ_ACIS_VERSION}', '<%d.%d' % CQ_ACIS_UPPER[:2]}
+CQ_ACIS_REQUIREMENT = 'cq-acis>=%s,<%d.%d' % (CQ_ACIS_VERSION, *CQ_ACIS_UPPER[:2])
+CQ_ACIS_EXTRAS = {name: 'cq-acis[%s]>=%s,<%d.%d' % (name, CQ_ACIS_VERSION, *CQ_ACIS_UPPER[:2])
+                  for name in ('cadquery', 'occt')}
 
 
 def check_python_lock(root=ROOT):
@@ -24,9 +32,16 @@ def check_python_lock(root=ROOT):
     requirements = [p for p in project['dependencies'] if p.startswith('cq-acis')]
     if requirements != [CQ_ACIS_REQUIREMENT]:
         raise ValueError('Python dependency must match the shared ACIS workspace pin: ' + CQ_ACIS_REQUIREMENT)
+    extras = project.get('optional-dependencies', {})
+    for name, requirement in CQ_ACIS_EXTRAS.items():
+        if extras.get(name) != [requirement]:
+            raise ValueError(f'Python extra {name} must be exactly: {requirement}')
+    # The viewer displays CadQuery shapes, so it carries the CadQuery backend.
+    if CQ_ACIS_EXTRAS['cadquery'] not in extras.get('viewer', []):
+        raise ValueError('Python extra viewer must include: ' + CQ_ACIS_EXTRAS['cadquery'])
     if (len(shared) != 1 or shared[0].get('source', {}).get('registry') != 'https://pypi.org/simple'
             or tuple(map(int, shared[0]['version'].split('.'))) < ACIS_MINIMUM
-            or tuple(map(int, shared[0]['version'].split('.'))) >= (0, 4, 0)):
+            or tuple(map(int, shared[0]['version'].split('.'))) >= CQ_ACIS_UPPER):
         raise ValueError('uv.lock must resolve compatible published ' + CQ_ACIS_REQUIREMENT)
 
 

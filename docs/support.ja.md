@@ -10,12 +10,18 @@ IDWには別途[保存2D要素の実験表示](drawing.ja.md)があります。�
 | 対象 | 確認済みの範囲 | 未対応・未検証 |
 | --- | --- | --- |
 | IPT / IAM / IDW / IPN | CFB、上限付き OLE プロパティ、限定サムネイル | 図面、フィーチャ、PMI の意味解析 |
-| IPT 保存形状 | RSeDb schema 31、Meta 8、PmBRep major 19 / 25 / 26 / 28 / 31 の検証済み構造 | 隣接版や未知レイアウトへの外挿 |
-| カーネル | 観測した SAB save version 22000 / 22600 / 22700 / 22900 / 23200、zlib / zstd | 各版の全エンティティ、履歴再評価 |
-| 形状出力 | 解析曲面と限定 NURBS・トリム・トレラント情報 | 未対応曲線・曲面の近似 |
+| IPT 保存形状 | RSeDb schema 31、Meta 8、PmBRep major 19 / 25 / 26 / 28 / 30 / 31 の検証済み構造。候補: major 22（下記） | 隣接版や未知レイアウトへの外挿 |
+| カーネル | 観測した SAB save version 22000 / 22600 / 22700 / 22900 / 23100 / 23200、候補 major の 22300、zlib / zstd | 各版の全エンティティ、履歴再評価 |
+| 形状出力 | 解析曲面と限定 NURBS・トリム・トレラント情報。手続き的な曲線・曲面と一緒に保存された B-spline 近似（派生形状、警告つき） | このライブラリが計算する近似、保存された近似のない手続き的形状（ねじ山のらせん） |
 | IAM | UFRx schema 15 / save major 31 と固定 section-version 列、保存参照・配置 | `.ipj` 解決、拘束ソルバー、native 色 |
 | 状態 | 保存候補・出典・診断、明示的な未検証状態 | 現在の Model State、非表示・代替状態の確定 |
 | STEP | XDE 再読込による階層・名前・剛体配置・部品 RGB・形状量の往復 | Inventor native 状態・色の独立比較 |
+
+**候補**の segment major は、観測済みで検証済みの隣の版と同じ枠組みを持つものの、
+固定した回帰用 fixture がない版です。その表は `profile_status == "candidate_stored_table"` と
+警告 `candidate.profile_candidate` つきで読みます。検証済みの major は
+`supported_stored_table` です。候補は major と SAB save version の一組（22 と 22300）に
+限り、それ以外の未掲載の major は未対応のままです。
 
 IAM の完全な section-version 列は capabilities JSON に保持します。
 版番号だけで受け入れず、ヘッダー・索引・レコード構造も検証します。

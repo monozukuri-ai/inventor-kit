@@ -4,8 +4,12 @@
 
 ## 依存契約
 
-Rust は `acis-core=0.3.12` と `acis-py-bridge=0.3.12`、Python は
-`cq-acis>=0.3.12,<0.4` と共通モデル API 2 を必要とします。
+Rust は `acis-core=0.4.2` と `acis-py-bridge=0.4.2`、Python は
+`cq-acis>=0.4.2,<0.5` と共通モデル API 2 を必要とします。
+変換の修正はモデルや bridge を変えずに cq-acis だけで出るため、Python の下限は
+Rust の pin と同じ minor 系列の後の patch にできます。両方の値は
+`scripts/check_dependencies.py` が持ちます。形状変換は任意で、extra の `cadquery` と
+`occt` が対応する cq-acis の extra を選び、`viewer` は CadQuery の経路を含みます。
 Python の必要バージョンは cq-acis に合わせて 3.11 以降です。
 必要な依存が公開され、Cargo.lock が bridge と core の registry source/checksum を
 保持していることが前提です。ローカル path patch や未公開 wheel による結果では代替しません。

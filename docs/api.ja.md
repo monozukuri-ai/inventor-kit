@@ -7,6 +7,8 @@ IDWの保存シート・表示要素を取得する実験的APIは[図面API](dr
 ## body選択とレポート（v0.4.0）
 
 `doc.convert_bodies()` は全bodyの結果を保持し、ソリッドを明示選択できます。
+`doc.convert_bodies(backend="occt")` と `doc.to_occt()` は OCCT の `TopoDS_Shape` を返し、
+`inventor-kit[occt]` だけで動きます（0.10.0）。ファイルに保存された B-spline 近似から作った body には警告が付きます。
 [body選択](body-conversion.ja.md)と[CLI・バッチ](cli.ja.md)を参照してください。
 
 ## 文書情報
@@ -110,6 +112,11 @@ Python と Rust の両方が 0 以上の整数であること、既定値以下�
 `FileSystemResolver` の `max_documents`、`max_instances`、`max_depth`、
 `max_total_file_bytes`、`max_directory_entries` で別途制限します。
 これらはプロセス RSS・実行時間や OCCT の計算量を保証する値ではありません。
+
+部品の B-rep ストリームは圧縮して保存されています。公開の回帰用部品では、伸長後の大きさは
+ファイル全体の約 1.2 倍までなので、既定の `max_inflated_bytes`（64 MiB）にはおよそ 50 MB の
+部品で達します。それより大きい部品は伸長量の診断で止まります。既定値は上限で、`Limits` で
+引き上げることはできません。
 
 ## ネイティブ部品の生成
 

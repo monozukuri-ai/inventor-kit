@@ -14,27 +14,36 @@ IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
 ```
 
 このライブラリは確認済みプロファイルの限定パーサです。現在の Model State、
-フィーチャ履歴の再評価、未対応形状の近似は行いません。
+フィーチャ履歴の再評価、未対応形状の独自の近似は行いません。手続き的な曲線・曲面と
+一緒にファイルへ保存された B-spline 近似は、派生形状として使い、警告として報告します
+（[body変換](docs/body-conversion.ja.md)）。
 
 v0.4.0では[body選択](docs/body-conversion.ja.md)と[IPT/IAMバッチ変換](docs/cli.ja.md)を追加しています。
+v0.10.0では形状ライブラリをインストール時の extra にし、CadQuery なしの OCCT の経路と、保存された
+B-spline 近似の変換を追加しています（[v0.10.0 リリースノート](docs/release-notes-v0.10.0.ja.md)）。
 
 v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwのレポートとsvg保存)と[シート単位のSVG保存](docs/drawing.ja.md#レポートとオフラインsvg)を追加しています。
 対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
 図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
 
-リリース版数は[Cargo.toml](Cargo.toml)で管理します。更新コマンドは[バージョン管理](docs/releasing.ja.md#バージョン管理)を参照してください。writerにはcq-acis 0.3.12以降の0.3系が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
+リリース版数は[Cargo.toml](Cargo.toml)で管理します。更新コマンドは[バージョン管理](docs/releasing.ja.md#バージョン管理)を参照してください。writerには `inventor-kit[cadquery]` が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
 
 ## インストール
 
-Python 3.11 以降、`cq-acis>=0.3.12,<0.4`、共通モデル API 2 を使用します。
-公開済みの互換 wheel がある環境では、次のようにインストールできます。
+Python 3.11 以降、`cq-acis>=0.4.2,<0.5`、共通モデル API 2 を使用します。
+公開済みの互換 wheel がある環境では、形状ライブラリを一つ選んでインストールします。
 
 ```sh
-python -m pip install inventor-kit
+python -m pip install 'inventor-kit[cadquery]'  # CadQuery の形状、STEP 出力、IAM、writer
+python -m pip install 'inventor-kit[occt]'      # CadQuery なしで OCCT の形状だけ
 ```
 
+0.10.0 以降、`pip install inventor-kit` だけでは解析と共通モデルだけが入ります
+（それ以前は常に CadQuery を入れていました）。二つの extra は同じ `OCP` モジュールの
+別ビルドを入れるので、どちらか一方を選んでください。
+
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
-0.3.12 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
+0.4.2 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
 [リリース条件](docs/releasing.ja.md)を参照してください。
 
 ## 部品の読み込み

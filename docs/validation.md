@@ -57,7 +57,7 @@ and viewing. Cone apex normals use the analytic limit at the tessellation's UV
 angle; positions and triangles remain unchanged. These checks do not establish
 the current Model State or vendor equivalence, and use regression inputs only.
 
-The FTC10/CTC02 trim gate runs in CI with published cq-acis 0.3.12
+The FTC10/CTC02 trim gate runs in CI with the published cq-acis
 `cylinder_slit_faces` and elliptic-section diagnostics:
 
 ```sh
@@ -66,10 +66,13 @@ python scripts/validate_revolution_trims.py
 
 It checks four repaired FTC10 (2021) faces, including face 1387's three paired
 source edges, and six oblique CTC02 (2021) sections. The gate retains all source
-vertices through STEP, checks edge counts and mesh coverage, and requires
-whole-part conversion and automatic 3D preview to reject the still unsupported
-curves/surfaces. This gate requires cq-acis>=0.3.12,<0.4. Per-face results do not
-establish complete-part support. The generated report records measured counts.
+vertices through STEP and checks edge counts and mesh coverage. With the
+B-spline fits stored in the files every face of both parts converts, and each
+fit is recorded as derived geometry. CTC02 converts as a whole part and is
+previewed with the stored-fit warning; FTC10 (2021) keeps two auxiliary
+face-only bodies, so its whole-part conversion and automatic 3D preview are
+still rejected. This gate requires cq-acis>=0.4.2,<0.5. The generated report
+records measured counts.
 
 See the [development guide](development.md) for standard reproduction steps and
 the [benchmark guide](../benchmarks/README.md) for performance measurement.

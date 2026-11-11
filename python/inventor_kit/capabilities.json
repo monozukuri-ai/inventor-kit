@@ -26,8 +26,12 @@
       30,
       31
     ],
+    "candidate_segment_majors": [
+      22
+    ],
     "observed_sab_save_versions": [
       22000,
+      22300,
       22600,
       22700,
       22900,
@@ -38,10 +42,15 @@
       "zlib",
       "zstd"
     ],
-    "scope": "saved typed B-rep subset; unsupported curves, surfaces and trims raise",
+    "scope": "saved typed B-rep subset; unsupported curves, surfaces and trims raise; B-spline fits stored in the file stand in for procedural geometry with a warning",
+    "shape_backends": [
+      "cadquery",
+      "occt"
+    ],
     "current_state_verified": false,
     "history_replay": false,
-    "approximation_fallback": false
+    "approximation_fallback": false,
+    "stored_fit_substitution": true
   },
   "assembly": {
     "ufrx_schema": 15,

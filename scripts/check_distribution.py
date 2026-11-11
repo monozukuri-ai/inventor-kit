@@ -13,7 +13,7 @@ import tomllib
 import zipfile
 from check_viewer_assets import check_bundle
 from check_license import DISTRIBUTION_LICENSE, check_archive_licenses, notice_bundle
-from check_dependencies import ACIS_VERSION, CQ_ACIS_BOUNDS
+from check_dependencies import ACIS_VERSION, CQ_ACIS_BOUNDS, CQ_ACIS_EXTRAS
 from versioning import project_version
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,9 +24,17 @@ def check_metadata(meta, version):
         raise ValueError('Unexpected package name, version or license')
     if meta['Requires-Python'] != '>=3.11':
         raise ValueError('Distribution must require Python >=3.11')
-    requirements = [r.replace(' ', '') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
+    shared = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('cq-acis')]
+    requirements = [r for r in shared if ';' not in r]
     if len(requirements) != 1 or set(requirements[0].removeprefix('cq-acis').split(',')) != CQ_ACIS_BOUNDS:
         raise ValueError('Distribution does not require the compatible cq-acis API series')
+    # Shape conversion is optional: each backend extra selects the same cq-acis series.
+    provided = meta.get_all('Provides-Extra', [])
+    for name in CQ_ACIS_EXTRAS:
+        marked = [r.split(';')[0] for r in shared if r.endswith(f';extra=="{name}"')]
+        if (name not in provided or len(marked) != 1 or not marked[0].startswith(f'cq-acis[{name}]')
+                or set(marked[0].removeprefix(f'cq-acis[{name}]').split(',')) != CQ_ACIS_BOUNDS):
+            raise ValueError(f'Distribution is missing the optional {name} backend contract')
     viewer = [r.replace(' ', '').replace("'", '"') for r in meta.get_all('Requires-Dist', []) if r.startswith('ocp-tessellate')]
     if 'viewer' not in meta.get_all('Provides-Extra', []) or viewer != ['ocp-tessellate==3.5.1;extra=="viewer"']:
         raise ValueError('Distribution is missing the optional viewer dependency contract')

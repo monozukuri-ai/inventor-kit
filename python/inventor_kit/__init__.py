@@ -47,10 +47,31 @@ class InventorDocument:
     metadata: DocumentInfo | None = None
     geometry: GeometryInventory | None = None
 
-    def convert_bodies(self) -> PartConversion:
-        """Convert saved bodies independently, retaining every failure and source."""
+    def convert_bodies(self, *, backend: str = "auto") -> PartConversion:
+        """Convert saved bodies independently, retaining every failure and source.
+
+        ``backend`` selects the shape library: ``"cadquery"`` (CadQuery shapes,
+        needs ``inventor-kit[cadquery]``), ``"occt"`` (OCCT ``TopoDS_Shape``
+        objects, needs only ``inventor-kit[occt]``) or ``"auto"``, which uses
+        CadQuery when it is installed and OCCT otherwise.
+        """
         from .conversion import convert_bodies
-        return convert_bodies(self)
+        return convert_bodies(self, backend)
+
+    def to_occt(self) -> tuple:
+        """Convert every stored body to an OCCT ``TopoDS_Shape`` without CadQuery.
+
+        Like ``to_cadquery``, any body that cannot be converted raises; use
+        ``convert_bodies(backend="occt")`` to keep per-body results.
+        """
+        if self.model is None:
+            if self.metadata is not None and self.metadata.stages.geometry == "not_attempted":
+                raise ValueError("Geometry was not requested; use read or read_file")
+            raise ValueError("Inventor geometry unavailable: " + "; ".join(self.summary["diagnostics"]))
+        if not self.model.bodies():
+            raise ValueError("The stored B-rep table contains no decoded bodies")
+        from cq_acis import convert_model_occt
+        return convert_model_occt(self.model)
 
     def to_cadquery(self):
         if self.model is None:

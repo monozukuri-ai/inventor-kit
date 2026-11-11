@@ -12,12 +12,19 @@ particular host or successful CI on each operating system.
 | Area | Validated scope | Unsupported or unverified |
 | --- | --- | --- |
 | IPT / IAM / IDW / IPN | CFB, OLE properties with resource limits, and selected thumbnails | Drawing, feature, and PMI semantics |
-| Saved IPT geometry | Validated structures for RSeDb schema 31, Meta 8, and PmBRep major 19 / 25 / 26 / 28 / 31 | Extrapolation to adjacent versions or unknown layouts |
-| Kernel | Observed SAB save versions 22000 / 22600 / 22700 / 22900 / 23200, zlib / zstd | All entities in each version; history reevaluation |
-| Geometry output | Analytic surfaces and limited NURBS, trims, and tolerance data | Approximation of unsupported curves or surfaces |
+| Saved IPT geometry | Validated structures for RSeDb schema 31, Meta 8, and PmBRep major 19 / 25 / 26 / 28 / 30 / 31. Candidate: major 22 (see below) | Extrapolation to adjacent versions or unknown layouts |
+| Kernel | Observed SAB save versions 22000 / 22600 / 22700 / 22900 / 23100 / 23200, and 22300 for the candidate major; zlib / zstd | All entities in each version; history reevaluation |
+| Geometry output | Analytic surfaces and limited NURBS, trims, and tolerance data; B-spline fits stored in the file for procedural curves and surfaces, as derived geometry with a warning | Approximations computed by this library; procedural geometry without a stored fit (helical threads) |
 | IAM | UFRx schema 15 / save major 31 with a fixed section-version sequence; saved references and placements | `.ipj` resolution, constraint solving, native colors |
 | State | Saved candidates, provenance, diagnostics, and explicit unverified status | Determining the current Model State, visibility, or substitution state |
 | STEP | XDE roundtrip checks for hierarchy, names, rigid placements, part RGB, and geometry metrics | Independent comparison against native Inventor state or colors |
+
+A **candidate** segment major is one that was observed and is framed like its
+validated neighbours, but has no pinned regression fixture. Its table is read
+with `profile_status == "candidate_stored_table"` and the warning
+`candidate.profile_candidate`; validated majors report
+`supported_stored_table`. A candidate pairs one major with one SAB save version
+(22 with 22300). Other unlisted majors remain unsupported.
 
 The complete IAM section-version sequence is recorded in the capabilities JSON.
 Acceptance requires header, index, and record structure validation in addition

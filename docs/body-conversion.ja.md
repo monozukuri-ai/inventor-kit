@@ -16,10 +16,42 @@ for body in result.bodies:
 # result.export_step("selected.step", body_ids=[chosen_id], allow_partial=True)
 ```
 
-`BodyConversion` は `id`、`body_index`、`source`、`status`、`diagnostics`、`metrics`、`shape` を持ちます。
+`BodyConversion` は `id`、`body_index`、`source`、`status`、`diagnostics`、`metrics`、`shape`、`warnings`、`approximations` を持ちます。
 shapeと形状量があるのは `converted_solid` だけです。その他は `open_shell`、`unsupported`、`failed` です。
 shellを生成できないsewing失敗は `unsupported` とし、有効なsheet bodyとは判定しません。
 開いた面や個別面の集合をソリッドとして出力しません。
+
+## 形状ライブラリの選択
+
+`doc.convert_bodies(backend=...)` で形状ライブラリを選びます（0.10.0）。
+
+| `backend` | `body.shape` | 必要なもの |
+| --- | --- | --- |
+| `"cadquery"` | CadQuery の `Shape` | `inventor-kit[cadquery]` |
+| `"occt"` | OCCT の `TopoDS_Shape` | `inventor-kit[occt]` |
+| `"auto"`（既定） | CadQuery があれば CadQuery、なければ OCCT | どちらか |
+
+status・診断・形状量はどちらでも同じで、使われた方は `result.backend` に入ります。
+`result.to_occt(...)` は選んだソリッドを `TopoDS_Shape` で返し、どちらの結果でも使えます。
+`result.to_cadquery(...)` と `result.export_step(...)` は CadQuery の形状が必要で、
+OCCT の結果では `ValueError` になります。`doc.to_occt()` は `doc.to_cadquery()` と同じく
+部品全体を厳密に変換します。
+
+## 保存された B-spline 近似
+
+Inventor は、手続き的な交線や、ブレンド・ロフト・スイープ・回転のスプライン面と一緒に、
+B-spline 近似とその fit 許容差を保存します。cq-acis 0.4.1 以降はこの保存された近似を使うので、
+そうした body は `geometry.surface_unsupported` で失敗せずに変換できます。
+その body は**派生形状**です。元の形状とは保存された fit 許容差の範囲で一致し、厳密には一致しません。
+
+該当する body は `body.warnings` に code `geometry.approximated_from_stored_spline`、
+severity `warning` の項目を一つ持ち、レポートでは body の `warnings` に入ります。
+`body.approximations` は cq-acis の記録（entity、subtype、mm の fit 許容差）です。
+警告つきの body も `converted_solid` に数えます。厳密な形状が必要な場合は `warnings` を確認してください。
+ねじ山のらせん面のように保存された近似のない手続き的形状は未対応のままです。
+`doc.to_cadquery()` と `doc.to_occt()` は形状だけを返し、警告は持ちません。
+
+## IDとレポート
 
 IDは入力SHA-256、保存候補、元body indexに結び付きます。同じバイト列のコピーでは同じIDになります。
 別入力・別候補のID、重複ID、明示した空選択は拒否します。

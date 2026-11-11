@@ -1,8 +1,11 @@
 """FTC10/CTC02 cylindrical trims: retained source edges, STEP and mesh coverage.
 
 Requires the cq-acis cylinder_slit_faces and elliptic_sections diagnostics.
-This regression gate checks individual faces; both complete parts still have
-unsupported intersection curves/surfaces. No holdout is used for qualification.
+This regression gate checks individual faces. With the B-spline fits stored in
+the files (cq-acis 0.4.1 and later) every face converts; CTC02 converts as a
+whole part, and FTC10 keeps two auxiliary face-only bodies that cannot be sewn.
+Faces built from a stored fit are derived geometry. No holdout is used for
+qualification.
 """
 import argparse
 from collections import Counter
@@ -24,10 +27,10 @@ from oracle_contract import shape_metrics
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {
-    'INV_nist_ftc_10_asme1_2021.ipt': dict(faces=223, valid=198, repaired={358,575,877,1387},
-        failures={'geometry.curve_unsupported':23,'geometry.surface_unsupported':2}),
-    'INV_nist_ctc_02_asme1_2021.ipt': dict(faces=443, valid=411, repaired={587,660,1004,1589,2540,4120},
-        failures={'geometry.curve_unsupported':16,'geometry.surface_unsupported':16}),
+    'INV_nist_ftc_10_asme1_2021.ipt': dict(faces=223, valid=223, repaired={358,575,877,1387},
+        failures={}, approximations=19, whole='geometry.sewing_no_shell'),
+    'INV_nist_ctc_02_asme1_2021.ipt': dict(faces=443, valid=443, repaired={587,660,1004,1589,2540,4120},
+        failures={}, approximations=32, whole='converted'),
 }
 
 
@@ -120,19 +123,29 @@ def validate(item, expected, directory):
         assert len(seam_checks)==3 and len(slit_checks)==1
         assert slit_checks[0]['face']==1387 and {e['edge'] for e in slit_checks[0]['paired_edges']}=={884,1189,1612}
         assert slit_checks[0]['seam_segments']==7
+    # Stored fits are recorded for every face that depends on one.
+    assert len(c.approximations)==expected['approximations']
+    assert all(a['code']=='geometry.approximated_from_stored_spline' and a['fit_tolerance_mm']>0 for a in c.approximations)
     try:
-        doc.to_cadquery()
+        whole_shape = doc.to_cadquery().val()
     except acis.CadQueryConversionError as error:
-        assert error.code in ('geometry.curve_unsupported','geometry.surface_unsupported')
         whole = dict(status='rejected',code=error.code,reason=str(error))
     else:
-        raise AssertionError('Unsupported whole-part conversion unexpectedly succeeded')
-    # A face-only diagnostic mesh must never become an automatic partial preview.
+        assert whole_shape.isValid() and whole_shape.Volume()>0
+        whole = dict(status='converted',code='converted',volume_mm3=whole_shape.Volume())
+    assert whole['code']==expected['whole']
     viewer_dir = directory/'viewer';viewer_dir.mkdir(exist_ok=True)
     scene = build_scene(ROOT/'fixtures/public'/name,viewer_dir,Options())
-    assert scene['stages']['conversion']=='failed' and not scene['meshes'] and not scene['complete']
+    assert not scene['complete']
+    if whole['status']=='converted':
+        assert scene['stages']['conversion']=='available' and len(scene['meshes'])==1
+        assert any(d['code']=='geometry.approximated_from_stored_spline' and d['severity']=='warning' for d in scene['diagnostics'])
+    else:
+        # A face-only diagnostic mesh must never become an automatic partial preview.
+        assert scene['stages']['conversion']=='failed' and not scene['meshes']
     return dict(file=name,sha256=item['sha256'],split=item['split'],valid_faces=valid,failures=failures,
         repaired_faces=repaired,seam_checks=seam_checks,slit_checks=slit_checks,whole_part=whole,
+        approximations=len(c.approximations),
         preview_scope='repaired individual source faces only; not a complete part',viewer=scene['stages'])
 
 
@@ -147,7 +160,7 @@ def main():
         results.append(entry)
         print(name,len(entry['valid_faces']),'valid;',len(entry['repaired_faces']),'repaired;',entry['whole_part']['code'],flush=True)
     native=Path(acis._native.__file__).resolve()
-    report=dict(scope='Local saved face geometry; complete parts, vendor and current Model State remain unqualified',
+    report=dict(scope='Local saved face geometry, partly derived from stored B-spline fits; vendor and current Model State remain unqualified',
         holdouts_used=False,packages={p:importlib.metadata.version(p) for p in ('inventor-kit','cq-acis','cadquery','cadquery-ocp')},
         module_files=dict(cq_acis=acis.__file__,inventor_kit=inventor_kit.__file__,acis_native=str(native)),
         native_sha256=hashlib.sha256(native.read_bytes()).hexdigest(),core_version=acis._native.CORE_VERSION,results=results)

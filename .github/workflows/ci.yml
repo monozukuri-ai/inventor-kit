@@ -50,7 +50,7 @@ jobs:
           python -m venv .venv
           .venv/bin/python -m pip install 'maturin[patchelf]==1.11.5'
           source .venv/bin/activate
-          maturin develop --release --locked --extras validation
+          maturin develop --release --locked --extras validation,cadquery
       - name: Fetch pinned regression and holdout files
         run: |
           .venv/bin/python scripts/fetch_public_samples.py

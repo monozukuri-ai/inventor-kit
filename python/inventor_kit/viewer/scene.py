@@ -196,6 +196,8 @@ def build_scene(path, directory, options, publish=lambda scene: None):
         scene["part"] = result.report(body_ids=options.body_ids or None)
         scene["nodes"] = body_nodes(result, options.body_ids or None)
         scene["diagnostics"].extend(asdict(d) for b in result.bodies for d in b.diagnostics)
+        # A body built from stored B-spline fits is shown, and said to be derived.
+        scene["diagnostics"].extend(asdict(d) for b in result.bodies for d in b.warnings)
         scene["diagnostics"].extend(asdict(d) for d in result.diagnostics)
         selected = result.selected_bodies(body_ids=options.body_ids or None, allow_partial=options.allow_partial)
         scene["stages"][stage] = "available" if scene["part"]["status"] == "success" else "partial"

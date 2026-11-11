@@ -6,7 +6,7 @@
 1部品につき1 solidを受け取り、正確な形状を非パラメトリックな基本フィーチャとして保存します。
 表示用メッシュも別に保存します。既存ファイルやディレクトリは上書きしません。
 
-このcheckoutには `cq-acis>=0.3.12,<0.4` が必要です。未公開の変更を試す場合は、
+このcheckoutには `cq-acis[cadquery]>=0.4.2,<0.5`（`inventor-kit[cadquery]`）が必要です。未公開の変更を試す場合は、
 [配布ワークフロー](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml)
 の候補wheelをインストールしてください。パッケージ版数は[Cargo.toml](../Cargo.toml)で管理します。
 

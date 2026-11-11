@@ -252,3 +252,76 @@ fn multiple_brep_segments_and_a_missing_pair_keep_other_candidates_visible() {
         .model
         .is_some());
 }
+
+/// Rewrite the controlled container to another segment major and SAB save
+/// version. A mutation test of the profile gate, not an Inventor-saved file.
+fn profiled(major: u8, save_version: u32) -> Vec<u8> {
+    let mut c =
+        cfb::CompoundFile::open(Cursor::new(tests::container(false, false, false))).unwrap();
+    let mut registry = bytes(&mut c, "/RSeStorage/RSeSegInfo");
+    let at = registry
+        .windows(8)
+        .position(|w| w == [0, 0, 25, 0, 0, 0, 0, 0])
+        .unwrap();
+    registry[at + 2] = major;
+    let b = bytes(&mut c, "/RSeStorage/Bone");
+    let mut bulk = rse::inflate(&b[18..], 4096).unwrap().0;
+    let magic = b"ASM BinaryFile4";
+    let at = bulk.windows(magic.len()).position(|w| w == magic).unwrap() + magic.len();
+    bulk[at..at + 4].copy_from_slice(&save_version.to_le_bytes());
+    if major < 23 {
+        // Older carriers have no versioned padding byte in the footer. Keep the
+        // record length by growing one header string of the table by a byte.
+        let end = b"End-of-ASM-data";
+        let footer = bulk.windows(end.len()).position(|w| w == end).unwrap() + end.len();
+        bulk.remove(footer + 9);
+        let date = b"\x07\x04date";
+        let at = bulk.windows(date.len()).position(|w| w == date).unwrap();
+        bulk[at + 1] = 5;
+        bulk.insert(at + date.len(), b'2');
+    }
+    let mut b = b[..18].to_vec();
+    b.extend(compressed(&bulk));
+    rewrite(&mut c, "/RSeStorage/RSeSegInfo", &registry);
+    rewrite(&mut c, "/RSeStorage/Bone", &b);
+    c.into_inner().into_inner()
+}
+#[test]
+fn observed_major_without_a_pinned_fixture_is_read_as_a_candidate_profile() {
+    let limits = Limits::default();
+    let pinned = read(&profiled(25, 22600), "a", &limits).unwrap();
+    let c = &pinned.summary.geometry.candidates[0];
+    assert_eq!(c.profile_status, "supported_stored_table");
+    assert!(c
+        .diagnostics
+        .iter()
+        .all(|d| d.code != "candidate.profile_candidate"));
+
+    let candidate = read(&profiled(22, 22300), "a", &limits).unwrap();
+    let c = &candidate.summary.geometry.candidates[0];
+    assert_eq!(
+        c.profile_status, "candidate_stored_table",
+        "{:?}",
+        c.diagnostics
+    );
+    assert!(c
+        .diagnostics
+        .iter()
+        .any(|d| d.code == "candidate.profile_candidate"));
+    assert_eq!(candidate.summary.geometry.selection.status, "selected");
+    assert!(candidate.model.is_some());
+
+    // The candidate pairs one major with one save version; nothing is extrapolated.
+    let mismatch = read(&profiled(22, 22600), "a", &limits).unwrap();
+    let c = &mismatch.summary.geometry.candidates[0];
+    assert_eq!(c.profile_status, "unsupported");
+    assert!(mismatch.model.is_none());
+    for major in [20, 21, 23, 24, 27, 29] {
+        let unseen = read(&profiled(major, 22600), "a", &limits).unwrap();
+        assert!(unseen.model.is_none(), "major {major}");
+        assert!(
+            unseen.summary.geometry.candidates.is_empty(),
+            "major {major}"
+        );
+    }
+}

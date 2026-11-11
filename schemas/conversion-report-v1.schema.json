@@ -39,6 +39,7 @@
         "source": {"$ref": "#/$defs/source"},
         "status": {"enum": ["converted_solid", "open_shell", "unsupported", "failed"]},
         "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "warnings": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
         "metrics": {"type": ["object", "null"], "required": ["valid", "solids", "faces", "volume_mm3", "area_mm2", "bbox_mm"]}
       },
       "allOf": [{"if": {"properties": {"status": {"const": "converted_solid"}}},

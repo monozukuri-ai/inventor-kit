@@ -141,11 +141,16 @@ fn span(
 fn warning(code: &str, message: impl Into<String>, source: Option<SourceSpan>) -> Diagnostic {
     Diagnostic::new(code, "warning", message, source)
 }
-fn allowed(major: u8, version: u32) -> bool {
-    matches!(
-        (major, version),
-        (19, 22000) | (25, 22600) | (26, 22700) | (28, 22900) | (30, 23100) | (31, 23200)
-    )
+/// Profile status of a located table: pinned by fixtures, admitted as a
+/// candidate (framed like its observed neighbours, no pinned fixture), or none.
+fn profile(major: u8, version: u32) -> &'static str {
+    match (major, version) {
+        (19, 22000) | (25, 22600) | (26, 22700) | (28, 22900) | (30, 23100) | (31, 23200) => {
+            "supported_stored_table"
+        }
+        (22, 22300) => "candidate_stored_table",
+        _ => "unsupported",
+    }
 }
 fn unpack(
     expanded: &[u8],
@@ -313,7 +318,7 @@ pub(crate) fn scan(
                 entry.status = "identity_only";
                 return Ok(());
             }
-            if !matches!(reg.major, 19 | 25 | 26 | 28 | 30 | 31) {
+            if !matches!(reg.major, 19 | 22 | 25 | 26 | 28 | 30 | 31) {
                 entry.status = "unsupported";
                 return Err(Error(format!(
                     "unsupported PmBRep segment major {}",
@@ -507,11 +512,17 @@ pub(crate) fn scan(
                                     "solved_table"
                                 };
                                 candidate.profile_status =
-                                    if allowed(reg.major, p.header.save_version) {
-                                        "supported_stored_table"
-                                    } else {
-                                        "unsupported"
-                                    };
+                                    profile(reg.major, p.header.save_version);
+                                if candidate.profile_status == "candidate_stored_table" {
+                                    candidate.diagnostics.push(warning(
+                                        "candidate.profile_candidate",
+                                        format!(
+                                            "segment major {}: framed like its observed neighbours; no pinned fixture",
+                                            reg.major
+                                        ),
+                                        candidate.kernel_source.clone(),
+                                    ));
+                                }
                                 if candidate.profile_status == "unsupported" {
                                     candidate.diagnostics.push(warning(
                                         "candidate.profile_unsupported",

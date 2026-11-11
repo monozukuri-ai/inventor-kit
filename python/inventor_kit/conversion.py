@@ -16,7 +16,7 @@ from typing import Any
 
 def dependency_versions():
     result = {}
-    for name in ("inventor-kit", "cq-acis", "cadquery", "cadquery-ocp"):
+    for name in ("inventor-kit", "cq-acis", "cadquery", "cadquery-ocp", "cadquery-ocp-novtk"):
         try:
             result[name] = version(name)
         except PackageNotFoundError:
@@ -43,12 +43,19 @@ class BodyConversion:
     status: str
     diagnostics: tuple[ConversionDiagnostic, ...] = ()
     metrics: dict | None = None
+    #: A CadQuery ``Shape`` from the CadQuery backend, an OCCT ``TopoDS_Shape``
+    #: from the OCCT backend.
     shape: Any = field(default=None, repr=False, compare=False)
+    #: Warnings about a usable result, such as stored B-spline fits that stand
+    #: in for procedural geometry. A warned body is derived, not exact.
+    warnings: tuple[ConversionDiagnostic, ...] = ()
+    #: The stored fits behind the warning, as recorded by cq-acis.
+    approximations: tuple[dict, ...] = field(default=(), repr=False, compare=False)
 
     def report(self):
         return dict(id=self.id, body_index=self.body_index, source=self.source,
                     status=self.status, diagnostics=[asdict(d) for d in self.diagnostics],
-                    metrics=self.metrics)
+                    metrics=self.metrics, warnings=[asdict(d) for d in self.warnings])
 
 
 class BodyConversionError(ValueError):
@@ -65,6 +72,8 @@ class PartConversion:
     candidate_id: str | None
     bodies: tuple[BodyConversion, ...]
     diagnostics: tuple[ConversionDiagnostic, ...] = ()
+    #: Shape backend of the bodies: "cadquery" or "occt"; None when nothing was converted.
+    backend: str | None = None
     current_state_verified: bool = field(default=False, init=False)
 
     @property
@@ -121,13 +130,25 @@ class PartConversion:
             raise BodyConversionError("Partial body selection requires allow_partial=True", self)
         return tuple(b for b in self._requested(body_ids) if b.status == "converted_solid")
 
+    def _require_cadquery(self, operation):
+        if self.backend == "occt":
+            raise ValueError(f"{operation} needs CadQuery shapes; convert with "
+                             "convert_bodies(backend='cadquery') or use to_occt()")
+
+    def to_occt(self, *, body_ids=None, allow_partial=False):
+        """Return the selected solid bodies as OCCT ``TopoDS_Shape`` objects."""
+        selected = self.selected_bodies(body_ids=body_ids, allow_partial=allow_partial)
+        return tuple(getattr(b.shape, "wrapped", b.shape) for b in selected)
+
     def to_cadquery(self, *, body_ids=None, allow_partial=False):
+        self._require_cadquery("to_cadquery")
         selected = self.selected_bodies(body_ids=body_ids, allow_partial=allow_partial)
         import cadquery as cq
         return cq.Workplane("XY").newObject([b.shape for b in selected])
 
     def export_step(self, path, *, body_ids=None, allow_partial=False):
         """Export selected solid bodies and a checked provenance/omission report."""
+        self._require_cadquery("export_step")
         selected = self.selected_bodies(body_ids=body_ids, allow_partial=allow_partial)
         import cadquery as cq
         from .assembly_step import write_step
@@ -169,7 +190,18 @@ def _failure(error, model, body):
         entity=getattr(raw, "index", None), entity_type=getattr(raw, "type_name", None), subtype=subtype)
 
 
-def convert_bodies(document):
+def _approximation_warning(approximations, model, body):
+    """One warning per body that depends on stored B-spline fits."""
+    subtypes = sorted({a.get("subtype") or a.get("type") or "unknown" for a in approximations})
+    tolerance = max((a.get("fit_tolerance_mm") or 0.0) for a in approximations)
+    return ConversionDiagnostic(
+        "geometry.approximated_from_stored_spline",
+        f"body ${body.index}: {len(approximations)} stored B-spline fit(s) stand in for procedural "
+        f"geometry ({', '.join(subtypes)}); largest fit tolerance {tolerance:.6g} mm",
+        severity="warning", source=_source(body))
+
+
+def convert_bodies(document, backend="auto"):
     if document.metadata is not None and document.metadata.stages.geometry == "not_attempted":
         raise ValueError("Geometry was not requested; use read or read_file")
     geometry = document.geometry
@@ -181,35 +213,45 @@ def convert_bodies(document):
             "geometry.unavailable", "; ".join(reasons) or "No stored geometry was selected"),))
     if not sha256 or not candidate:
         raise ValueError("Body conversion requires input hash and selected candidate provenance")
-    from cq_acis import BodyEntity, CadQueryConverter, CadQueryConversionError, RawEntity
+    from cq_acis import BACKENDS, BodyEntity, CadQueryConverter, CadQueryConversionError, RawEntity
     from .assembly_step import _metrics
-    results = []
+    if backend not in BACKENDS:
+        raise ValueError(f"unknown backend {backend!r}; expected one of {BACKENDS}")
+    results, resolved = [], None
     # Include undecoded raw bodies; a partial model must never look complete.
     bodies = [e for e in document.model.entities if isinstance(e, BodyEntity)
               or (isinstance(e, RawEntity) and e.type_name == "body")]
     for body in bodies:
         identity = json.dumps([sha256, candidate, body.index], separators=(",", ":"))
         body_id = "body-" + hashlib.sha256(identity.encode()).hexdigest()
-        shape, metrics, diagnostics = None, None, ()
+        shape, metrics, diagnostics, warnings, approximations = None, None, (), (), ()
         try:
             if not isinstance(body, BodyEntity):
                 raise CadQueryConversionError(f"body ${body.index}: body has not been decoded",
                                              code="geometry.body_unsupported")
             # One converter per body prevents a failed attempt from leaking
             # mutable OCCT caches into another body's result.
-            shape = CadQueryConverter(document.model).convert_body(body)
+            converter = CadQueryConverter(document.model, backend=backend)
+            resolved = converter.backend
+            shape = converter.convert_body(body)
             metrics = _metrics(shape)
             if not metrics["valid"] or not metrics["solids"] or not math.isfinite(metrics["volume_mm3"]) or metrics["volume_mm3"] <= 0:
                 raise CadQueryConversionError(f"body ${body.index}: invalid or non-positive solid",
                                              code="geometry.body_invalid")
             json.dumps(metrics, allow_nan=False)
             status = "converted_solid"
+            approximations = tuple(dict(a) for a in getattr(converter, "approximations", ()))
+            if approximations:
+                warnings = (_approximation_warning(approximations, document.model, body),)
+            if resolved == "occt":
+                shape = shape.wrapped
         except CadQueryConversionError as error:
             status = ("open_shell" if error.code == "geometry.shell_open" else
                       "unsupported" if error.code.endswith("unsupported") or error.code == "geometry.sewing_no_shell"
                       else "failed")
             shape, metrics = None, None
             diagnostics = (_failure(error, document.model, body),)
-        results.append(BodyConversion(body_id, body.index, _source(body), status, diagnostics, metrics, shape))
+        results.append(BodyConversion(body_id, body.index, _source(body), status, diagnostics, metrics, shape,
+                                      warnings, approximations))
     diagnostics = () if results else (ConversionDiagnostic("geometry.no_bodies", "The stored table contains no bodies"),)
-    return PartConversion(sha256, candidate, tuple(results), diagnostics)
+    return PartConversion(sha256, candidate, tuple(results), diagnostics, resolved)

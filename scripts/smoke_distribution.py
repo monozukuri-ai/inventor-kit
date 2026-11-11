@@ -447,7 +447,7 @@ def main():
             check(wheel)  # Inspect the rebuilt archive as well as the source archive.
         subprocess.run([args.python, '-m', 'venv', str(root/'venv')], env=environment, check=True)
         python = root/'venv'/('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
-        packages = [str(wheel) + ('[viewer]' if args.viewer else '')] + ([str(args.cq_wheel.resolve())] if args.cq_wheel else [])
+        packages = [str(wheel) + ('[viewer]' if args.viewer else '[cadquery]')] + ([str(args.cq_wheel.resolve())] if args.cq_wheel else [])
         subprocess.run([str(python), '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--only-binary=:all:', *packages], env=environment, check=True)
         subprocess.run([str(python), '-m', 'pip', 'check'], env=environment, check=True)
         subprocess.run([str(python), '-I', '-X', 'faulthandler', '-u', str(Path(__file__).resolve()), '--installed', '--corpus', str(args.corpus.resolve()), *(['--viewer', '--report', str(root/'installed.json')] if args.viewer else [])], cwd=root, env=environment, check=True)

@@ -4,8 +4,12 @@ English | [日本語](releasing.ja.md)
 
 ## Dependency contract
 
-Rust requires `acis-core=0.3.12` and `acis-py-bridge=0.3.12`. Python requires
-`cq-acis>=0.3.12,<0.4` and shared model API 2. The minimum Python version is 3.11,
+Rust requires `acis-core=0.4.2` and `acis-py-bridge=0.4.2`. Python requires
+`cq-acis>=0.4.2,<0.5` and shared model API 2. The Python floor may be a later
+patch of the same minor line than the Rust pin, because conversion fixes ship in
+cq-acis without a model or bridge change; `scripts/check_dependencies.py` holds
+both values. Shape conversion is optional: the extras `cadquery` and `occt`
+select the matching cq-acis extra, and `viewer` includes the CadQuery backend. The minimum Python version is 3.11,
 matching cq-acis. Dependencies must be published, and Cargo.lock must retain
 registry sources and checksums for both bridge and core. Results obtained with
 local path patches or unpublished wheels do not satisfy this requirement.

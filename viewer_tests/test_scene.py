@@ -55,13 +55,22 @@ class Scenes(unittest.TestCase):
         self.assertTrue(refused['candidates'])
 
     def test_conversion_failure_preserves_document(self):
-        scene = self.scene('EPFL_Elytron_140mm_v1.ipt')
+        # Helical thread surfaces are saved without a B-spline fit.
+        scene = self.scene('Demo-Status-0.6.ipt')
         self.assertEqual(scene['stages']['conversion'], 'failed')
         self.assertTrue(scene['nodes'])
         self.assertTrue(all(n['mesh_id'] is None for n in scene['nodes']))
         self.assertTrue(scene['properties'])
         self.assertTrue(scene['thumbnails'])
-        self.assertTrue(any(d['code'] == 'geometry.curve_unsupported' for d in scene['diagnostics']))
+        self.assertTrue(any(d['code'] == 'geometry.surface_unsupported' for d in scene['diagnostics']))
+
+    def test_stored_fit_geometry_is_shown_with_a_warning(self):
+        scene = self.scene('EPFL_Elytron_140mm_v1.ipt')
+        self.assertEqual(scene['stages']['conversion'], 'available')
+        self.assertEqual(len(scene['meshes']), 1)
+        warnings = [d for d in scene['diagnostics'] if d['code'] == 'geometry.approximated_from_stored_spline']
+        self.assertEqual([d['severity'] for d in warnings], ['warning'])
+        self.assertEqual(scene['part']['bodies'][0]['warnings'][0]['code'], 'geometry.approximated_from_stored_spline')
 
     def test_mixed_body_selection_retains_every_source_body(self):
         for year in (2021, 2024):

@@ -15,28 +15,37 @@ IAM → saved references and placements → local part resolution → CadQuery A
 ```
 
 The parser supports a limited set of validated format profiles. It does not
-determine the current Model State, reevaluate feature history, or approximate
-unsupported geometry.
+determine the current Model State, reevaluate feature history, or compute its
+own approximations of unsupported geometry. A B-spline fit that the file
+stores beside a procedural curve or surface is used as derived geometry and
+reported as a warning; see [body conversion](docs/body-conversion.md).
 
 v0.4.0 adds [body selection](docs/body-conversion.md) and [IPT/IAM batch conversion](docs/cli.md).
+v0.10.0 makes the shape backend an install extra, adds an OCCT backend without CadQuery, and converts
+stored B-spline fits; see the [v0.10.0 release notes](docs/release-notes-v0.10.0.md).
 
 v0.5.0 adds [IDW sheet inventories and JSON reports](docs/cli.md#idw-reports-and-svg-export), and [per-sheet SVG export](docs/drawing.md#reports-and-offline-svg).
 See the [release notes](docs/release-notes-v0.5.0.md) for supported drawing profiles,
 line styles and platform checks. Drawing support remains experimental and partial;
 physical scale and native rendering equivalence are unverified.
 
-The release version is defined in [Cargo.toml](Cargo.toml); see [version management](docs/releasing.md#version-management) for the update command. The writer requires cq-acis 0.3.12 or later in the 0.3 series; see the [writer guide](docs/part-writer.md).
+The release version is defined in [Cargo.toml](Cargo.toml); see [version management](docs/releasing.md#version-management) for the update command. The writer requires `inventor-kit[cadquery]`; see the [writer guide](docs/part-writer.md).
 
 ## Installation
 
-Requires Python 3.11 or later, `cq-acis>=0.3.12,<0.4`, and shared model API 2.
-Where compatible published wheels are available, install with:
+Requires Python 3.11 or later, `cq-acis>=0.4.2,<0.5`, and shared model API 2.
+Where compatible published wheels are available, install with one shape backend:
 
 ```sh
-python -m pip install inventor-kit
+python -m pip install 'inventor-kit[cadquery]'  # CadQuery shapes, STEP export, IAM, writers
+python -m pip install 'inventor-kit[occt]'      # OCCT shapes only, without CadQuery
 ```
 
-Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.3.12
+Since 0.10.0 a plain `pip install inventor-kit` installs the parser and the
+shared model only; earlier versions always installed CadQuery. The two extras
+ship different builds of the same `OCP` module, so install one of them.
+
+Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.4.2
 from crates.io. See the [development guide](docs/development.md) and
 [release requirements](docs/releasing.md).
 

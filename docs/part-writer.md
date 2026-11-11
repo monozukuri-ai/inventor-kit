@@ -7,7 +7,7 @@ Inventor API, or an existing IPT template. It accepts one solid per part and
 stores exact geometry as a nonparametric base feature. Display meshes accompany
 the geometry. Existing files and directories are never overwritten.
 
-This checkout requires `cq-acis>=0.3.12,<0.4`. For changes that are not yet
+This checkout requires `cq-acis[cadquery]>=0.4.2,<0.5` (`inventor-kit[cadquery]`). For changes that are not yet
 published, install a candidate wheel from the [distribution workflow](https://github.com/monozukuri-ai/inventor-kit/actions/workflows/release.yml).
 The package version comes from [Cargo.toml](../Cargo.toml).
 

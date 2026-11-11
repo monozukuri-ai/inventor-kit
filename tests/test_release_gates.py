@@ -15,51 +15,65 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from check_corpus import verify
 from check_release import artifact_set, check_tag, pypi_conflicts, viewer_reports
 from check_distribution import check_metadata
-from check_dependencies import ACIS_VERSION, CQ_ACIS_REQUIREMENT, check_python_lock
+from check_dependencies import ACIS_VERSION, CQ_ACIS_EXTRAS, CQ_ACIS_REQUIREMENT, CQ_ACIS_VERSION, check_python_lock
 from check_license import DISTRIBUTION_LICENSE
 import inventor_kit as ik
 
+EXTRAS = ('[project.optional-dependencies]\n'
+          f'cadquery = ["{CQ_ACIS_EXTRAS["cadquery"]}"]\nocct = ["{CQ_ACIS_EXTRAS["occt"]}"]\n'
+          f'viewer = ["ocp-tessellate==3.5.1", "{CQ_ACIS_EXTRAS["cadquery"]}"]\n')
 
 class ReleaseGates(unittest.TestCase):
     def test_python_lock_rejects_unpublished_or_stale_dependencies(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root/'Cargo.toml').write_text('[workspace.package]\nversion = "1.2.3"\n')
-            (root/'pyproject.toml').write_text(f'[project]\ndynamic = ["version"]\ndependencies = ["{CQ_ACIS_REQUIREMENT}"]\n')
+            (root/'pyproject.toml').write_text(f'[project]\ndynamic = ["version"]\ndependencies = ["{CQ_ACIS_REQUIREMENT}"]\n' + EXTRAS)
             valid = ('[[package]]\nname = "inventor-kit"\nversion = "1.2.3"\nsource = {editable = "."}\n'
-                     f'[[package]]\nname = "cq-acis"\nversion = "{ACIS_VERSION}"\n'
+                     f'[[package]]\nname = "cq-acis"\nversion = "{CQ_ACIS_VERSION}"\n'
                      'source = {registry = "https://pypi.org/simple"}\n')
             (root/'uv.lock').write_text(valid)
             check_python_lock(root)
-            for content in (valid.replace('1.2.3','1.2.2'), valid.replace(ACIS_VERSION,'0.0.0'),
+            for content in (valid.replace('1.2.3','1.2.2'), valid.replace(CQ_ACIS_VERSION,'0.0.0'),
+                            valid.replace(CQ_ACIS_VERSION, ACIS_VERSION) if ACIS_VERSION != CQ_ACIS_VERSION else valid.replace(CQ_ACIS_VERSION,'0.0.1'),
                             valid.replace('registry = "https://pypi.org/simple"','path = "local"'),
                             valid.replace('https://pypi.org/simple','https://example.test/simple')):
                 (root/'uv.lock').write_text(content)
                 with self.assertRaises(ValueError):check_python_lock(root)
 
     def test_python_requirement_must_match_shared_rust_pin(self):
-        from check_dependencies import CQ_ACIS_REQUIREMENT, ACIS_VERSION
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root/'Cargo.toml').write_text('[workspace.package]\nversion = "1.2.3"\n')
             (root/'uv.lock').write_text(
                 '[[package]]\nname = "inventor-kit"\nsource = {editable = "."}\n'
-                f'[[package]]\nname = "cq-acis"\nversion = "{ACIS_VERSION}"\n'
+                f'[[package]]\nname = "cq-acis"\nversion = "{CQ_ACIS_VERSION}"\n'
                 'source = {registry = "https://pypi.org/simple"}\n')
             for requirement in (CQ_ACIS_REQUIREMENT, 'cq-acis>=0.3.10,<0.4'):
                 (root/'pyproject.toml').write_text(
-                    f'[project]\ndynamic = ["version"]\ndependencies = ["{requirement}"]\n')
+                    f'[project]\ndynamic = ["version"]\ndependencies = ["{requirement}"]\n' + EXTRAS)
                 if requirement == CQ_ACIS_REQUIREMENT:
                     check_python_lock(root)
                 else:
                     with self.assertRaisesRegex(ValueError, 'workspace pin'):
                         check_python_lock(root)
+            # Each shape backend is an extra on the same cq-acis series.
+            (root/'pyproject.toml').write_text(
+                f'[project]\ndynamic = ["version"]\ndependencies = ["{CQ_ACIS_REQUIREMENT}"]\n'
+                + EXTRAS.replace(CQ_ACIS_EXTRAS['occt'], 'cq-acis[occt]'))
+            with self.assertRaisesRegex(ValueError, 'extra occt'):
+                check_python_lock(root)
 
     def test_distribution_rejects_stale_python_and_cq_acis_requirements(self):
         meta = Message()
         for name, value in [('Name', 'inventor-kit'), ('Version', '0.1.0'),
                             ('License-Expression', DISTRIBUTION_LICENSE), ('Requires-Python', '>=3.11'),
-                            ('Requires-Dist', f'cq-acis<0.4,>={ACIS_VERSION}'), ('Provides-Extra', 'viewer'),
+                            ('Requires-Dist', f'cq-acis<0.5,>={CQ_ACIS_VERSION}'),
+                            ('Provides-Extra', 'cadquery'),
+                            ('Requires-Dist', f'cq-acis[cadquery]<0.5,>={CQ_ACIS_VERSION}; extra == "cadquery"'),
+                            ('Provides-Extra', 'occt'),
+                            ('Requires-Dist', f'cq-acis[occt]<0.5,>={CQ_ACIS_VERSION}; extra == "occt"'),
+                            ('Provides-Extra', 'viewer'),
                             ('Requires-Dist', 'ocp-tessellate==3.5.1; extra == "viewer"')]:
             meta[name] = value
         check_metadata(meta, '0.1.0')
@@ -68,6 +82,13 @@ class ReleaseGates(unittest.TestCase):
             bad = deepcopy(meta)
             bad.replace_header(name, value)
             with self.subTest(name=name), self.assertRaises(ValueError):
+                check_metadata(bad, '0.1.0')
+        for extra in ('cadquery', 'occt'):
+            bad = Message()
+            for name, value in meta.items():
+                if not (name == 'Requires-Dist' and value.endswith(f'extra == "{extra}"')):
+                    bad[name] = value
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
                 check_metadata(bad, '0.1.0')
 
     def test_corpus_missing_changed_and_escaped_are_errors(self):

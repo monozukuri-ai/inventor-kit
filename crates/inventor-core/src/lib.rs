@@ -309,7 +309,12 @@ fn extract(
         )
     })?;
     doc.kernel_bytes = Some(prepared.kernel);
-    if chosen.table_status != "solved_table" || chosen.profile_status != "supported_stored_table" {
+    if chosen.table_status != "solved_table"
+        || !matches!(
+            chosen.profile_status,
+            "supported_stored_table" | "candidate_stored_table"
+        )
+    {
         return Err(Error(
             chosen
                 .diagnostics

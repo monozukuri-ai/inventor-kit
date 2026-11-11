@@ -73,10 +73,20 @@ class PublicAPI(unittest.TestCase):
         self.assertTrue(shape.isValid())
         self.assertGreater(shape.Volume(), 0)
 
-    def test_nist_unqualified_spline_is_not_silently_approximated(self):
+    def test_nist_procedural_spline_converts_from_its_stored_fit_with_a_warning(self):
         _, data = fixture(self, 'INV_nist_ftc_07_asme1_2024.ipt')
         doc = inventor_kit.read(data)
+        # The procedural surfaces stay raw records; nothing is fitted by this library.
         self.assertTrue(any(isinstance(e, RawEntity) and e.type_name == 'spline-surface' for e in doc.model.entities))
+        body, = doc.convert_bodies().bodies
+        self.assertEqual(body.status, 'converted_solid')
+        self.assertEqual([w.code for w in body.warnings], ['geometry.approximated_from_stored_spline'])
+        self.assertTrue(body.approximations)
+        self.assertTrue(doc.to_cadquery().val().isValid())
+
+    def test_procedural_geometry_without_a_stored_fit_is_not_approximated(self):
+        _, data = fixture(self, 'Demo-Status-0.6.ipt')
+        doc = inventor_kit.read(data)
         with self.assertRaises(CadQueryConversionError) as failure:
             doc.to_cadquery()
         self.assertEqual(failure.exception.code, 'geometry.surface_unsupported')
