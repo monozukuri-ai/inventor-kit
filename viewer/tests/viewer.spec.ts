@@ -195,9 +195,10 @@ test('part controls pan, rotate, fit, select and toggle visibility', async ({ pa
 });
 
 test('unsupported geometry keeps previews, properties and the conversion reason', async ({ page }) => {
-  await open(page, 'EPFL_Elytron_140mm_v1.ipt');
+  // Helical thread surfaces are saved without a B-spline fit.
+  await open(page, 'Demo-Status-0.6.ipt');
   await expect(page.getByRole('heading', { name: 'No 3D geometry to display' })).toBeVisible();
-  await expect(page.locator('#diagnostics')).toContainText('unsupported geometry intcurve-curve');
+  await expect(page.locator('#diagnostics')).toContainText('unsupported geometry spline-surface');
   await expect(page.locator('#previews img').first()).toBeVisible();
   expect(await page.locator('#properties .property').count()).toBeGreaterThan(0);
 });
