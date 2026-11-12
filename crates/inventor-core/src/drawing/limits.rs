@@ -73,6 +73,26 @@ impl DrawingLimits {
     }
 }
 
+/// RSe stream bytes that earn one further allowance of a document-wide work
+/// budget: container framing (`Limits::max_records`), sheet binding and display
+/// expansion (`DrawingLimits::max_reference_visits`).
+const ALLOWANCE_RSE_BYTES: usize = 2 * 1024 * 1024;
+/// At most four allowances per document (2,000,000 framing work items and
+/// 12,000,000 reference visits with the default limits).
+const MAX_ALLOWANCES: usize = 4;
+
+/// Large multi-sheet drawings store more records and references than one
+/// allowance of a document-wide work budget covers. Each started 2 MiB of
+/// declared RSe stream bytes earns one allowance of `base`, at most four.
+/// Small inputs, including highly compressed ones, keep a single allowance;
+/// lowering `base` lowers every allowance, and zero still denies the resource.
+pub(super) fn scaled_allowance(base: usize, rse_bytes: usize) -> usize {
+    let allowances = rse_bytes
+        .div_ceil(ALLOWANCE_RSE_BYTES)
+        .clamp(1, MAX_ALLOWANCES);
+    base.saturating_mul(allowances)
+}
+
 pub struct DrawingOutputBuffer {
     bytes: Vec<u8>,
     limit: usize,

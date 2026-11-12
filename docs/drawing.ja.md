@@ -80,7 +80,7 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 | `max_display_items` | 100,000 | 図面全体の配置展開後の要素数 |
 | `max_polyline_points` | 1,000,000 | 図面全体の配置展開後の折れ線点数 |
 | `max_text_bytes` | 16 MiB | 展開後のUTF-8文字列・ビュー名・複製するfont名 |
-| `max_reference_visits` | 3,000,000 | シート所属・表示展開・画像取得の各native段階で、図面全体の参照・複製作業量 |
+| `max_reference_visits` | 3,000,000 | シート所属・表示展開・画像取得の各native段階で、図面全体の参照・複製作業量。大きな図面ではシート所属と表示展開の枠が増えます(後述) |
 | `max_nesting_depth` | 128 | 表示・祖先参照の探索深さ |
 | `max_image_bytes` | 16 MiB | 配信する画像の合計バイト数。ビュー画像は生成PNGを集計 |
 | `max_image_pixels` | 16,777,216 | 埋め込み画像の合計画素数 |
@@ -90,8 +90,13 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 展開予算を超えると表示を破棄し、metadataと診断を残します。画像上限は表示できない画像として記録します。
 JSON出力はバッファへ追記する前に検査し、超過時は`ValueError`になります。
 containerの解析には`Limits.max_records`、型付きフィールドの解析には独立した`DrawingLimits.max_field_values`を使います。
-後者は従来の500,000から1,000,000へ分離・拡張しました。filter-panel assemblyの実測処理数は573,482で、
-レコード解析の500,000上限は維持しています。型付きフィールドは引き続き値ごとに予算を消費し、上限を引き下げられます。
+後者は従来の500,000から1,000,000へ分離・拡張しました。filter-panel assemblyの実測処理数は573,482です。
+型付きフィールドは引き続き値ごとに予算を消費し、どちらの上限も引き下げられます。
+containerの枠付けは1レコードを2回(Metaのブロック枠とbulkの枠)数えるため、`max_records`の1枠で
+枠付けできるのは約220,000レコードで、シートの多い大きな図面はそれより多く保存しています。
+そこでcontainerの枠付け・シート所属・表示展開は、RSeストリームの宣言バイト数2 MiBごと(端数も1つ)に
+`max_records`または`max_reference_visits`の1枠を得ます。上限は4枠です(既定値で枠付け2,000,000、参照12,000,000)。
+それより小さい入力(高圧縮の入力を含む)は1枠のままで、上限を引き下げるとすべての枠が下がります。
 ビュー画像の元画素はストリーム展開量と`max_image_pixels`で制限し、同一ストリームは1回だけ展開します。未知のビュー形式の数、RSS、実行時間の保証ではありません。
 Viewerは既定値を使い、Pythonの`Options`では`drawing_limits`を指定できます。
 
@@ -172,18 +177,28 @@ boolean mask=2、値0は、非表示として扱います。対象166要素す�
 major24の検証入力はテンプレートのみです。埋め込みPNG/JPEGはビュー画像キャッシュと別に扱います。
 追加版の物理単位・現在状態・native描画精度・独立holdoutでの受入判定は未検証です。
 
-major15・16・17・18・21・22・27・30は本番の失敗入力(2026-10、51件)で観測した版で、native採取はありません。
+major15〜22(Inventor 2011〜2018)・25(Inventor 2021)・27・30は本番の図面で観測した版で、native採取はありません。
 **候補プロファイル**(`idw-rse31-meta8-majorNN-…-framing-candidate`)として枠付けします。
 major27はmajor26の30バイト文書プレフィックスにmajor28のレイアウト、major30はmajor31のzstd・
 モノクロのビュー画像キャッシュ・PART31のApp segment Metaレイアウトにmajor23の履歴コンテキスト、
-major15〜22はmajor23のレイアウトを使い、シート定義のlinksレイアウトが合わないときは
+major15〜22はmajor23のレイアウトとmajor24・26・28の枠(border)配置を使い、シート定義のlinksレイアウトが合わないときは
 先頭のキーだけの観測(`idw-sheet-links-prefix-fallback`、シート名なし)を残します。
-表示は`experimental_partial`で、認定した項目はありません。major14・19・20・25など一覧にない版、
-schema 31以外のRSeDb(26・29・30 は Inventor 2010/2011 世代の図面で観測。RSeSegInfo の末尾とノードの並びが異なる)は未対応のままです。Meta stream version 7 はヘッダ(識別子・名前・時刻・zlib 本体)がversion 8 と同じ並びなので読みますが(major14 の図面で観測)、major14 のレコード配置は枠付けできず、表示キャッシュの無い図面として終わります。
+major15〜22のビュー配置は古い並びです: ビューのフラグが16ビット、2つのビュー参照リストの間に16ビットの語、
+末尾に未解釈の1バイト(major15)または2バイト(`view_tail_unresolved`)が付きます。
+major25はmajor26のレイアウト(文書プレフィックス、シート定義の末尾、フォント表、レイヤのプレフィックス、
+RGBAのビュー画像キャッシュ、索引フラグ0の三角形バッチ、major26の拡張レコード、枠・局所表示・塗りつぶし円の配置)を使い、
+FBAttributeSegmentはmajor24と同じく枠付けします。ビュー配置の末尾GUIDは無く、major23が持つ局所表示レコードも枠付けします。
+表示は`experimental_partial`で、認定した項目はありません。major26の図面(と候補のmajor25)も履歴の対象コンテキストを参照することがあり、
+major23・30と同じく対象自身の順序付きリビジョン範囲の中にある場合だけ受け入れます。
+major14(Inventor 2010)など一覧にない版、schema 31以外のRSeDb(schema 30はsegment major 12・13、
+schema 29はsegment major 11、それより古い図面はsegmentのレジストリが無い。RSeSegInfoの末尾とノードの並びが異なる)は未対応のままです。
+Meta stream version 7 はヘッダ(識別子・名前・時刻・zlib 本体)がversion 8 と同じ並びなので読みますが(major14 の図面で観測)、
+major14 のレコード配置はmajor23と異なり(レコードが長い、レイヤのプレフィックスが違う、文書のシート一覧を解読できない)、表示キャッシュの無い図面として終わります。
 
 同じ入力で、1件の値のためにシート全体を捨てる代わりにフラグを付けて残す許容を追加しました:
 ノード数0のレジストリ項目、全プロファイルでの空の表示属性リスト、3の倍数(最大3,072頂点)の
 保存三角形バッチ、native major31の組以外の継承線幅-1(`stroke_override_width_inherited_unverified`)、
+上書き線幅0(`stroke_override_width_zero_unverified`、本番のmajor17・25の図面で観測。継承した線幅を残す)、
 線幅0のレイヤ(`layer_width_zero_unverified`)、major29/30のシート定義suffix後の余剰バイト
 (`sheet_link_tail_unresolved`、バイト列を保持)、未デコードのビュー画像キャッシュ(`view_cache_not_decoded`)、
 不正な画像配置(`unsupported_image_placement`)、major24 以外の色マスク 8

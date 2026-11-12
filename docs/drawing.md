@@ -91,7 +91,7 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 | `max_display_items` | 100,000 | Expanded items across the drawing |
 | `max_polyline_points` | 1,000,000 | Expanded polyline points across the drawing |
 | `max_text_bytes` | 16 MiB | Expanded UTF-8 text, view names and copied font-family bytes |
-| `max_reference_visits` | 3,000,000 | Aggregate reference and copy work across the document, independently for sheet binding, display expansion and image retrieval |
+| `max_reference_visits` | 3,000,000 | Aggregate reference and copy work across the document, independently for sheet binding, display expansion and image retrieval; large drawings earn further allowances for sheet binding and display expansion (below) |
 | `max_nesting_depth` | 128 | Display traversal / ancestor depth |
 | `max_image_bytes` | 16 MiB | Aggregate delivered image bytes; view caches charge generated PNG bytes |
 | `max_image_pixels` | 16,777,216 | Aggregate embedded image pixels |
@@ -105,8 +105,15 @@ remaining budget before appending; exceeding it raises `ValueError`. Container
 parsing uses `Limits.max_records`; typed-field parsing independently uses
 `DrawingLimits.max_field_values`. The latter replaces the previous 500,000
 allowance with a 1,000,000 ceiling: the filter-panel assembly needs 573,482 work
-units. The container's 500,000 ceiling is unchanged. Each field value still
-consumes its allowance, and callers can lower either limit.
+units. Each field value still consumes its allowance, and callers can lower
+either limit. Container framing charges every record twice (its Meta block slot
+and its bulk frame), so one `max_records` allowance frames about 220,000
+records, fewer than a large multi-sheet drawing stores. Container framing, sheet
+binding and display expansion therefore earn one allowance of `max_records` or
+`max_reference_visits` per started 2 MiB of RSe stream bytes, at most four
+(2,000,000 framing work items and 12,000,000 reference visits with the
+defaults). Smaller inputs, including highly compressed ones, keep a single
+allowance, and lowering a limit lowers every allowance.
 Raw cache pixels are bounded by expanded-stream bytes and `max_image_pixels`; each source stream is expanded once. Unknown view layouts remain omissions; the view budget counts decoded placements,
 not all possible model projections. These budgets do not bound process RSS or elapsed time. The Viewer uses the defaults; programmatic `Options`
 also accepts `drawing_limits`.
@@ -223,28 +230,43 @@ has template evidence only. Embedded PNG/JPEG assets are independent of the
 view-cache decoder. Native unit/state accuracy and independent holdout acceptance
 have not been qualified for these profiles.
 
-Majors 15, 16, 17, 18, 21, 22, 27 and 30 were observed on production drawings
-(51 failed uploads, 2026-10) without native captures. They are framed as
+Majors 15 to 22 (Inventor 2011 to 2018), 25 (Inventor 2021), 27 and 30 were
+observed on production drawings without native captures. They are framed as
 *candidate profiles* (`idw-rse31-meta8-majorNN-…-framing-candidate`): major27
 keeps the 30-byte document prefix of major26 with the major28 layouts; major30
 uses the zstd envelope, monochrome view caches and PART31 App-segment Meta
 layout of major31 with the historical target context of major23; majors 15–22
-reuse the major23 layouts, and their sheet definitions keep a prefix-only
-observation (`idw-sheet-links-prefix-fallback`, no sheet name) when the full
-links layout does not frame. Their displays are `experimental_partial` and
-nothing about them is qualified. Majors 14, 19, 20, 25 and other unlisted
-versions remain unsupported, as do RSeDb schemas other than 31 (26, 29 and 30
-were observed on Inventor 2010/2011-era drawings; their RSeSegInfo registry
-tails and node records differ). Meta stream version 7 is read with the version
-8 header grammar (identity, name, timestamps, zlib body; observed on major14
-drawings), but the major14 record layouts fail to frame, so those drawings
-still end without a decodable stored display.
+reuse the major23 layouts and the border placement of major24/26/28, and their
+sheet definitions keep a prefix-only observation
+(`idw-sheet-links-prefix-fallback`, no sheet name) when the full links layout
+does not frame. Their view placements use an older layout: 16-bit view flags,
+a 16-bit word between the two view reference lists and one (major15) or two
+unresolved trailing bytes (`view_tail_unresolved`). Major25 uses the major26
+layouts (document prefix, sheet-link suffix, font table, layer prefix, RGBA view
+caches, triangle batches with index flags 0, the major26 extended records and
+the border, local display and filled-disk layouts) and frames the
+FBAttributeSegment like major24; its view placements have no suffix GUID, and
+the local display record kept by major23 also frames. Their displays are
+`experimental_partial` and nothing about them is qualified. Major26 drawings,
+and the major25 candidate, may also reference a historical target context; as
+for major23 and major30 it is admitted only inside the target's own ordered
+revision ranges. Major14 (Inventor 2010) and other unlisted versions remain
+unsupported, as do RSeDb schemas other than 31 (schema 30 with segment majors
+12 and 13, schema 29 with segment major 11, and older drawings without a segment
+registry; their RSeSegInfo registry tails and node records differ). Meta stream
+version 7 is read with the version 8 header grammar (identity, name,
+timestamps, zlib body; observed on major14 drawings), but the major14 record
+layouts differ from major23 (longer records, another layer prefix, no
+decodable document sheet list), so those drawings still end without a
+decodable stored display.
 
 The same drawings exercised flagged tolerances that keep a sheet displayable
 instead of discarding it: registry entries with a zero node count, empty display
 attribute lists on every profile, saved triangle batches of any multiple of
 three vertices (at most 3,072), inherited stroke width (-1) outside the native
-major31 tuple (`stroke_override_width_inherited_unverified`), zero layer width
+major31 tuple (`stroke_override_width_inherited_unverified`), zero stroke
+override width (`stroke_override_width_zero_unverified`, observed on production
+major17/25 drawings; the inherited width is kept), zero layer width
 (`layer_width_zero_unverified`), trailing bytes after the sheet definition
 suffix on major29/30 (`sheet_link_tail_unresolved`, the bytes stay visible),
 view caches that are not decoded (`view_cache_not_decoded`), invalid image

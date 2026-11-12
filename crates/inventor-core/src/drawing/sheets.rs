@@ -55,7 +55,8 @@ pub fn stored_sheets_with_limits(
         sheets: vec![],
         diagnostics: vec!["physical_units_and_active_state_unverified".into()],
     };
-    let mut work = drawing.max_reference_visits;
+    let mut work =
+        super::limits::scaled_allowance(drawing.max_reference_visits, doc.usage.encoded_bytes);
     match limits
         .validate()
         .and_then(|_| drawing.validate())

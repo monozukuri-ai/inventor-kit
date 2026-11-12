@@ -126,8 +126,9 @@ pub(super) fn binding(
     let (identity, slot) =
         identity.ok_or_else(|| Error("object key outside revision ranges".into()))?;
     let (latest, latest_slot) = last.unwrap();
-    // Major23 saves may retain a historical target context. Admit it only if
-    // the target's own ordered ranges contain it after this object's creation.
+    // Major23, major26 and major30 saves (and the candidates framed like them)
+    // may retain a historical target context. Admit it only if the target's
+    // own ordered ranges contain it after this object's creation.
     // This binds the stored object key; it does not reconstruct that old state.
     let (current, last_slot) =
         if super::profile::get(target.registry.major).is_some_and(|p| p.historical_context) {

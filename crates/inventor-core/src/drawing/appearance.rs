@@ -186,14 +186,19 @@ pub(super) fn apply<'a>(
                     // The complete major31 tuple was observed in native
                     // controls. Production major17/26/28/30 drawings write -1
                     // with continuous, dashed and user-style tuples (kinds 2,
-                    // 4 and 6, 550 records in eight drawings); those stay
-                    // inherited but flagged. Other nonpositive values still
-                    // fail closed.
+                    // 4 and 6); those stay inherited but flagged. Production
+                    // major17/25 drawings also write 0, which keeps the
+                    // inherited width with its own flag. Other negative
+                    // values still fail closed.
                     let inherited = width == -1.;
-                    if width <= 0. && !inherited {
+                    if width < 0. && !inherited {
                         return Err(error("invalid stroke override width"));
                     }
-                    if !inherited {
+                    if width == 0. {
+                        style
+                            .unresolved
+                            .push("stroke_override_width_zero_unverified");
+                    } else if !inherited {
                         style.width = Some(width);
                     } else if !(segment.registry.major == 31 && default_sketch_stroke(attr)?) {
                         style

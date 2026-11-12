@@ -252,7 +252,9 @@ pub(super) fn decode(
             decoder = super::sheet::point_marker;
             "stored_point_marker_candidate"
         }
-        ("DlSheetDlSegmentType", "41305114-11d2-6450-6000-b4856c2387b0") if major == 26 => {
+        ("DlSheetDlSegmentType", "41305114-11d2-6450-6000-b4856c2387b0")
+            if matches!(major, 25 | 26) =>
+        {
             decoder = super::sheet::point_marker;
             "stored_point_marker_candidate"
         }
@@ -264,8 +266,7 @@ pub(super) fn decode(
             decoder = super::sheet::sketch_placement;
             "sheet_placement_candidate"
         }
-        ("DlSheetSmSegmentType", "62a8e6a8-11d1-ad4b-6000-108a806bceb0")
-            if matches!(major, 24 | 26 | 28) =>
+        ("DlSheetSmSegmentType", "62a8e6a8-11d1-ad4b-6000-108a806bceb0") if matches!(major, 15..=22 | 24..=26 | 28) =>
         {
             decoder = super::sheet::border_placement;
             "sheet_placement_candidate"
@@ -298,7 +299,7 @@ pub(super) fn decode(
             "f5a6ed7a-11d4-7c69-6000-69b782b6fbb0"
             | "35ecb98a-419c-f0d7-262b-dc98b8750e13"
             | "d8727ce0-11d5-d313-1000-1198b78b7ab5",
-        ) if major == 26 => {
+        ) if matches!(major, 25 | 26) => {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
@@ -313,7 +314,7 @@ pub(super) fn decode(
             "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0"
             | "648cd16a-11d1-c06c-6000-24b209e1b5b0"
             | "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
-        ) if matches!(major, 26 | 28) => {
+        ) if matches!(major, 25 | 26 | 28) => {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
@@ -427,7 +428,7 @@ pub(super) fn decode(
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
             "a79eaccd-11d1-c281-6000-a38ab46bceb0",
         ) => {
-            decoder = if kind == "DlSheetSmSegmentType" && matches!(profile.major, 26 | 28) {
+            decoder = if kind == "DlSheetSmSegmentType" && matches!(profile.major, 25 | 26 | 28) {
                 super::geometry::annotation_circle
             } else {
                 super::geometry::circle
@@ -525,7 +526,7 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::geometry::ellipse,
         super::spline::fields,
     ] {
-        for major in [23, 24, 26, 28, 29, 31] {
+        for major in [20, 23, 24, 25, 26, 28, 29, 31] {
             let mut fields = Fields::new(
                 bytes,
                 SourceSpan::stream("fuzz", "raw", 0, bytes.len()),

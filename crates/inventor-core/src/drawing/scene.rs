@@ -975,7 +975,8 @@ pub fn experimental_scene_with_limits(
     // owner graph for every annotation made large sheets exhaust the work cap.
     let mut display_nodes = BTreeMap::new();
     let mut resolve_cache = ResolveCache::default();
-    let mut work = drawing.max_reference_visits;
+    let mut work =
+        super::limits::scaled_allowance(drawing.max_reference_visits, doc.usage.encoded_bytes);
     let fonts = match fonts(doc, &mut work, &mut out.diagnostics) {
         Ok(f) => f,
         Err(e) => {

@@ -20,6 +20,9 @@ pub(super) struct Profile {
     pub layer_prefix: usize,
     pub empty_attributes: bool,
     pub views: bool,
+    /// Majors 15-22 store 16-bit view flags, a 16-bit word between the two
+    /// view reference lists and this many unresolved trailing bytes.
+    pub legacy_view_tail: Option<usize>,
     pub view_extra_references: bool,
     pub view_suffix_guid: bool,
     pub bitmap: Option<BitmapLayout>,
@@ -31,18 +34,21 @@ impl Profile {
     /// Framing observed only on production drawings (no pinned fixture).
     /// Candidates admit prefix fallbacks that pinned profiles keep rejecting.
     pub fn candidate(self) -> bool {
-        matches!(self.major, 15..=18 | 21 | 22 | 27 | 30)
+        matches!(self.major, 15..=22 | 25 | 27 | 30)
     }
     pub fn triangle_flags(self) -> Option<u32> {
         match self.major {
-            26 => Some(0),
+            25 | 26 => Some(0),
             27..=30 => Some(8),
             _ => None,
         }
     }
     pub fn extended_record(self, type_id: &str) -> bool {
         self.legacy_records
-            || (self.major == 26
+            // Production major25 drawings also store the local display that
+            // major23 keeps; it frames with the shared local display layout.
+            || (self.major == 25 && type_id == "9b3499d1-11d1-8626-6000-27bd351c3cb0")
+            || (matches!(self.major, 25 | 26)
                 && matches!(
                     type_id,
                     "afd5ceeb-11d1-e071-0008-87a406e5dc09"
@@ -69,10 +75,13 @@ impl Profile {
             16 => "idw-major16-typed-fields-candidate",
             17 => "idw-major17-typed-fields-candidate",
             18 => "idw-major18-typed-fields-candidate",
+            19 => "idw-major19-typed-fields-candidate",
+            20 => "idw-major20-typed-fields-candidate",
             21 => "idw-major21-typed-fields-candidate",
             22 => "idw-major22-typed-fields-candidate",
             23 => "idw-major23-typed-fields-v1",
             24 => "idw-major24-typed-fields-v1",
+            25 => "idw-major25-typed-fields-candidate",
             26 => "idw-major26-typed-fields-v1",
             27 => "idw-major27-typed-fields-candidate",
             28 => "idw-major28-typed-fields-v1",
@@ -95,6 +104,7 @@ pub(super) fn get(major: u8) -> Option<Profile> {
         layer_prefix: 19,
         empty_attributes: true,
         views: true,
+        legacy_view_tail: None,
         view_extra_references: false,
         view_suffix_guid: false,
         bitmap: Some(BitmapLayout::Rgba),
@@ -105,8 +115,10 @@ pub(super) fn get(major: u8) -> Option<Profile> {
     match major {
         23 => (),
         // Candidate profiles observed on production drawings (no native
-        // captures yet): framed like their nearest observed neighbour.
-        15 | 16 | 17 | 18 | 21 | 22 => (),
+        // captures yet): framed like their nearest observed neighbour. Their
+        // view placements keep an older layout; major15 ends it with one
+        // unresolved byte, majors 16-22 with two.
+        15..=22 => p.legacy_view_tail = Some(if major == 15 { 1 } else { 2 }),
         24 => {
             p.layer_prefix = 21;
             // No view-cache fixture for this profile yet. Preserve omissions.
@@ -116,14 +128,18 @@ pub(super) fn get(major: u8) -> Option<Profile> {
             p.historical_context = false;
             p.external_children = false;
         }
-        26 => {
+        // Production major25 drawings (candidate) use the major26 layouts,
+        // except that their view placements have no suffix GUID.
+        25 | 26 => {
             p.link_suffix = 8;
             p.legacy_fonts = false;
             p.layer_prefix = 21;
-            p.view_suffix_guid = true;
+            p.view_suffix_guid = major == 26;
             p.bitmap = Some(BitmapLayout::Rgba);
             p.legacy_records = false;
-            p.historical_context = false;
+            // Production major26 drawings also retain historical target
+            // contexts; the binding still requires the target's own ranges.
+            p.historical_context = true;
             p.external_children = false;
         }
         27..=31 => {
@@ -161,8 +177,11 @@ pub(super) fn name(major: u8) -> &'static str {
         16 => "idw-rse31-meta8-major16-zlib-framing-candidate",
         17 => "idw-rse31-meta8-major17-zlib-framing-candidate",
         18 => "idw-rse31-meta8-major18-zlib-framing-candidate",
+        19 => "idw-rse31-meta8-major19-zlib-framing-candidate",
+        20 => "idw-rse31-meta8-major20-zlib-framing-candidate",
         21 => "idw-rse31-meta8-major21-zlib-framing-candidate",
         22 => "idw-rse31-meta8-major22-zlib-framing-candidate",
+        25 => "idw-rse31-meta8-major25-zlib-framing-candidate",
         27 => "idw-rse31-meta8-major27-zlib-framing-candidate",
         30 => "idw-rse31-meta8-major30-zstd-framing-candidate",
         23 => "idw-rse31-meta8-major23-zlib-framing-v1",
@@ -191,7 +210,7 @@ pub(super) const BULK_HEADER: [u8; 18] = [
 
 pub(super) fn admits(kind: &str, major: u8) -> bool {
     get(major).is_some()
-        && (matches!(major, 24 | 31) || kind != "FBAttributeSegment")
+        && (matches!(major, 24 | 25 | 31) || kind != "FBAttributeSegment")
         && matches!(
             kind,
             "DlDocDcSegmentType"

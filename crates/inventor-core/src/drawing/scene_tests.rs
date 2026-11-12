@@ -284,10 +284,22 @@ fn major23_historical_context_requires_the_targets_exact_revision_range() {
         &mut cache
     )
     .is_err());
-    for s in &mut d.segments {
-        s.registry.major = 31;
+    for major in [24, 28, 29, 31] {
+        for s in &mut d.segments {
+            s.registry.major = major;
+        }
+        let resolved = resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100);
+        assert!(resolved.is_err(), "major {major}");
     }
-    assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_err());
+    // Production major26 and major30 drawings also retain historical contexts;
+    // the major25 candidate shares the major26 profile.
+    for major in [25, 26, 30] {
+        for s in &mut d.segments {
+            s.registry.major = major;
+        }
+        let resolved = resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100);
+        assert_eq!(resolved.unwrap().2.len(), 10, "major {major}");
+    }
     for s in &mut d.segments {
         s.registry.major = 23;
     }
@@ -1201,12 +1213,12 @@ fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
     let inherited = experimental_scene(&d, &Limits::default());
     assert_eq!(inherited.spaces[0].items[0].style.width, Some(0.06));
     assert_eq!(inherited.spaces[0].items[0].style.dash, Some(vec![]));
-    // Other nonpositive widths fail closed; -1 with a tuple that is not the
+    // Other negative widths fail closed; -1 with a tuple that is not the
     // native major31 default stays inherited but flagged (observed on
     // production major17/26/28/30 drawings).
     for (name, value, admitted) in [
         ("stroke_width", FieldValue::F32(vec![-2.]), false),
-        ("stroke_width", FieldValue::F32(vec![0.]), false),
+        ("stroke_width", FieldValue::F32(vec![-0.5]), false),
         ("stroke_kind", w(7), true),
         ("stroke_pattern_copy", w(28102), true),
         (
@@ -1269,6 +1281,32 @@ fn local_layer_cache_binding_retains_revision_uncertainty_and_applies_width() {
             .unwrap()
             .value = value;
     }
+    // A zero override width (observed on production major17/25 drawings)
+    // keeps the inherited layer width with its own flag, for every profile.
+    let stroke = d.segments[1].observations.last_mut().unwrap();
+    let field = stroke
+        .fields
+        .iter_mut()
+        .find(|f| f.name == "stroke_width")
+        .unwrap();
+    let original = std::mem::replace(&mut field.value, FieldValue::F32(vec![0.]));
+    let zero_stroke = experimental_scene(&d, &Limits::default());
+    let style = &zero_stroke.spaces[0].items[0].style;
+    assert_eq!(style.width, Some(0.06));
+    assert_eq!(style.dash, Some(vec![]));
+    assert!(style
+        .unresolved
+        .contains(&"stroke_override_width_zero_unverified"));
+    assert!(!style
+        .unresolved
+        .contains(&"stroke_override_width_inherited_unverified"));
+    let stroke = d.segments[1].observations.last_mut().unwrap();
+    stroke
+        .fields
+        .iter_mut()
+        .find(|f| f.name == "stroke_width")
+        .unwrap()
+        .value = original;
     // A zero layer width (observed on production major29 drawings) keeps the
     // item without a width and flags it; a negative width still fails closed.
     d.segments[2].observations[0].fields[3].value = FieldValue::F64(vec![0.]);

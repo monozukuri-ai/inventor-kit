@@ -112,8 +112,10 @@ pub(super) fn sketch_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     f.r.finish()
 }
 
-// Saved border instance observed in major24/26/28 captures. Both trailing
-// references are retained; neither establishes document state or ownership.
+// Saved border instance observed in major24/26/28 captures; production
+// drawings of the major15-22 candidates and of major25 store the same layout.
+// Both trailing references are retained; neither establishes document state or
+// ownership.
 pub(super) fn border_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     placement(f)?;
     if f.r.u8()? != 1 {
@@ -175,8 +177,18 @@ pub(super) fn view_placement(f: &mut Fields<'_, '_>) -> Result<()> {
         return Err(Error("unknown view placement suffix".into()));
     }
     f.word("view_definition_copy_unresolved")?;
-    f.word("view_flags_unresolved")?;
+    let legacy_tail = f.profile.legacy_view_tail;
+    // Production major15-22 drawings: 16-bit flags and a 16-bit word between
+    // the two lists instead of 32-bit flags, then unresolved trailing bytes.
+    if legacy_tail.is_some() {
+        f.short("view_flags_unresolved")?;
+    } else {
+        f.word("view_flags_unresolved")?;
+    }
     f.references("view_references_unresolved")?;
+    if legacy_tail.is_some() {
+        f.short("view_list_separator_unresolved")?;
+    }
     f.references("view_auxiliary_references_unresolved")?;
     if f.profile.view_extra_references {
         f.references("view_other_references_unresolved")?;
@@ -187,6 +199,9 @@ pub(super) fn view_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     f.doubles("view_bitmap_bounds", 6)?;
     if f.profile.view_suffix_guid {
         f.r.skip(16)?; // Uninterpreted suffix GUID, retained in the payload source.
+    }
+    for _ in 0..legacy_tail.unwrap_or(0) {
+        f.byte("view_tail_unresolved")?;
     }
     f.r.finish()
 }

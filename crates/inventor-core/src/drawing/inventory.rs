@@ -65,7 +65,16 @@ pub fn inspect_with_limits(
         return Ok(out);
     }
     let mut file = cfb::CompoundFile::open(Cursor::new(data)).map_err(|e| Error(e.to_string()))?;
-    let mut work = limits.max_records;
+    // Every record is charged for its Meta block slot and again for its bulk
+    // frame, so one `max_records` allowance frames only about 220,000 records;
+    // large multi-sheet drawings earn further allowances by their RSe size.
+    let rse_bytes = summary
+        .streams
+        .iter()
+        .filter(|s| s.path.starts_with("/RSeStorage/"))
+        .fold(0usize, |n, s| n.saturating_add(s.bytes as usize));
+    let framing = super::limits::scaled_allowance(limits.max_records, rse_bytes);
+    let mut work = framing;
     let mut field_work = drawing.max_field_values;
     let mut expanded = limits.max_total_inflated_bytes;
     let result = scan(
@@ -77,7 +86,7 @@ pub fn inspect_with_limits(
         &mut expanded,
         &mut out,
     );
-    out.usage.work_items = limits.max_records - work;
+    out.usage.work_items = framing - work;
     out.usage.field_work_items = drawing.max_field_values - field_work;
     out.usage.expanded_bytes = limits.max_total_inflated_bytes - expanded;
     if let Err(e) = result {
