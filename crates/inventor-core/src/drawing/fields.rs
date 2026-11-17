@@ -8,10 +8,20 @@ const POINT3F: [u8; 16] = [
 pub(super) struct Context<'a> {
     major: u8,
     types: &'a [[u8; 16]],
+    layers: Option<&'a [u32]>,
 }
 impl<'a> Context<'a> {
     pub fn new(major: u8, types: &'a [[u8; 16]]) -> Self {
-        Self { major, types }
+        Self {
+            major,
+            types,
+            layers: None,
+        }
+    }
+    /// Meta6/7 layer markers of the record, in section pre-order.
+    pub fn layers(mut self, layers: Option<&'a [u32]>) -> Self {
+        self.layers = layers;
+        self
     }
 }
 #[cfg(test)]
@@ -28,6 +38,10 @@ pub(super) struct Fields<'a, 'b> {
     pub work: &'b mut usize,
     source: SourceSpan,
     pub fields: Vec<FieldObservation>,
+    /// Meta6/7 only: the block table's layer markers and the sections closed
+    /// so far, as (start, length). Meta8 records have no markers.
+    layers: Option<&'a [u32]>,
+    sections: Vec<(usize, u32)>,
 }
 impl<'a, 'b> Fields<'a, 'b> {
     fn new(
@@ -36,6 +50,7 @@ impl<'a, 'b> Fields<'a, 'b> {
         work: &'b mut usize,
         profile: super::profile::Profile,
         types: &'a [[u8; 16]],
+        layers: Option<&'a [u32]>,
     ) -> Self {
         Self {
             profile,
@@ -44,7 +59,66 @@ impl<'a, 'b> Fields<'a, 'b> {
             work,
             source,
             fields: vec![],
+            layers,
+            sections: vec![],
         }
+    }
+    /// Meta6/7: the class layer that started at the record start ends here.
+    /// No bytes on Meta8 profiles.
+    pub fn layer(&mut self) -> Result<()> {
+        self.close(0)
+    }
+    /// Meta6/7: a nested section (an embedded object) starts here.
+    pub fn open(&self) -> usize {
+        self.r.pos
+    }
+    /// Meta6/7: read the marker closing the section opened at `start`; its
+    /// value must be the section's byte length. No bytes on Meta8 profiles.
+    pub fn close(&mut self, start: usize) -> Result<()> {
+        if self.layers.is_none() {
+            return Ok(());
+        }
+        rse::charge(self.work, 1)?;
+        let length = self.r.pos - start;
+        if self.r.u32()? as usize != length {
+            return Err(Error(
+                "Meta6/7 layer marker does not match its section".into(),
+            ));
+        }
+        self.sections.push((start, length as u32));
+        Ok(())
+    }
+    /// Meta6/7: the closed sections, in pre-order, must be the block table's
+    /// markers. Markers of a payload suffix left opaque (prefix observations)
+    /// must be class layers wholly inside that suffix, where each is checked
+    /// at its own offset; anything else rejects the record.
+    fn check_layers(&mut self) -> Result<()> {
+        let Some(expected) = self.layers else {
+            return Ok(());
+        };
+        rse::charge(self.work, expected.len())?;
+        let mut closed = std::mem::take(&mut self.sections);
+        closed.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
+        let mut closed = closed.iter().peekable();
+        for &value in expected {
+            if closed.peek().is_some_and(|(_, length)| *length == value) {
+                closed.next();
+                continue;
+            }
+            let at = value as usize;
+            let found = at.checked_add(4).and_then(|end| self.r.bytes.get(at..end));
+            if at < self.r.pos || found != Some(&value.to_le_bytes()[..]) {
+                return Err(Error(
+                    "Meta6/7 layer markers do not match the decoded layout".into(),
+                ));
+            }
+        }
+        if closed.next().is_some() {
+            return Err(Error(
+                "Meta6/7 layer markers do not match the decoded layout".into(),
+            ));
+        }
+        Ok(())
     }
     pub fn add(&mut self, name: &'static str, start: usize, value: FieldValue) {
         let mut source = self.source.clone();
@@ -94,11 +168,35 @@ impl<'a, 'b> Fields<'a, 'b> {
     pub fn display_header(&mut self) -> Result<()> {
         self.word("header_flags")?;
         self.short("object_id")?;
+        self.layer()?;
         self.r.skip(4)?;
         self.word("attribute_reference")?;
         self.r.skip(4)?;
         self.word("owner_reference")?;
-        self.r.skip(4)
+        self.r.skip(4)?;
+        self.layer()
+    }
+    /// A run of `count` Point3f values. Meta6/7 close each point as a section.
+    pub fn points(&mut self, name: &'static str, count: usize) -> Result<()> {
+        if self.layers.is_none() {
+            return self.floats(name, count * 3);
+        }
+        rse::charge(self.work, count * 3)?;
+        let start = self.r.pos;
+        let mut values = Vec::with_capacity(count * 3);
+        for _ in 0..count {
+            let section = self.open();
+            for chunk in self.r.take(12)?.chunks_exact(4) {
+                let v = f32::from_le_bytes(chunk.try_into().unwrap());
+                if !v.is_finite() {
+                    return Err(Error("non-finite drawing field".into()));
+                }
+                values.push(v);
+            }
+            self.close(section)?;
+        }
+        self.add(name, start, FieldValue::F32(values));
+        Ok(())
     }
     pub fn floats(&mut self, name: &'static str, count: usize) -> Result<()> {
         rse::charge(self.work, count)?;
@@ -266,7 +364,7 @@ pub(super) fn decode(
             decoder = super::sheet::sketch_placement;
             "sheet_placement_candidate"
         }
-        ("DlSheetSmSegmentType", "62a8e6a8-11d1-ad4b-6000-108a806bceb0") if matches!(major, 15..=22 | 24..=26 | 28) =>
+        ("DlSheetSmSegmentType", "62a8e6a8-11d1-ad4b-6000-108a806bceb0") if matches!(major, 11..=22 | 24..=28 | 30) =>
         {
             decoder = super::sheet::border_placement;
             "sheet_placement_candidate"
@@ -284,8 +382,10 @@ pub(super) fn decode(
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
+        // Observed in the major26/28 captures; production drawings of the
+        // candidate majors 11-22 and 30 store the same layout.
         ("DlSheetSmSegmentType", "8deaf986-11d4-3763-6000-61b782b6fbb0")
-            if matches!(major, 26 | 28) =>
+            if matches!(major, 11..=22 | 26 | 28 | 30) =>
         {
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
@@ -309,12 +409,14 @@ pub(super) fn decode(
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
+        // Observed in the major26/28 captures; production drawings of the
+        // candidate majors 11-22, 25, 27 and 30 store the same layout.
         (
             "DlSheetSmSegmentType",
             "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0"
             | "648cd16a-11d1-c06c-6000-24b209e1b5b0"
             | "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
-        ) if matches!(major, 25 | 26 | 28) => {
+        ) if matches!(major, 11..=22 | 25..=28 | 30) => {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
@@ -428,11 +530,12 @@ pub(super) fn decode(
             "DlSheetDlSegmentType" | "DlSheetSmSegmentType",
             "a79eaccd-11d1-c281-6000-a38ab46bceb0",
         ) => {
-            decoder = if kind == "DlSheetSmSegmentType" && matches!(profile.major, 25 | 26 | 28) {
-                super::geometry::annotation_circle
-            } else {
-                super::geometry::circle
-            };
+            decoder =
+                if kind == "DlSheetSmSegmentType" && matches!(profile.major, 25 | 26 | 28 | 30) {
+                    super::geometry::annotation_circle
+                } else {
+                    super::geometry::circle
+                };
             "stored_circle_candidate"
         }
         (
@@ -456,8 +559,15 @@ pub(super) fn decode(
         _ => return Ok(None),
     };
     rse::charge(work, 1)?;
-    let mut fields = Fields::new(bytes, source.clone(), work, profile, context.types);
-    if let Err(e) = decoder(&mut fields) {
+    let mut fields = Fields::new(
+        bytes,
+        source.clone(),
+        work,
+        profile,
+        context.types,
+        context.layers,
+    );
+    if let Err(e) = decoder(&mut fields).and_then(|_| fields.check_layers()) {
         if role != "sheet_segment_links_candidate" || !profile.candidate() {
             return Err(e);
         }
@@ -466,9 +576,17 @@ pub(super) fn decode(
         // SM space binding, so keep a prefix observation; the sheet name stays
         // unresolved and the rest of the record remains opaque.
         drop(fields);
-        let mut prefix = Fields::new(bytes, source.clone(), work, profile, context.types);
+        let mut prefix = Fields::new(
+            bytes,
+            source.clone(),
+            work,
+            profile,
+            context.types,
+            context.layers,
+        );
         prefix.word("header_flags")?;
         prefix.short("object_id")?;
+        prefix.check_layers()?;
         return Ok(Some(PayloadObservation {
             record_ordinal: ordinal,
             type_id: type_id.into(),
@@ -526,13 +644,16 @@ pub(super) fn fuzz(bytes: &[u8], limits: &crate::Limits) {
         super::geometry::ellipse,
         super::spline::fields,
     ] {
-        for major in [20, 23, 24, 25, 26, 28, 29, 31] {
+        // Majors 11 and 14 also exercise the Meta6/7 layer markers.
+        for major in [11, 14, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31] {
+            let layered = super::profile::get(major).unwrap().layered;
             let mut fields = Fields::new(
                 bytes,
                 SourceSpan::stream("fuzz", "raw", 0, bytes.len()),
                 &mut work,
                 super::profile::get(major).unwrap(),
                 &[[0; 16], [0; 16], POINT3F],
+                layered.then_some(&[][..]),
             );
             if decoder(&mut fields).is_ok()
                 && fields.fields.iter().any(|f| f.name == "spline_degree")

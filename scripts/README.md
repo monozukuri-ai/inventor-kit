@@ -22,6 +22,7 @@ for standard reproduction steps. Detailed results default to
 | `capture_vendor_oracle.py`, `capture_model_states.py` | Optional Windows / Autodesk oracle capture |
 | `drawing_corpus.py`, `capture_drawing_oracle.py`, `drawing_oracle_contract.py`, `validate_drawing_oracle.py` | IDW corpus and [offline capture schema](../schemas/drawing-oracle-v1.schema.json); use each command's `--help` for options |
 | `validate_drawing_inventory.py` | Regression-only IDW framing, provisional fields and source ranges; does not qualify [drawing display](../docs/drawing.md) |
+| `check_legacy_drawings.py` | Recheck a local directory of private segment major 11-14 IDWs (`--input` or `INVENTOR_KIT_LEGACY_DRAWINGS`); structural counts only, not run by CI |
 | `oracle_contract.py`, `compare_state_candidates.py`, `ezdxf_oracle.py` | Oracle contracts and comparisons |
 | `check_assembly_writer.py` | Validate typed IAM defaults without private source dependencies |
 | `smoke_writer.py` | Installed API/CLI writer qualification using synthetic parts, STEP assemblies and portable IAM bundles |

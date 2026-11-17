@@ -53,8 +53,9 @@ pub struct Usage {
     pub expanded_bytes: usize,
     /// Registry, identity, Meta-table, record and trailer collection work.
     pub work_items: usize,
-    /// Typed payload values use DrawingLimits::max_field_values per document;
-    /// dense display fields cannot starve subsequent segment framing.
+    /// Typed payload values use DrawingLimits::max_field_values per document,
+    /// scaled by RSe size like framing work; dense display fields cannot
+    /// starve subsequent segment framing.
     pub field_work_items: usize,
 }
 
@@ -195,6 +196,8 @@ pub struct OpaqueRegion {
 }
 
 #[cfg(test)]
+mod layered_tests;
+#[cfg(test)]
 mod tests;
 
 #[cfg(feature = "fuzzing")]
@@ -215,7 +218,11 @@ pub(crate) fn fuzz_pair(meta_bytes: &[u8], bulk_bytes: &[u8], limits: &crate::Li
         } else {
             ""
         };
-        let major = if bulk_bytes.get(17) == Some(&1) {
+        // Meta6/7 streams take the layered major14 framing.
+        let layered = crate::rse::meta_stream_version(meta_bytes)? < 8;
+        let major = if layered {
+            14
+        } else if bulk_bytes.get(17) == Some(&1) {
             23
         } else {
             31
@@ -227,10 +234,18 @@ pub(crate) fn fuzz_pair(meta_bytes: &[u8], bulk_bytes: &[u8], limits: &crate::Li
             &mut work,
             profile::meta_layout(kind, major),
         )?;
-        let compressed = profile::bulk(bulk_bytes)?;
+        let compressed = if layered {
+            profile::bulk_for_major(bulk_bytes, major)?
+        } else {
+            profile::bulk(bulk_bytes)?
+        };
         let (body, _) =
             crate::rse::inflate_budgeted(compressed, limits.max_inflated_bytes, &mut expanded)?;
-        crate::rse::record_table(&body, &meta, major, &mut work, true)?;
+        if layered {
+            crate::rse::layered_record_table(&body, &meta, major, &mut work, true)?;
+        } else {
+            crate::rse::record_table(&body, &meta, major, &mut work, true)?;
+        }
         Ok(())
     })();
 }

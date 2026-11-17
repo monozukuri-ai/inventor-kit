@@ -212,6 +212,10 @@ fn view_bitmap_png(
         .ok_or_else(bad)?;
     let mut r = crate::read::Reader::new(b);
     r.skip(6)?;
+    // Meta6/7 profiles close the object key layer with its length.
+    if super::profile::get(major).is_some_and(|p| p.layered) && r.u32()? != 6 {
+        return Err(bad());
+    }
     if layout == super::profile::BitmapLayout::Rgba && r.take(2)? != [1, 1] {
         return Err(bad());
     }
@@ -407,6 +411,19 @@ mod tests {
         }
         assert!(view_bitmap_png(&b, 23, 1, &mut 2, &mut 100).is_err());
         assert!(view_bitmap_png(&b, 23, 1024, &mut 1, &mut 100).is_err());
+        // Meta6/7 caches close the six-byte object key with its length.
+        let mut layered = b[..6].to_vec();
+        layered.extend(6u32.to_le_bytes());
+        layered.extend(&b[6..]);
+        for major in 11..=14 {
+            let cache = view_bitmap_png(&layered, major, 1024, &mut 2, &mut 100).unwrap();
+            assert_eq!(cache.2, png);
+            assert!(view_bitmap_png(&b, major, 1024, &mut 2, &mut 100).is_err());
+            let mut bad = layered.clone();
+            bad[6] = 7;
+            assert!(view_bitmap_png(&bad, major, 1024, &mut 2, &mut 100).is_err());
+        }
+        assert!(view_bitmap_png(&layered, 23, 1024, &mut 2, &mut 100).is_err());
         b.push(0);
         assert!(view_bitmap_png(&b, 23, 1024, &mut 2, &mut 100).is_err());
     }

@@ -74,7 +74,7 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 
 | フィールド | 既定値・最大値 | 集計範囲 |
 | --- | ---: | --- |
-| `max_field_values` | 1,000,000 | 文書全体の型付きフィールド処理。数値・参照・UTF-16文字などを個別に集計 |
+| `max_field_values` | 1,000,000 | 文書全体の型付きフィールド処理。数値・参照・UTF-16文字などを個別に集計。大きな図面では枠が増えます(後述) |
 | `max_sheets` | 256 | 保存シート参照数・候補表示空間数 |
 | `max_views` | 4,096 | 図面全体で到達・解読できた保存ビュー配置 |
 | `max_display_items` | 100,000 | 図面全体の配置展開後の要素数 |
@@ -94,8 +94,9 @@ containerの解析には`Limits.max_records`、型付きフィールドの解析
 型付きフィールドは引き続き値ごとに予算を消費し、どちらの上限も引き下げられます。
 containerの枠付けは1レコードを2回(Metaのブロック枠とbulkの枠)数えるため、`max_records`の1枠で
 枠付けできるのは約220,000レコードで、シートの多い大きな図面はそれより多く保存しています。
-そこでcontainerの枠付け・シート所属・表示展開は、RSeストリームの宣言バイト数2 MiBごと(端数も1つ)に
-`max_records`または`max_reference_visits`の1枠を得ます。上限は4枠です(既定値で枠付け2,000,000、参照12,000,000)。
+そこでcontainerの枠付け・型付きフィールドの解析・シート所属・表示展開は、RSeストリームの宣言バイト数2 MiBごと(端数も1つ)に
+`max_records`・`max_field_values`・`max_reference_visits`の1枠を得ます。上限は4枠です
+(既定値で枠付け2,000,000、型付きフィールド4,000,000、参照12,000,000)。
 それより小さい入力(高圧縮の入力を含む)は1枠のままで、上限を引き下げるとすべての枠が下がります。
 ビュー画像の元画素はストリーム展開量と`max_image_pixels`で制限し、同一ストリームは1回だけ展開します。未知のビュー形式の数、RSS、実行時間の保証ではありません。
 Viewerは既定値を使い、Pythonの`Options`では`drawing_limits`を指定できます。
@@ -136,7 +137,7 @@ major23・28では保存カラー画像の上に対応する輪郭線・注記�
 | --- | --- | --- | --- | --- |
 | 24 | `Template_IACS.idw` | 1 / 0 | 70 | 未対応。モデルビューは未観測 |
 | 29 | `Toys-R-Us-Rex.idw` | 1 / 3 | 166 | 未対応 |
-| 28 | `mateolikescats.idw` | 1 / 5 | 1,650 | RGBA。保存キャッシュ1件を確認 |
+| 28 | `mateolikescats.idw` | 1 / 5 | 1,651 | RGBA。保存キャッシュ1件を確認 |
 | 26 | `RespiraWorks.idw`、`starliliko.idw` | 1 / 3、1 / 0 | 543、90 | RGBA |
 | 26 | `RespiraWorks-bottom-assembly.idw`、`RespiraWorks-filter-panel-assembly.idw` | 1 / 3、1 / 4 | 550、28,820 | RGBA。保存キャッシュ2件を確認 |
 
@@ -180,7 +181,9 @@ major24の検証入力はテンプレートのみです。埋め込みPNG/JPEG�
 major15〜22(Inventor 2011〜2018)・25(Inventor 2021)・27・30は本番の図面で観測した版で、native採取はありません。
 **候補プロファイル**(`idw-rse31-meta8-majorNN-…-framing-candidate`)として枠付けします。
 major27はmajor26の30バイト文書プレフィックスにmajor28のレイアウト、major30はmajor31のzstd・
-モノクロのビュー画像キャッシュ・PART31のApp segment Metaレイアウトにmajor23の履歴コンテキスト、
+モノクロのビュー画像キャッシュ・PART31のApp segment Metaレイアウトにmajor23の履歴コンテキストを使います。
+major30のビュー配置はmajor26〜29と同じく参照リストが2つで(3つ目のリストはmajor31だけ)、
+スプライン・楕円・SMの塗りつぶし円と、局所・引出線・スケッチ・表・枠・外部の注記配置はmajor25〜28の形式で枠付けします。
 major15〜22はmajor23のレイアウトとmajor24・26・28の枠(border)配置を使い、シート定義のlinksレイアウトが合わないときは
 先頭のキーだけの観測(`idw-sheet-links-prefix-fallback`、シート名なし)を残します。
 major15〜22のビュー配置は古い並びです: ビューのフラグが16ビット、2つのビュー参照リストの間に16ビットの語、
@@ -188,14 +191,44 @@ major15〜22のビュー配置は古い並びです: ビューのフラグが16�
 major25はmajor26のレイアウト(文書プレフィックス、シート定義の末尾、フォント表、レイヤのプレフィックス、
 RGBAのビュー画像キャッシュ、索引フラグ0の三角形バッチ、major26の拡張レコード、枠・局所表示・塗りつぶし円の配置)を使い、
 FBAttributeSegmentはmajor24と同じく枠付けします。ビュー配置の末尾GUIDは無く、major23が持つ局所表示レコードも枠付けします。
+major25・26・28の局所注記表示はmajor15〜22・27でも、major26・28の引出線表示はmajor15〜22でも同じ形式で枠付けし、
+major27ではmajor23の局所表示と枠の配置も枠付けします。
 表示は`experimental_partial`で、認定した項目はありません。major26の図面(と候補のmajor25)も履歴の対象コンテキストを参照することがあり、
 major23・30と同じく対象自身の順序付きリビジョン範囲の中にある場合だけ受け入れます。
-major14(Inventor 2010)など一覧にない版、schema 31以外のRSeDb(schema 30はsegment major 12・13、
-schema 29はsegment major 11、それより古い図面はsegmentのレジストリが無い。RSeSegInfoの末尾とノードの並びが異なる)は未対応のままです。
-Meta stream version 7 はヘッダ(識別子・名前・時刻・zlib 本体)がversion 8 と同じ並びなので読みますが(major14 の図面で観測)、
-major14 のレコード配置はmajor23と異なり(レコードが長い、レイヤのプレフィックスが違う、文書のシート一覧を解読できない)、表示キャッシュの無い図面として終わります。
 
-同じ入力で、1件の値のためにシート全体を捨てる代わりにフラグを付けて残す許容を追加しました:
+major11〜14(Inventor 11、2008〜2010)も本番の図面で観測した版で、native採取はありません。
+**候補プロファイル**として枠付けします: `idw-rse29-meta6-major11-zlib-framing-candidate`、
+`idw-rse30-meta7-major12-zlib-framing-candidate`(13も同様)、`idw-rse31-meta7-major14-zlib-framing-candidate`、
+型付きフィールドは`idw-majorNN-typed-fields-candidate`です。RSeDbのschema 29・30はschema 31と同じヘッダと
+レジストリ項目を持ちますが、レジストリの末尾は識別子ではなくクラス名の2つのリストで、schema 29のノードは18バイトです。
+schema 29・30は図面だけで受け入れ、部品・アセンブリは引き続きschema 31が必要です。
+Meta stream version 6・7の本体はversion 8と同じ並びで、version 6は2つの時刻の間に4つ目の状態語と32ビットの時刻値を持ちます。
+各プロファイルは観測したMeta版だけを受け入れ(major11は6、major12〜14は7)、展開の前に判定します。
+
+これらの版はmajor15のレコード配置を使いますが、レコード内のクラス層と入れ子の区間がそれぞれ、
+その長さを書いたu32の区切りで終わります。Metaのブロック表は各レコードの長さの語の後に同じ値を区間の前順で並べるため、
+これらの語はレコードの枠ではありません。保存された参照はレコードだけを数えます。
+読み取ったレコードは並べられた区間をちょうど閉じる必要があり、先頭だけを観測するレコードの未読部分に置けるのは
+クラス層の区切りだけで、それぞれ自分の位置で照合します。これらのブロック表では`Limits.max_records`が
+語数ではなくレコード数を制限し、枠付けは区切りを1回だけ計上します。
+版ごとの観測した違い: major12は文書の36バイトの区間の最初の層の境界がmajor13・14より4バイト後ろで、
+文字レコードの末尾の0バイトがありません。major11はこの2つに加えて、点列の末尾の0バイトとレイヤ割り当ての
+フラグのバイトが無く、レイヤのフラグは3バイトではなく1バイト、フォント項目の末尾は2つのfloatと3つのフラグではなく
+1つのfloat、ビュー配置にはmajor12〜15が持つ末尾の未解釈の1バイトがありません。これらの版では点マーカーの末尾の
+バイト列を層の区切りが分けるため、2つのfloat・short(major11はbyte)・語として未解釈のまま残します。
+シート定義はmajor15〜22と同じく先頭のキーだけを観測します。枠(border)の配置、major15〜22で枠付けする局所注記表示と
+引出線表示、RGBAのビュー画像キャッシュ、索引フラグ0の三角形バッチを読み、色マスク8はほかのプロファイルと同じく読みます(後述)。
+表示参照が表示のルートを指さない表の配置、画像の配置、塗りつぶしの注記円は
+省略のままです。表示は`experimental_partial`で、認定した項目はありません。これらの版の大きな図面も、
+ほかのプロファイルと同じく上記の入力の大きさに応じた枠を使います。
+
+一覧にないその他の版と、schema 29より古いRSeDbは未対応のままです。schema 26・21の図面はRSeSegInfoを持たず、
+より長いRSeDbは解読していません。Meta stream version 5・4を使い、version 5はversion 6とヘッダ・本体が同じ並びで、
+version 4はヘッダだけが同じです。これらは保存表示の無い図面として終わります。
+[check_legacy_drawings.py](../scripts/check_legacy_drawings.py)は手元のディレクトリにある非公開の図面を
+再確認します(`--input`または`INVENTOR_KIT_LEGACY_DRAWINGS`)。構造の件数だけを出し、公開の回帰入力には含めません。
+
+上記の本番の図面では、1件の値のためにシート全体を捨てる代わりにフラグを付けて残す許容も追加しました:
 ノード数0のレジストリ項目、全プロファイルでの空の表示属性リスト、3の倍数(最大3,072頂点)の
 保存三角形バッチ、native major31の組以外の継承線幅-1(`stroke_override_width_inherited_unverified`)、
 上書き線幅0(`stroke_override_width_zero_unverified`、本番のmajor17・25の図面で観測。継承した線幅を残す)、
@@ -203,7 +236,8 @@ major14 のレコード配置はmajor23と異なり(レコードが長い、レ�
 (`sheet_link_tail_unresolved`、バイト列を保持)、未デコードのビュー画像キャッシュ(`view_cache_not_decoded`)、
 不正な画像配置(`unsupported_image_placement`)、major24 以外の色マスク 8
 (`display_color_mask8_unverified`、native と照合済みの major24 と同じ並びで読み、部分木を捨てない。
-本番の major29 図面 2 件が全要素に書く)。束縛できなかったシートにはSM segment探索時の
+本番の多くの版の図面で観測)。ほかの色マスクは従来どおり部分木を省きます
+(`display_color_mask_not_interpreted`)。束縛できなかったシートにはSM segment探索時の
 エラーを`space_binding: …`として残します。
 
 fixture manifestには取得元コミット・サイズ・SHA-256を固定しています。

@@ -85,7 +85,7 @@ drawing = read_drawing_file("drawing.idw", drawing_limits=DrawingLimits(
 
 | Field | Default / hard ceiling | Scope |
 | --- | ---: | --- |
-| `max_field_values` | 1,000,000 | Typed payload work across the document; numeric values, references and UTF-16 code units are individually charged |
+| `max_field_values` | 1,000,000 | Typed payload work across the document; numeric values, references and UTF-16 code units are individually charged; large drawings earn further allowances (below) |
 | `max_sheets` | 256 | Stored sheet references / candidate display spaces |
 | `max_views` | 4,096 | Reachable decoded saved view placements across the drawing |
 | `max_display_items` | 100,000 | Expanded items across the drawing |
@@ -108,10 +108,11 @@ allowance with a 1,000,000 ceiling: the filter-panel assembly needs 573,482 work
 units. Each field value still consumes its allowance, and callers can lower
 either limit. Container framing charges every record twice (its Meta block slot
 and its bulk frame), so one `max_records` allowance frames about 220,000
-records, fewer than a large multi-sheet drawing stores. Container framing, sheet
-binding and display expansion therefore earn one allowance of `max_records` or
-`max_reference_visits` per started 2 MiB of RSe stream bytes, at most four
-(2,000,000 framing work items and 12,000,000 reference visits with the
+records, fewer than a large multi-sheet drawing stores. Container framing,
+typed-field parsing, sheet binding and display expansion therefore earn one
+allowance of `max_records`, `max_field_values` or `max_reference_visits` per
+started 2 MiB of RSe stream bytes, at most four (2,000,000 framing work items,
+4,000,000 typed field values and 12,000,000 reference visits with the
 defaults). Smaller inputs, including highly compressed ones, keep a single
 allowance, and lowering a limit lowers every allowance.
 Raw cache pixels are bounded by expanded-stream bytes and `max_image_pixels`; each source stream is expanded once. Unknown view layouts remain omissions; the view budget counts decoded placements,
@@ -173,7 +174,7 @@ support. Segment major numbers are not Inventor release-year identifiers.
 | --- | --- | --- | --- | --- |
 | 24 | `Template_IACS.idw` | 1 / 0 | 70 | Not enabled; model views remain unobserved |
 | 29 | `Toys-R-Us-Rex.idw` | 1 / 3 | 166 | Not enabled |
-| 28 | `mateolikescats.idw` | 1 / 5 | 1,650 | RGBA; one saved cache observed |
+| 28 | `mateolikescats.idw` | 1 / 5 | 1,651 | RGBA; one saved cache observed |
 | 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 543 and 90 | RGBA |
 | 26 | `RespiraWorks-bottom-assembly.idw`, `RespiraWorks-filter-panel-assembly.idw` | 1 / 3 and 1 / 4 | 550 and 28,820 | RGBA; two saved caches observed |
 
@@ -235,7 +236,11 @@ observed on production drawings without native captures. They are framed as
 *candidate profiles* (`idw-rse31-meta8-majorNN-…-framing-candidate`): major27
 keeps the 30-byte document prefix of major26 with the major28 layouts; major30
 uses the zstd envelope, monochrome view caches and PART31 App-segment Meta
-layout of major31 with the historical target context of major23; majors 15–22
+layout of major31 with the historical target context of major23. Its view
+placements keep the two reference lists of majors 26–29 (the third list is
+major31 only), and it frames the splines, ellipses, filled SM disks and the
+local, leader, sketch, table, border and external annotation placements with
+the layouts of majors 25–28. Majors 15–22
 reuse the major23 layouts and the border placement of major24/26/28, and their
 sheet definitions keep a prefix-only observation
 (`idw-sheet-links-prefix-fallback`, no sheet name) when the full links layout
@@ -246,22 +251,67 @@ layouts (document prefix, sheet-link suffix, font table, layer prefix, RGBA view
 caches, triangle batches with index flags 0, the major26 extended records and
 the border, local display and filled-disk layouts) and frames the
 FBAttributeSegment like major24; its view placements have no suffix GUID, and
-the local display record kept by major23 also frames. Their displays are
+the local display record kept by major23 also frames. The local annotation
+displays of majors 25, 26 and 28 also frame on majors 15–22 and 27, as does the
+major26/28 leader display on majors 15–22; major27 also frames the major23 local
+display and the border placement. Their displays are
 `experimental_partial` and nothing about them is qualified. Major26 drawings,
 and the major25 candidate, may also reference a historical target context; as
 for major23 and major30 it is admitted only inside the target's own ordered
-revision ranges. Major14 (Inventor 2010) and other unlisted versions remain
-unsupported, as do RSeDb schemas other than 31 (schema 30 with segment majors
-12 and 13, schema 29 with segment major 11, and older drawings without a segment
-registry; their RSeSegInfo registry tails and node records differ). Meta stream
-version 7 is read with the version 8 header grammar (identity, name,
-timestamps, zlib body; observed on major14 drawings), but the major14 record
-layouts differ from major23 (longer records, another layer prefix, no
-decodable document sheet list), so those drawings still end without a
-decodable stored display.
+revision ranges.
 
-The same drawings exercised flagged tolerances that keep a sheet displayable
-instead of discarding it: registry entries with a zero node count, empty display
+Majors 11 to 14 (Inventor 11 and 2008 to 2010) were also observed on production
+drawings without native captures and are framed as candidate profiles:
+`idw-rse29-meta6-major11-zlib-framing-candidate`,
+`idw-rse30-meta7-major12-zlib-framing-candidate` (and likewise for 13) and
+`idw-rse31-meta7-major14-zlib-framing-candidate`, with typed fields
+`idw-majorNN-typed-fields-candidate`. Their RSeDb schemas 29 and 30 keep the
+schema 31 header and registry entries, but the registry ends with two lists of
+class names instead of identifiers, and schema 29 node records are 18 bytes.
+Schemas 29 and 30 are admitted for drawings only; parts and assemblies still
+require schema 31. Meta stream versions 6 and 7 share the version 8 body;
+version 6 also stores a fourth state word and a 32-bit time value between its
+timestamps. Each profile admits only the Meta version it was observed with
+(6 for major11, 7 for majors 12 to 14), before decompression.
+
+These majors store the major15 record layouts, except that every class layer
+and nested section of a record ends with a u32 marker holding its byte length.
+The Meta block table lists the same values after each record's length word, in
+section pre-order, so those words are not record slots: stored references
+count records only. Each decoded record must close exactly the listed sections;
+the unread part of a prefix observation may hold class-layer markers only, each
+checked at its own offset. `Limits.max_records` bounds the records of these
+block tables rather than their words, and framing charges the markers once.
+Observed per-major differences: major12 places the first layer boundary of the
+document's 36-byte span four bytes later than majors 13 and 14, and its text
+records have no trailing zero byte; major11 shares both and also omits the
+trailing zero byte of point lists and the flags byte of layer bindings, keeps
+one layer flag byte instead of three, ends a font entry with one float instead
+of two floats and three flag bytes, and ends its view placements without the
+unresolved byte that majors 12 to 15 keep. A layer marker splits the point
+marker's trailing bytes on these majors, so they are kept as two floats, a
+short (a byte on major11) and a word, all unresolved. Sheet definitions keep
+the prefix-only observation of majors 15 to 22. Border placements, the local
+annotation and leader displays admitted for majors 15 to 22, RGBA view caches
+and triangle batches with index flags 0 decode, and color mask 8 is read as on
+the other profiles (below). Table placements whose
+display reference addresses no display root, image placements and filled
+annotation circles remain omissions. Their displays are `experimental_partial`
+and nothing about them is qualified. Like every other profile, large drawings
+of these majors depend on the input-size allowances described above.
+
+Other unlisted versions remain unsupported, as do RSeDb schemas below 29.
+Schema 26 and 21 drawings store no RSeSegInfo stream; their longer RSeDb
+streams are not decoded. They use Meta stream versions 5 and 4: version 5
+shares the version 6 header and body grammar, version 4 only its header. They
+end without a stored display.
+[check_legacy_drawings.py](../scripts/check_legacy_drawings.py) rechecks a
+local directory of such private drawings (`--input` or
+`INVENTOR_KIT_LEGACY_DRAWINGS`); it reports structural counts only and is not
+part of the published regression inputs.
+
+The production drawings above also exercised flagged tolerances that keep a
+sheet displayable instead of discarding it: registry entries with a zero node count, empty display
 attribute lists on every profile, saved triangle batches of any multiple of
 three vertices (at most 3,072), inherited stroke width (-1) outside the native
 major31 tuple (`stroke_override_width_inherited_unverified`), zero stroke
@@ -272,8 +322,9 @@ suffix on major29/30 (`sheet_link_tail_unresolved`, the bytes stay visible),
 view caches that are not decoded (`view_cache_not_decoded`), invalid image
 placements (`unsupported_image_placement`) and color mask 8 outside major24
 (`display_color_mask8_unverified`: read like the native-matched major24
-override instead of omitting the subtree; two production major29 drawings
-write it for every sheet element). Unbound sheets list the binding
+override instead of omitting the subtree; observed on production drawings of
+most profiles). Other color masks still omit their subtree
+(`display_color_mask_not_interpreted`). Unbound sheets list the binding
 errors seen while probing SM segments (`space_binding: …`).
 
 The fixture manifest pins source commits, sizes and SHA-256 hashes. CAD inputs

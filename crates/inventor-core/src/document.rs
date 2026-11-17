@@ -310,7 +310,11 @@ pub(crate) fn inspect(
             r.skip(16)?;
             let schema = r.u32()?;
             entry.schema = Some(schema);
-            if schema != 31 {
+            // Schemas 29 and 30 share this header and the registry entry
+            // grammar (production drawings saved by Inventor 11, 2008 and 2009). They
+            // are admitted for drawings only; parts and assemblies keep
+            // requiring schema 31.
+            if schema != 31 && !(matches!(schema, 29 | 30) && kind == Some("drawing")) {
                 entry.status = "unsupported";
                 return Err(Error(format!("unsupported RSeDb schema {schema}")));
             }
@@ -333,19 +337,23 @@ pub(crate) fn inspect(
     let mut registry = Vec::new();
     // A shared grammar permits inventory, not selection of a database/state.
     // Every database must be present and decoded; do not ignore failed entries.
+    let schema = info.databases.first().and_then(|db| db.schema);
     if !info.databases.is_empty()
         && info
             .databases
             .iter()
-            .all(|db| db.status == "decoded" && db.schema == Some(31))
+            .all(|db| db.status == "decoded" && db.schema == schema)
     {
-        info.geometry_profile.rse_db_schema = Some(31);
+        info.geometry_profile.rse_db_schema = schema;
+        let grammar = rse::RegistryGrammar::for_schema(schema);
         let path = "/RSeStorage/RSeSegInfo";
         let source = streams
             .iter()
             .find(|s| s.path == path)
             .map(|s| SourceSpan::stream(source_id, path, 0, s.bytes as usize));
-        match stream(file, path, limits.max_stream_bytes).and_then(|b| rse::registry(&b)) {
+        match stream(file, path, limits.max_stream_bytes)
+            .and_then(|b| rse::registry_with_grammar(&b, &mut { usize::MAX }, grammar))
+        {
             Ok(entries) => {
                 info.stages.registry = "decoded";
                 for entry in &entries {

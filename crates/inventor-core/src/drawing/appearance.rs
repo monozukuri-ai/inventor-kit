@@ -146,9 +146,8 @@ pub(super) fn apply<'a>(
                     return Err(error("invalid layer width/scale"));
                 }
                 if width == 0. {
-                    // Observed on production major29 drawings (layers "0",
-                    // "CUT", "signature"). Keep the default width and flag it
-                    // instead of discarding the sheet.
+                    // Observed on production major29 drawings. Keep the default
+                    // width and flag it instead of discarding the sheet.
                     style.unresolved.push("layer_width_zero_unverified");
                 } else {
                     style.width = Some(width * scale);
@@ -224,15 +223,20 @@ pub(super) fn apply<'a>(
             "display_color_candidate" => {
                 let mask = word(attr, "color_mask")?;
                 // The major24 projection-symbol and border colors with mask 8
-                // were matched to the source-preserved native PDF. Other
-                // majors keep this mask unresolved until independently checked.
-                if mask != 1 && !(segment.registry.major == 24 && mask == 8) {
+                // were matched to the source-preserved native PDF. Production
+                // drawings of other majors write mask 8 with the same record
+                // layout; read it the same way, flagged, instead of omitting
+                // the subtree. Other masks remain unresolved.
+                if mask != 1 && mask != 8 {
                     style.unresolved.push("display_color_mask_not_interpreted");
                 } else {
+                    if mask == 8 && segment.registry.major != 24 {
+                        style.unresolved.push("display_color_mask8_unverified");
+                    }
                     let rgba = &floats(attr, "color_rgba_parameters", 21)?[..4];
                     if rgba == [-2.; 4] {
-                        // Observed on a production major30 drawing (13 records): the
-                        // layer "no color" sentinel inside a mask-1 override. Keep the
+                        // Observed on production drawings: the layer "no color"
+                        // sentinel inside a mask-1 or mask-8 override. Keep the
                         // inherited color and flag it instead of discarding the sheet.
                         style.unresolved.push("display_color_sentinel_unverified");
                     } else {

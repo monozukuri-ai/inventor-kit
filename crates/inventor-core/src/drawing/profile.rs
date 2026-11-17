@@ -29,26 +29,81 @@ pub(super) struct Profile {
     pub legacy_records: bool,
     pub historical_context: bool,
     pub external_children: bool,
+    /// Majors 11-14 (Meta stream versions 6 and 7) end each class layer and
+    /// nested section of a record with an inline u32 length marker.
+    pub layered: bool,
 }
 impl Profile {
     /// Framing observed only on production drawings (no pinned fixture).
     /// Candidates admit prefix fallbacks that pinned profiles keep rejecting.
     pub fn candidate(self) -> bool {
-        matches!(self.major, 15..=22 | 25 | 27 | 30)
+        matches!(self.major, 11..=22 | 25 | 27 | 30)
+    }
+    /// Meta stream version observed with this profile.
+    pub fn meta_version(self) -> u16 {
+        match self.major {
+            11 => 6,
+            12..=14 => 7,
+            _ => 8,
+        }
+    }
+    /// Byte spans of the 36 bytes between the document's first reference list
+    /// and its sheet list. Meta6/7 end a layer after each; production major11/12
+    /// drawings place the first boundary four bytes later than major13/14.
+    pub fn document_spans(self) -> [usize; 3] {
+        if self.major <= 12 {
+            [16, 4, 16]
+        } else {
+            [12, 8, 16]
+        }
+    }
+    /// Production major11/12 text records end after the style index, without
+    /// the zero byte later majors store.
+    pub fn text_suffix(self) -> bool {
+        self.major > 12
+    }
+    /// Production major11 drawings omit the trailing zero byte of point lists
+    /// and the flags byte of layer bindings, keep one of the three layer flag
+    /// bytes, and end a font entry with one float instead of two floats and
+    /// three flag bytes.
+    pub fn point_list_suffix(self) -> bool {
+        self.major > 11
+    }
+    pub fn layer_binding_flags(self) -> bool {
+        self.major > 11
+    }
+    pub fn layer_flags(self) -> usize {
+        if self.major == 11 {
+            1
+        } else {
+            3
+        }
+    }
+    /// Font entry tail: floats, then unresolved flag bytes.
+    pub fn font_tail(self) -> (usize, usize) {
+        match self.major {
+            11 => (1, 0),
+            _ if self.legacy_fonts => (2, 3),
+            _ => (3, 0),
+        }
     }
     pub fn triangle_flags(self) -> Option<u32> {
         match self.major {
-            25 | 26 => Some(0),
+            11..=14 | 25 | 26 => Some(0),
             27..=30 => Some(8),
             _ => None,
         }
     }
     pub fn extended_record(self, type_id: &str) -> bool {
         self.legacy_records
-            // Production major25 drawings also store the local display that
-            // major23 keeps; it frames with the shared local display layout.
-            || (self.major == 25 && type_id == "9b3499d1-11d1-8626-6000-27bd351c3cb0")
-            || (matches!(self.major, 25 | 26)
+            // Production major25, major27 and major30 drawings also store the
+            // local display that major23 keeps; it frames with the shared
+            // local display layout.
+            || (matches!(self.major, 25 | 27 | 30)
+                && type_id == "9b3499d1-11d1-8626-6000-27bd351c3cb0")
+            // Production major30 drawings frame all of them with the same
+            // layouts.
+            || (matches!(self.major, 25 | 26 | 30)
                 && matches!(
                     type_id,
                     "afd5ceeb-11d1-e071-0008-87a406e5dc09"
@@ -71,6 +126,10 @@ impl Profile {
     }
     pub fn fields_name(self) -> &'static str {
         match self.major {
+            11 => "idw-major11-typed-fields-candidate",
+            12 => "idw-major12-typed-fields-candidate",
+            13 => "idw-major13-typed-fields-candidate",
+            14 => "idw-major14-typed-fields-candidate",
             15 => "idw-major15-typed-fields-candidate",
             16 => "idw-major16-typed-fields-candidate",
             17 => "idw-major17-typed-fields-candidate",
@@ -111,9 +170,18 @@ pub(super) fn get(major: u8) -> Option<Profile> {
         legacy_records: true,
         historical_context: true,
         external_children: true,
+        layered: false,
     };
     match major {
         23 => (),
+        // Candidates observed on production drawings of majors 11-14
+        // (Inventor 11 and 2008-2010, Meta stream versions 6 and 7): the major15
+        // layouts with inline layer markers. Their view placements end with
+        // one unresolved byte (majors 12-14) or none (major11).
+        11..=14 => {
+            p.legacy_view_tail = Some(usize::from(major > 11));
+            p.layered = true;
+        }
         // Candidate profiles observed on production drawings (no native
         // captures yet): framed like their nearest observed neighbour. Their
         // view placements keep an older layout; major15 ends it with one
@@ -153,7 +221,10 @@ pub(super) fn get(major: u8) -> Option<Profile> {
             p.legacy_fonts = false;
             p.layer_prefix = 21;
             p.empty_attributes = major != 31;
-            p.view_extra_references = major >= 30;
+            // Only major31 view placements carry a third reference list.
+            // Production major30 drawings store the major28/29 view layout
+            // (two lists, then the view name).
+            p.view_extra_references = major == 31;
             p.view_suffix_guid = true;
             p.bitmap = if major <= 28 {
                 Some(BitmapLayout::Rgba)
@@ -173,6 +244,10 @@ pub(super) fn get(major: u8) -> Option<Profile> {
 
 pub(super) fn name(major: u8) -> &'static str {
     match major {
+        11 => "idw-rse29-meta6-major11-zlib-framing-candidate",
+        12 => "idw-rse30-meta7-major12-zlib-framing-candidate",
+        13 => "idw-rse30-meta7-major13-zlib-framing-candidate",
+        14 => "idw-rse31-meta7-major14-zlib-framing-candidate",
         15 => "idw-rse31-meta8-major15-zlib-framing-candidate",
         16 => "idw-rse31-meta8-major16-zlib-framing-candidate",
         17 => "idw-rse31-meta8-major17-zlib-framing-candidate",
@@ -194,13 +269,17 @@ pub(super) fn name(major: u8) -> &'static str {
     }
 }
 pub(super) fn meta_layout(kind: &str, major: u8) -> crate::rse::MetaLayout {
-    match kind {
+    let layout = match kind {
         "DlDocDcSegmentType" => crate::rse::MetaLayout::DRAWING_DOC_DC,
         "DlSheetDcSegmentType" => crate::rse::MetaLayout::DRAWING_SHEET_DC,
         // Production major30 App (layer table) segments carry the schema-31
         // part-style Meta6 discriminator observed on IPT files.
         "AppSegmentType" if major >= 30 => crate::rse::MetaLayout::PART31,
         _ => crate::rse::MetaLayout::STANDARD,
+    };
+    crate::rse::MetaLayout {
+        layered_blocks: get(major).is_some_and(|p| p.layered),
+        ..layout
     }
 }
 pub(super) const BULK_HEADER: [u8; 18] = [

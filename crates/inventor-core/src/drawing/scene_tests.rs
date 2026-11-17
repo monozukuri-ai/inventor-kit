@@ -605,10 +605,10 @@ fn filled_annotation_conics_require_observed_sm_profiles_and_keep_chord_interval
         let decode = |kind: &str, major: u8, data: &[u8], work: &mut usize| {
             super::super::fields::decode(kind, major.into(), typ, 0, data, source(), work)
         };
-        for major in [23, 24, 26, 28, 29, 31] {
+        for major in [23, 24, 26, 28, 29, 30, 31] {
             for kind in ["DlSheetDlSegmentType", "DlSheetSmSegmentType"] {
                 let result = decode(kind, major, &b, &mut 1000);
-                if !(major == 26 || (major == 28 && values.len() == 7))
+                if !(major == 26 || (matches!(major, 28 | 30) && values.len() == 7))
                     || kind != "DlSheetSmSegmentType"
                 {
                     assert!(result.is_err());
@@ -663,7 +663,7 @@ fn observed_ellipse_wire_is_exact_and_rejects_unknown_profiles() {
         data.extend(value.to_le_bytes());
     }
     data.push(0);
-    for major in [23, 24, 26, 28, 29, 31] {
+    for major in [23, 24, 26, 28, 29, 30, 31] {
         let decode = |bytes: &[u8], work: &mut usize| {
             super::super::fields::decode(
                 "DlSheetDlSegmentType",
@@ -675,7 +675,7 @@ fn observed_ellipse_wire_is_exact_and_rejects_unknown_profiles() {
                 work,
             )
         };
-        if !matches!(major, 23 | 26 | 28) {
+        if !matches!(major, 23 | 26 | 28 | 30) {
             assert!(decode(&data, &mut 1000).unwrap().is_none());
             continue;
         }
@@ -955,6 +955,41 @@ fn fonts_use_stored_identifier_and_reject_duplicates() {
         vec![observation(0, "font_table_candidate", rows)],
     )]);
     assert!(fonts(&d, &mut 100, &mut vec![]).is_err());
+}
+
+#[test]
+fn major11_font_rows_end_with_one_tail_float_and_no_flag_bytes() {
+    let entry = |id| {
+        vec![
+            ("font_id", w(id)),
+            ("font_tag", FieldValue::U16(4)),
+            ("font_weight", FieldValue::U16(400)),
+            ("font_flags", FieldValue::U16(0)),
+            ("font_size_parameters", FieldValue::F32(vec![0.25, 0.])),
+            ("font_name", FieldValue::Utf16("Synthetic font".into())),
+            ("font_tail_parameters", FieldValue::F32(vec![0.])),
+        ]
+    };
+    let rows = || {
+        let mut rows = entry(1);
+        rows.extend(entry(2));
+        rows.push(("font_next_id", w(3)));
+        rows
+    };
+    for (major, ok) in [(11, true), (14, false)] {
+        let mut directory = segment(
+            "DlDirectorySegmentType",
+            [4; 16],
+            vec![observation(0, "font_table_candidate", rows())],
+        );
+        directory.registry.major = major;
+        let f = fonts(&document(vec![directory]), &mut 100, &mut vec![]);
+        // Major14 rows carry three unresolved flag bytes per entry.
+        assert_eq!(f.is_ok(), ok, "major {major}");
+        if ok {
+            assert_eq!(f.unwrap().len(), 2);
+        }
+    }
 }
 
 fn attach_attribute(doc: &mut DrawingInventory, ordinal: usize, attribute: PayloadObservation) {
@@ -1577,34 +1612,76 @@ fn expansion_budget_is_aggregate_and_output_writer_checks_before_append() {
 }
 
 #[test]
-fn native_major24_color_mask_eight_does_not_enable_neighboring_profiles() {
-    for major in [23, 24, 26, 28, 29, 31] {
-        let mut d = placement_doc();
-        for segment in &mut d.segments {
-            segment.registry.major = major;
-        }
-        let mut rgba = vec![0.; 21];
-        rgba[..4].copy_from_slice(&[1., 0., 1., 1.]);
-        attach_attribute(
-            &mut d,
-            1,
-            observation(
-                101,
-                "display_color_candidate",
-                vec![
-                    ("color_mask", w(8)),
-                    ("color_rgba_parameters", FieldValue::F32(rgba)),
-                ],
-            ),
-        );
-        let s = experimental_scene(&d, &Limits::default());
-        if major == 24 {
-            assert_eq!(s.spaces[0].items.len(), 1);
-            assert_eq!(s.spaces[0].items[0].style.rgba, Some([1., 0., 1., 1.]));
-        } else {
-            assert!(s.spaces[0].items.is_empty());
+fn color_mask_eight_is_read_like_native_major24_and_flagged_elsewhere() {
+    // The major24 override was matched to native PDFs. Production drawings of
+    // other majors write mask 8 with the same layout; their elements keep the
+    // stored color with an explicit flag instead of losing the subtree.
+    for major in [11, 14, 15, 23, 24, 25, 26, 28, 29, 30, 31] {
+        // On the line itself and inherited from its group.
+        for owner in [0, 1] {
+            for sentinel in [false, true] {
+                let mut d = placement_doc();
+                for segment in &mut d.segments {
+                    segment.registry.major = major;
+                }
+                let mut rgba = vec![0.; 21];
+                rgba[..4].copy_from_slice(if sentinel {
+                    &[-2.; 4]
+                } else {
+                    &[1., 0., 1., 1.]
+                });
+                attach_attribute(
+                    &mut d,
+                    owner,
+                    observation(
+                        101,
+                        "display_color_candidate",
+                        vec![
+                            ("color_mask", w(8)),
+                            ("color_rgba_parameters", FieldValue::F32(rgba)),
+                        ],
+                    ),
+                );
+                let s = experimental_scene(&d, &Limits::default());
+                assert_eq!(s.spaces[0].items.len(), 1, "major {major}");
+                assert!(s.spaces[0].omitted.is_empty());
+                let style = &s.spaces[0].items[0].style;
+                let expected = if sentinel {
+                    None
+                } else {
+                    Some([1., 0., 1., 1.])
+                };
+                assert_eq!(style.rgba, expected);
+                assert_eq!(
+                    style.unresolved.contains(&"display_color_mask8_unverified"),
+                    major != 24
+                );
+                assert_eq!(
+                    style
+                        .unresolved
+                        .contains(&"display_color_sentinel_unverified"),
+                    sentinel
+                );
+            }
         }
     }
+    // A partial sentinel still fails closed; other masks keep omitting.
+    let mut d = placement_doc();
+    let mut rgba = vec![0.; 21];
+    rgba[..4].copy_from_slice(&[-2., -2., -2., 1.]);
+    attach_attribute(
+        &mut d,
+        1,
+        observation(
+            101,
+            "display_color_candidate",
+            vec![
+                ("color_mask", w(8)),
+                ("color_rgba_parameters", FieldValue::F32(rgba)),
+            ],
+        ),
+    );
+    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
 }
 
 #[test]

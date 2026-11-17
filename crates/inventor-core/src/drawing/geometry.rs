@@ -14,8 +14,8 @@ pub(super) fn triangles(f: &mut Fields<'_, '_>) -> Result<()> {
         .ok_or_else(|| Error("unsupported saved triangle profile".into()))?;
     f.display_header()?;
     f.require(0x30000002)?;
-    // Observed batches hold 1..2 triangles in the pinned fixtures and up to
-    // 149 vertices (hatch and arrowhead fills) in production major28 drawings.
+    // Observed batches hold 1..2 triangles in the pinned fixtures and larger
+    // hatch and arrowhead fills in production major28 drawings.
     let count = f.r.count(MAX_TRIANGLE_VERTICES)?;
     if count == 0 || count % 3 != 0 || f.r.u32()? < count as u32 {
         return Err(Error("unsupported saved triangle vertex count".into()));
@@ -27,7 +27,7 @@ pub(super) fn triangles(f: &mut Fields<'_, '_>) -> Result<()> {
         start,
         FieldValue::U32(vec![vertex_flags]),
     );
-    f.floats("triangle_vertices", count * 3)?;
+    f.points("triangle_vertices", count)?;
     f.require(0x30000002)?;
     f.require(count as u32)?;
     if f.r.u32()? < count as u32 {
@@ -65,8 +65,8 @@ pub(super) fn points(f: &mut Fields<'_, '_>) -> Result<()> {
         return Err(Error("unsupported drawing point list".into()));
     }
     f.point_type()?;
-    f.floats("xyz_points_candidate", n * 3)?;
-    if f.r.u8()? != 0 {
+    f.points("xyz_points_candidate", n)?;
+    if f.profile.point_list_suffix() && f.r.u8()? != 0 {
         return Err(Error("unknown drawing point list suffix".into()));
     }
     f.r.finish()

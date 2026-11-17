@@ -7,7 +7,8 @@ use std::io::{self, Write};
 #[serde(default, deny_unknown_fields)]
 pub struct DrawingLimits {
     /// Scalar payload values, reference entries and UTF-16 code units decoded
-    /// across the document. Independent of container record framing work.
+    /// across the document. Independent of container record framing work;
+    /// large inputs earn further allowances (see `scaled_allowance`).
     pub max_field_values: usize,
     pub max_sheets: usize,
     pub max_views: usize,
@@ -74,11 +75,13 @@ impl DrawingLimits {
 }
 
 /// RSe stream bytes that earn one further allowance of a document-wide work
-/// budget: container framing (`Limits::max_records`), sheet binding and display
-/// expansion (`DrawingLimits::max_reference_visits`).
+/// budget: container framing (`Limits::max_records`), typed-payload decoding
+/// (`DrawingLimits::max_field_values`), sheet binding and display expansion
+/// (`DrawingLimits::max_reference_visits`).
 const ALLOWANCE_RSE_BYTES: usize = 2 * 1024 * 1024;
-/// At most four allowances per document (2,000,000 framing work items and
-/// 12,000,000 reference visits with the default limits).
+/// At most four allowances per document (2,000,000 framing work items,
+/// 4,000,000 typed field values and 12,000,000 reference visits with the
+/// default limits).
 const MAX_ALLOWANCES: usize = 4;
 
 /// Large multi-sheet drawings store more records and references than one

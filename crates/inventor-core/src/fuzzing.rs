@@ -121,7 +121,8 @@ pub fn drawing(data: &[u8]) {
                     .chunks_exact(16)
                     .map(|b| b.try_into().unwrap())
                     .collect();
-                let meta = rse::Meta {
+                let mut meta = rse::Meta {
+                    version: 8,
                     id: [0; 16],
                     name: String::new(),
                     blocks,
@@ -141,10 +142,19 @@ pub fn drawing(data: &[u8]) {
                     terminal_id: [0; 16],
                     type_fields: vec![],
                 };
-                rse::record_table(
+                let _ = rse::record_table(
                     &bytes[r.pos..],
                     &meta,
                     31,
+                    &mut { limits.max_records },
+                    true,
+                );
+                // The same table read as a Meta7 block table with layer markers.
+                meta.version = 7;
+                rse::layered_record_table(
+                    &bytes[r.pos..],
+                    &meta,
+                    14,
                     &mut { limits.max_records },
                     true,
                 )?;

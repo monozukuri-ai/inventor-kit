@@ -208,8 +208,8 @@ fn full_types_ordinals_spans_and_unresolved_references_are_preserved() {
 #[test]
 fn old_majors_and_unknown_kinds_remain_inventory_only() {
     for (major, kind) in [
-        (13, "DlSheetDlSegmentType"),
-        (14, "DlSheetDlSegmentType"),
+        (9, "DlSheetDlSegmentType"),
+        (10, "DlSheetDlSegmentType"),
         (31, "UnqualifiedType"),
     ] {
         let data = mutate(&fixture(), |c| {
@@ -323,7 +323,8 @@ fn major23_list_variants_and_annotation_layouts_are_exact() {
     balloon.push(1);
     word(&mut balloon, 9);
     let ty = "025e3388-4cbb-8851-7d1c-b0876dcb2a07";
-    for major in [23, 26, 28] {
+    for major in [23, 26, 28, 30] {
+        let balloon = list_tag_for(major, &balloon);
         assert_eq!(
             parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
                 .unwrap()
@@ -786,6 +787,17 @@ fn saved_triangle_batches_require_exact_profile_indices_and_auxiliary_layout() {
         }
     }
 }
+/// Majors 29 and later reject the compact reference-list tag; use the full tag
+/// for synthetic placements that start with an empty list after 15 bytes.
+fn list_tag_for(major: u8, bytes: &[u8]) -> Vec<u8> {
+    let mut b = bytes.to_vec();
+    if !super::profile::get(major).unwrap().compact_references
+        && b[15..19] == 0x30000003u32.to_le_bytes()
+    {
+        b[15..19].copy_from_slice(&0x30000002u32.to_le_bytes());
+    }
+    b
+}
 fn observed_major(
     major: u8,
     kind: &str,
@@ -806,7 +818,7 @@ fn added_profiles_require_their_exact_envelope_and_codec() {
         b.extend(zlib(b"synthetic record bytes"));
         assert!(profile::bulk_for_major(&b, major).is_ok());
         assert!(profile::bulk_for_major(&b, 31).is_err());
-        for unknown in [13, 14, 32] {
+        for unknown in [9, 10, 32] {
             assert!(profile::bulk_for_major(&b, unknown).is_err());
             assert!(!profile::admits("DlSheetDlSegmentType", unknown));
         }
@@ -955,7 +967,9 @@ fn sheet_links_require_profile_prefix_and_complete_suffix() {
 
 #[test]
 fn intermediate_view_layouts_have_two_lists_and_a_suffix_guid() {
-    for major in [26, 28, 29] {
+    // Production major30 drawings store this layout too; only major31 adds a
+    // third reference list before the view name.
+    for major in [26, 28, 29, 30] {
         let mut b = vec![0; 15];
         for n in [0x30000002, 0, 0x80000001] {
             word(&mut b, n);
@@ -989,6 +1003,15 @@ fn intermediate_view_layouts_have_two_lists_and_a_suffix_guid() {
         for end in 0..b.len() {
             assert!(parse(major, &b[..end]).is_err());
         }
+        // The major31 layout, with a third empty list after the second one.
+        let name = b.len() - (48 + 16 + 8) - (4 + 2 * "Synthetic view".len());
+        let mut three = b[..name].to_vec();
+        for n in [0x30000002, 0] {
+            word(&mut three, n);
+        }
+        three.extend(&b[name..]);
+        assert!(parse(31, &three).unwrap().is_some());
+        assert!(parse(major, &three).is_err());
     }
 }
 fn text_payload() -> Vec<u8> {
@@ -1073,7 +1096,8 @@ fn border_placement_requires_complete_suffix_and_observed_major() {
             &mut 100,
         )
     };
-    for major in [15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 28] {
+    for major in [15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 30] {
+        let b = list_tag_for(major, &b);
         assert_eq!(
             parse(major, &b).unwrap().unwrap().proposed_role,
             "sheet_placement_candidate"
@@ -1327,6 +1351,32 @@ fn typed_fields_require_framed_unique_owners_and_fail_without_partial_observatio
             usize::from(cap == required)
         );
     }
+    // Like framing work, typed fields earn one allowance per started 2 MiB of
+    // RSe stream bytes. Bytes outside RSeStorage earn nothing, and lowering the
+    // limit lowers every allowance.
+    const MIB: usize = 1024 * 1024;
+    let half = required.div_ceil(2);
+    for (path, cap, decoded) in [
+        ("/RSeStorage/Padding", half, true),
+        ("/RSeStorage/Padding", half - 1, false),
+        ("/RSeStorage/Padding", 0, false),
+        ("/Padding", half, false),
+    ] {
+        let padded = mutate(&good, |c| put(c, path, &vec![0; 2 * MIB]));
+        let drawing = DrawingLimits {
+            max_field_values: cap,
+            ..Default::default()
+        };
+        let d = inspect_with_limits(&padded, "test", &Limits::default(), &drawing).unwrap();
+        assert_eq!(
+            d.segments[0].observations.len(),
+            usize::from(decoded),
+            "{path} {cap}"
+        );
+        if decoded {
+            assert_eq!(d.usage.field_work_items, required);
+        }
+    }
     let drawing = DrawingLimits {
         max_field_values: 1_000_001,
         ..Default::default()
@@ -1572,8 +1622,11 @@ fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts()
             "sheet_external_display_candidate",
         ),
     ] {
-        // The major25 candidate frames the same records with these layouts.
-        for major in [25, 26] {
+        // The major25 candidate frames the same records with these layouts;
+        // production major30 drawings store all of them except d8727ce0.
+        let local_only = kind.starts_with("d8727ce0");
+        for major in [25, 26, 30].into_iter().filter(|m| *m != 30 || !local_only) {
+            let bytes = &list_tag_for(major, bytes);
             let parse = |b: &[u8], work: &mut usize| {
                 observed_major(major, "DlSheetSmSegmentType", kind, b, work)
             };
@@ -1593,6 +1646,13 @@ fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts()
                     .is_none()
             );
         }
+        if local_only {
+            assert!(
+                observed_major(30, "DlSheetSmSegmentType", kind, bytes, &mut 100)
+                    .unwrap()
+                    .is_none()
+            );
+        }
     }
 }
 
@@ -1604,25 +1664,33 @@ fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts()
 
 #[test]
 fn candidate_profiles_frame_production_majors() {
-    for major in [15, 16, 17, 18, 19, 20, 21, 22, 25, 27, 30] {
+    for major in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 27, 30] {
         let p = super::profile::get(major).unwrap_or_else(|| panic!("major {major}"));
         assert_eq!(p.major, major);
         assert!(p.candidate());
         assert!(super::profile::name(major).contains("candidate"));
         assert!(p.fields_name().contains("candidate"));
         assert!(super::profile::admits("DlSheetSmSegmentType", major));
-        // Majors 15-22 keep the older view placement layout.
+        // Majors 11-22 keep the older view placement layout.
         let tail = match major {
-            15 => Some(1),
+            11 => Some(0),
+            12..=15 => Some(1),
             16..=22 => Some(2),
             _ => None,
         };
         assert_eq!(p.legacy_view_tail, tail, "major {major}");
+        assert_eq!(p.layered, major <= 14, "major {major}");
+        let meta = match major {
+            11 => 6,
+            12..=14 => 7,
+            _ => 8,
+        };
+        assert_eq!(p.meta_version(), meta, "major {major}");
     }
     for major in [23, 24, 26, 28, 29, 31] {
         assert!(!super::profile::get(major).unwrap().candidate());
     }
-    for major in [13, 14, 32] {
+    for major in [9, 10, 32] {
         assert!(super::profile::get(major).is_none());
     }
     // 25 shares the major26 layouts except for the view placement suffix GUID,
@@ -1645,7 +1713,8 @@ fn candidate_profiles_frame_production_majors() {
     // 30 shares the zstd envelope and monochrome caches of 31; 27 keeps the
     // 30-byte document prefix of 26 with the SM layouts of 28.
     let p30 = super::profile::get(30).unwrap();
-    assert!(p30.zstd && p30.document_prefix == 34 && p30.view_extra_references);
+    assert!(p30.zstd && p30.document_prefix == 34 && !p30.view_extra_references);
+    assert!(super::profile::get(31).unwrap().view_extra_references);
     assert_eq!(p30.bitmap, Some(super::profile::BitmapLayout::Monochrome));
     let p27 = super::profile::get(27).unwrap();
     assert!(!p27.zstd && p27.document_prefix == 30 && p27.compact_references);
@@ -1921,25 +1990,28 @@ fn major25_frames_its_records_with_the_major26_layouts() {
         ellipse.extend(v.to_le_bytes());
     }
     ellipse.push(0);
-    for major in [25, 26] {
+    for major in [25, 26, 30] {
         assert!(dl(major, ELLIPSE_TYPE, &ellipse).unwrap().is_some());
     }
-    for major in [24, 29] {
+    for major in [24, 29, 31] {
         assert!(dl(major, ELLIPSE_TYPE, &ellipse).unwrap().is_none());
     }
 
-    // The local display that major23 also stores is framed only on major25.
+    // The local display that major23 also stores is framed on major25 and on
+    // the major27 and major30 candidates.
     const LOCAL_TYPE: &str = "9b3499d1-11d1-8626-6000-27bd351c3cb0";
     let mut local = vec![0; 15];
     for n in [0x30000003, 0, 0x80000018, 7] {
         word(&mut local, n);
     }
     local.push(1);
-    for major in [23, 25] {
-        let o = sm(major, LOCAL_TYPE, &local).unwrap().unwrap();
+    for major in [23, 25, 27, 30] {
+        let o = sm(major, LOCAL_TYPE, &list_tag_for(major, &local))
+            .unwrap()
+            .unwrap();
         assert_eq!(o.proposed_role, "sheet_local_display_candidate");
     }
-    for major in [24, 26, 28] {
+    for major in [24, 26, 28, 29, 31] {
         assert!(sm(major, LOCAL_TYPE, &local).unwrap().is_none());
     }
 
@@ -1963,11 +2035,11 @@ fn major25_frames_its_records_with_the_major26_layouts() {
         disk.extend(v.to_le_bytes());
     }
     disk.push(1);
-    for major in [25, 26, 28] {
+    for major in [25, 26, 28, 30] {
         let o = sm(major, CIRCLE_TYPE, &disk).unwrap().unwrap();
         assert!(o.fields.iter().any(|f| f.name == "filled_conic_candidate"));
     }
-    for major in [23, 24] {
+    for major in [23, 24, 29, 31] {
         assert!(sm(major, CIRCLE_TYPE, &disk).is_err());
     }
 
@@ -2035,4 +2107,115 @@ fn large_drawings_earn_a_bounded_number_of_work_allowances() {
     assert_eq!(large.usage.work_items, needed);
     assert!(large.usage.encoded_bytes > 2 * MIB);
     assert_eq!(large.segments[0].status, "framed");
+}
+
+// ---------------------------------------------------------------------------
+// Production drawings of the candidate majors 15-22, 27 and 30 store the local
+// annotation displays of majors 25, 26 and 28 with the same layouts, and
+// major30 drawings store the major26-28 spline and ellipse layouts.
+
+#[test]
+fn candidate_majors_frame_the_shared_local_annotation_displays() {
+    let mut local = vec![0; 15];
+    for n in [0x30000002, 0, 0x80000004, 72] {
+        word(&mut local, n);
+    }
+    local.push(1);
+    let mut leader = local.clone();
+    word(&mut leader, 72);
+    let sm = |major, type_id, bytes: &[u8]| {
+        observed_major(major, "DlSheetSmSegmentType", type_id, bytes, &mut 100)
+    };
+    for (type_id, bytes, majors, absent) in [
+        (
+            "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0",
+            &local,
+            &[15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 30][..],
+            &[23, 24, 29, 31][..],
+        ),
+        (
+            "648cd16a-11d1-c06c-6000-24b209e1b5b0",
+            &local,
+            &[15, 22, 25, 26, 27, 28, 30],
+            &[23, 24, 29, 31],
+        ),
+        (
+            "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
+            &local,
+            &[15, 22, 25, 26, 27, 28, 30],
+            &[23, 24, 29, 31],
+        ),
+        (
+            "8deaf986-11d4-3763-6000-61b782b6fbb0",
+            &leader,
+            &[15, 16, 17, 18, 19, 20, 21, 22, 26, 28, 30],
+            &[23, 24, 25, 27, 29, 31],
+        ),
+    ] {
+        for &major in majors {
+            let o = sm(major, type_id, bytes).unwrap().unwrap();
+            assert_eq!(o.proposed_role, "sheet_local_display_candidate");
+            for end in 0..bytes.len() {
+                assert!(sm(major, type_id, &bytes[..end]).is_err());
+            }
+            let mut extra = bytes.clone();
+            extra.push(0);
+            assert!(sm(major, type_id, &extra).is_err());
+            let mut branch = bytes.clone();
+            branch[31] = 2;
+            assert!(sm(major, type_id, &branch).is_err());
+        }
+        for &major in absent {
+            assert!(
+                sm(major, type_id, bytes).unwrap().is_none(),
+                "major {major}"
+            );
+        }
+    }
+}
+
+#[test]
+fn major30_frames_the_intermediate_spline_and_ellipse_layouts() {
+    const SPLINE_TYPE: &str = "d3a55702-11d1-ebbb-62ae-0297584063da";
+    let mut spline = vec![0; 26];
+    for n in [0, 0, 2] {
+        word(&mut spline, n);
+    }
+    spline.extend(1e-9f64.to_le_bytes());
+    for (values, dimension) in [
+        (vec![0f64, 0., 0., 1., 1., 1.], 1),
+        (vec![], 1),
+        (vec![0f64, 0., 0., 1., 1., 0., 2., 0., 0.], 3),
+    ] {
+        let count = values.len() / dimension;
+        for n in [count as u32, count as u32, 8] {
+            word(&mut spline, n);
+        }
+        for v in values {
+            spline.extend(v.to_le_bytes());
+        }
+    }
+    spline.extend(1e-12f64.to_le_bytes());
+    for n in [1, 1] {
+        word(&mut spline, n);
+    }
+    for v in [0f64, 1.] {
+        spline.extend(v.to_le_bytes());
+    }
+    let dl = |major, bytes: &[u8]| {
+        observed_major(major, "DlSheetDlSegmentType", SPLINE_TYPE, bytes, &mut 1000)
+    };
+    for major in [26, 28, 30] {
+        let o = dl(major, &spline).unwrap().unwrap();
+        assert_eq!(o.proposed_role, "stored_bspline_candidate");
+        for end in 0..spline.len() {
+            assert!(dl(major, &spline[..end]).is_err());
+        }
+        let mut extra = spline.clone();
+        extra.push(0);
+        assert!(dl(major, &extra).is_err());
+    }
+    for major in [24, 29, 31] {
+        assert!(dl(major, &spline).unwrap().is_none());
+    }
 }

@@ -6,22 +6,51 @@ use crate::{Error, Result};
 pub(super) fn point_marker(f: &mut Fields<'_, '_>) -> Result<()> {
     f.word("header_flags")?;
     f.short("object_id")?;
+    f.layer()?;
     f.word("marker_flags_unresolved")?;
     f.word("attribute_reference")?;
     f.r.skip(4)?;
     f.word("owner_reference")?;
     f.r.skip(4)?;
+    f.layer()?;
     f.doubles("marker_position", 3)?;
-    f.floats("marker_parameters_unresolved", 3)?;
-    f.short("marker_suffix_unresolved")?;
+    if f.profile.layered {
+        // Meta6/7 end a layer nine (major11) or ten bytes into the trailing
+        // bytes, so their Meta8 split (three floats and a short) is not
+        // assumed here.
+        f.floats("marker_parameters_unresolved", 2)?;
+        if f.profile.major == 11 {
+            f.byte("marker_suffix_unresolved")?;
+        } else {
+            f.short("marker_suffix_unresolved")?;
+        }
+        f.layer()?;
+        f.word("marker_layer_tail_unresolved")?;
+    } else {
+        f.floats("marker_parameters_unresolved", 3)?;
+        f.short("marker_suffix_unresolved")?;
+    }
     f.r.finish()
 }
 
+// Meta6/7 (majors 11-14) end the object key, the following eight bytes and,
+// after the name, three more spans with layer markers; Meta8 has none.
+fn document_prefix(f: &mut Fields<'_, '_>) -> Result<()> {
+    f.r.skip(6)?;
+    f.layer()?;
+    f.r.skip(8)?;
+    f.layer()?;
+    f.r.skip(f.profile.document_prefix - 14)
+}
+
 pub(super) fn document(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(f.profile.document_prefix)?;
+    document_prefix(f)?;
     f.text("document_name")?;
     f.references("preceding_references_unresolved")?;
-    f.r.skip(36)?;
+    for span in f.profile.document_spans() {
+        f.r.skip(span)?;
+        f.layer()?;
+    }
     f.references("sheet_references_candidate")?;
     // Deliberately a prefix observation: the document's remaining collections
     // and active-state selection are still covered by the opaque payload span.
@@ -29,7 +58,7 @@ pub(super) fn document(f: &mut Fields<'_, '_>) -> Result<()> {
 }
 
 pub(super) fn name(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(f.profile.document_prefix)?;
+    document_prefix(f)?;
     f.text("name")?;
     // Prefix observation, like the document name. The following collections
     // vary with sheet contents and remain covered by the opaque payload span.
@@ -40,9 +69,19 @@ pub(super) fn links(f: &mut Fields<'_, '_>) -> Result<()> {
     // Full object key used by the SM definition reference, not a record ordinal.
     f.word("header_flags")?;
     f.short("object_id")?;
-    f.r.skip(f.profile.document_prefix - 6)?;
+    f.layer()?;
+    for span in [8, 8, 4, 0] {
+        f.r.skip(span)?;
+        f.layer()?;
+    }
+    f.r.skip(f.profile.document_prefix - 26)?;
     f.references("references_unresolved")?;
-    f.r.skip(11)?;
+    f.layer()?;
+    f.r.skip(5)?;
+    f.layer()?;
+    f.r.skip(1)?;
+    f.layer()?;
+    f.r.skip(5)?;
     for name in ["dc_segment_name", "dl_segment_name", "sm_segment_name"] {
         f.text(name)?;
     }
@@ -68,9 +107,9 @@ pub(super) fn links(f: &mut Fields<'_, '_>) -> Result<()> {
     }
     let extra = f.r.bytes.len().saturating_sub(f.r.pos);
     if f.profile.major >= 29 && (1..=16).contains(&extra) {
-        // Observed on production major29 (2 bytes) and major30 (6 bytes, on
-        // two of five sheets) drawings. Keep the bytes visible as an
-        // unresolved field rather than discarding the sheet.
+        // Observed on production major29 and major30 drawings, where a few
+        // bytes follow the suffix. Keep the bytes visible as an unresolved
+        // field rather than discarding the sheet.
         let start = f.r.pos;
         let tail = f.r.take(extra)?.to_vec();
         f.add(
@@ -87,18 +126,25 @@ pub(super) fn space(f: &mut Fields<'_, '_>) -> Result<()> {
     if f.r.u8()? != 1 {
         return Err(Error("unknown drawing space branch".into()));
     }
+    f.layer()?;
     f.require(2)?;
     f.doubles("origin_and_extent_candidate", 4)?;
     f.r.finish()
 }
 
 pub(super) fn placement(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(15)?;
+    f.r.skip(6)?;
+    f.layer()?;
+    f.r.skip(9)?;
+    f.layer()?;
     f.references("references_unresolved")?;
+    f.layer()?;
     f.word("display_reference")?;
+    f.layer()?;
     if f.r.u8()? != 1 {
         return Err(Error("unknown drawing placement branch".into()));
     }
+    f.layer()?;
     f.word("definition_reference")?;
     f.compact()
 }
@@ -108,12 +154,13 @@ pub(super) fn sketch_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     if f.r.u8()? != 1 {
         return Err(Error("unknown sheet sketch suffix".into()));
     }
+    f.layer()?;
     f.word("sketch_suffix_reference_unresolved")?;
     f.r.finish()
 }
 
 // Saved border instance observed in major24/26/28 captures; production
-// drawings of the major15-22 candidates and of major25 store the same layout.
+// drawings of the candidate majors 11-22, 25, 27 and 30 store the same layout.
 // Both trailing references are retained; neither establishes document state or
 // ownership.
 pub(super) fn border_placement(f: &mut Fields<'_, '_>) -> Result<()> {
@@ -121,20 +168,29 @@ pub(super) fn border_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     if f.r.u8()? != 1 {
         return Err(Error("unknown drawing border suffix".into()));
     }
+    f.layer()?;
     f.word("border_suffix_reference_unresolved")?;
+    f.layer()?;
     f.word("border_other_reference_unresolved")?;
     f.r.finish()
 }
 
 fn local_display_prefix(f: &mut Fields<'_, '_>) -> Result<()> {
-    f.r.skip(15)?;
+    f.r.skip(6)?;
+    f.layer()?;
+    f.r.skip(9)?;
+    f.layer()?;
     f.references("references_unresolved")?;
+    f.layer()?;
     f.word("display_reference")?;
+    f.layer()?;
     f.word("definition_reference")?;
     if f.r.u8()? != 1 {
         return Err(Error("unknown local annotation display branch".into()));
     }
-    Ok(())
+    // Meta6/7 also close an empty layer here.
+    f.layer()?;
+    f.layer()
 }
 
 pub(super) fn local_display(f: &mut Fields<'_, '_>) -> Result<()> {
@@ -153,6 +209,7 @@ pub(super) fn table_display(f: &mut Fields<'_, '_>) -> Result<()> {
     if f.r.u8()? != 1 {
         return Err(Error("unknown table display suffix".into()));
     }
+    f.layer()?;
     f.word("table_suffix_reference_unresolved")?;
     f.r.finish()
 }
@@ -176,7 +233,9 @@ pub(super) fn view_placement(f: &mut Fields<'_, '_>) -> Result<()> {
     if f.r.u8()? != 1 {
         return Err(Error("unknown view placement suffix".into()));
     }
+    f.layer()?;
     f.word("view_definition_copy_unresolved")?;
+    f.layer()?;
     let legacy_tail = f.profile.legacy_view_tail;
     // Production major15-22 drawings: 16-bit flags and a 16-bit word between
     // the two lists instead of 32-bit flags, then unresolved trailing bytes.
@@ -213,6 +272,7 @@ pub(super) fn view_bitmap(f: &mut Fields<'_, '_>) -> Result<()> {
         .ok_or_else(|| Error("unsupported view bitmap profile".into()))?;
     f.word("header_flags")?;
     f.short("object_id")?;
+    f.layer()?;
     if layout == super::profile::BitmapLayout::Rgba && f.r.take(2)? != [1, 1] {
         return Err(Error("unknown RGBA view bitmap layout".into()));
     }

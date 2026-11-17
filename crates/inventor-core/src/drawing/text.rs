@@ -11,7 +11,7 @@ pub(super) fn fields(f: &mut Fields<'_, '_>) -> Result<()> {
     let start = f.r.pos;
     let value = f.r.u32()?;
     f.add("style_index_candidate", start, FieldValue::U32(vec![value]));
-    if f.r.u8()? != 0 {
+    if f.profile.text_suffix() && f.r.u8()? != 0 {
         return Err(crate::Error("unknown drawing text suffix".into()));
     }
     f.r.finish()

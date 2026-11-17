@@ -47,8 +47,37 @@ pub(crate) struct RegistryTable {
     pub identifier_lists: [Vec<[u8; 16]>; 2],
 }
 
+/// Registry entries share one grammar across RSeDb schemas 29 to 31. Schema 31
+/// ends with two lists of 16-byte identifiers; schemas 30 and 29 (production
+/// drawings saved by Inventor 11, 2008 and 2009) end with two lists of UTF-16 class
+/// names, which are bounded and skipped and never select a segment. Schema 29
+/// node records are 18 bytes instead of 22 (12 bytes after the index words).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RegistryGrammar {
+    Schema31,
+    Schema30,
+    Schema29,
+}
+impl RegistryGrammar {
+    pub fn for_schema(schema: Option<u32>) -> Self {
+        match schema {
+            Some(30) => Self::Schema30,
+            Some(29) => Self::Schema29,
+            _ => Self::Schema31,
+        }
+    }
+}
+
 pub(crate) fn registry(bytes: &[u8]) -> Result<Vec<Segment>> {
     registry_budgeted(bytes, &mut { usize::MAX })
+}
+
+pub(crate) fn registry_with_grammar(
+    bytes: &[u8],
+    work: &mut usize,
+    grammar: RegistryGrammar,
+) -> Result<Vec<Segment>> {
+    Ok(registry_table_with_grammar(bytes, work, false, grammar)?.segments)
 }
 
 pub(crate) fn charge(budget: &mut usize, n: usize) -> Result<()> {
@@ -68,6 +97,15 @@ pub(crate) fn registry_table_budgeted(
     bytes: &[u8],
     work: &mut usize,
     keep_wire: bool,
+) -> Result<RegistryTable> {
+    registry_table_with_grammar(bytes, work, keep_wire, RegistryGrammar::Schema31)
+}
+
+fn registry_table_with_grammar(
+    bytes: &[u8],
+    work: &mut usize,
+    keep_wire: bool,
+    grammar: RegistryGrammar,
 ) -> Result<RegistryTable> {
     let mut r = Reader::new(bytes);
     let n = r.count(65536)?;
@@ -117,7 +155,12 @@ pub(crate) fn registry_table_budgeted(
             let start = r.pos;
             let index = r.u32()?;
             let list_index = r.u16()? as i16;
-            let id = r.id()?;
+            let id = if grammar == RegistryGrammar::Schema29 {
+                r.skip(12)?;
+                [0; 16]
+            } else {
+                r.id()?
+            };
             if keep_wire {
                 nodes.push(RegistryNode {
                     index,
@@ -152,7 +195,12 @@ pub(crate) fn registry_table_budgeted(
         let n = r.count(1_000_000)?;
         charge(work, n)?;
         for _ in 0..n {
-            ids.push(r.id()?);
+            if grammar == RegistryGrammar::Schema31 {
+                ids.push(r.id()?);
+            } else {
+                let name = r.utf16()?;
+                charge(work, name.len())?;
+            }
         }
     }
     r.finish()?;
@@ -246,6 +294,9 @@ pub(crate) fn inflate_budgeted(
 }
 
 pub(crate) struct Meta {
+    /// Meta stream version (6, 7 or 8). Version 6 and 7 block tables also
+    /// list the inline layer markers of each record; see `layered_record_table`.
+    pub version: u16,
     pub id: [u8; 16],
     pub name: String,
     pub blocks: Vec<u32>,
@@ -281,6 +332,10 @@ pub(crate) struct MetaLayout {
     pub tagged_section9: bool,
     pub keep_wire_sections: bool,
     pub part31_meta6: bool,
+    /// Drawing profiles of majors 11-14 only: a Meta6/7 block table also
+    /// lists layer markers, so `Limits::max_records` bounds its records, not
+    /// its words.
+    pub layered_blocks: bool,
 }
 impl MetaLayout {
     pub const STANDARD: Self = Self {
@@ -288,30 +343,36 @@ impl MetaLayout {
         tagged_section9: false,
         keep_wire_sections: false,
         part31_meta6: false,
+        layered_blocks: false,
     };
     pub const DRAWING_DOC_DC: Self = Self {
         type_limit: 4096,
         tagged_section9: true,
         keep_wire_sections: false,
         part31_meta6: false,
+        layered_blocks: false,
     };
     pub const DRAWING_SHEET_DC: Self = Self {
         type_limit: 256,
         tagged_section9: true,
         keep_wire_sections: false,
         part31_meta6: false,
+        layered_blocks: false,
     };
     pub const PART31: Self = Self {
         type_limit: 256,
         tagged_section9: true,
         keep_wire_sections: true,
         part31_meta6: true,
+        layered_blocks: false,
     };
 }
 /// Meta stream versions whose header grammar (8 words, name, id, 3 state words,
-/// 2 timestamps, body form, zlib body) was observed: 8 (pinned fixtures) and 7
-/// (production major14 drawings saved by Inventor 2010/2011).
-pub(crate) const META_STREAM_VERSIONS: &[u16] = &[7, 8];
+/// 2 timestamps, body form, zlib body) was observed: 8 (pinned fixtures), 7
+/// (production drawings of majors 12-14, saved by Inventor 2008-2010) and 6
+/// (production major11 drawings), which stores a fourth state word and a 32-bit
+/// time value between its two timestamps. All three share the body grammar.
+pub(crate) const META_STREAM_VERSIONS: &[u16] = &[6, 7, 8];
 
 fn meta_version(r: &mut Reader<'_>) -> Result<u16> {
     let text = r.text()?;
@@ -321,6 +382,11 @@ fn meta_version(r: &mut Reader<'_>) -> Result<u16> {
         return Err(Error("unsupported RSe meta profile".into()));
     }
     Ok(version)
+}
+
+/// The Meta stream version, read before any decompression.
+pub(crate) fn meta_stream_version(bytes: &[u8]) -> Result<u16> {
+    meta_version(&mut Reader::new(bytes))
 }
 
 pub(crate) fn meta_identity(bytes: &[u8]) -> Result<([u8; 16], String)> {
@@ -353,7 +419,7 @@ pub(crate) fn meta_layout_budgeted(
     layout: MetaLayout,
 ) -> Result<Meta> {
     let mut r = Reader::new(bytes);
-    meta_version(&mut r)?;
+    let version = meta_version(&mut r)?;
     let header_words = [
         r.u16()?,
         r.u16()?,
@@ -367,7 +433,14 @@ pub(crate) fn meta_layout_budgeted(
     let name = r.utf16()?;
     let id = r.id()?;
     let state_words = [r.u32()?, r.u32()?, r.u32()?];
-    let timestamps = [r.text()?, r.text()?];
+    let timestamps = if version == 6 {
+        r.u32()?; // Fourth state word, retained in the opaque header.
+        let first = r.text()?;
+        r.u32()?; // 32-bit time value, retained in the opaque header.
+        [first, r.text()?]
+    } else {
+        [r.text()?, r.text()?]
+    };
     let body_form = r.u8()?;
     let compressed_offset = r.pos;
     let (body, codec) = inflate_budgeted(&bytes[r.pos..], limits.max_inflated_bytes, expanded)?;
@@ -390,7 +463,14 @@ pub(crate) fn meta_layout_budgeted(
     let mut sections = Vec::new();
     let mut type_fields = Vec::new();
     for (section, size) in [(1, 4), (2, 10), (3, 28), (4, 28)] {
-        let n = r.count(limits.max_records)?;
+        let layered = section == 1 && layout.layered_blocks && version < 8;
+        // A layered table's words are bounded by the inflated body; its
+        // records are checked against max_records below.
+        let n = r.count(if layered {
+            limits.max_inflated_bytes / 4
+        } else {
+            limits.max_records
+        })?;
         charge(work, n)?;
         if section == 4 && n > layout.type_limit {
             return Err(Error(format!(
@@ -421,7 +501,15 @@ pub(crate) fn meta_layout_budgeted(
             blocks = payload
                 .chunks_exact(4)
                 .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
-                .collect();
+                .collect::<Vec<u32>>();
+            if layered
+                && blocks.iter().filter(|b| **b & 0x8000_0000 != 0).count() > limits.max_records
+            {
+                return Err(Error(format!(
+                    "Meta6/7 record count exceeds {}",
+                    limits.max_records
+                )));
+            }
         }
         if section == 4 {
             type_table_offset = offset;
@@ -525,6 +613,7 @@ pub(crate) fn meta_layout_budgeted(
         return Err(Error("meta section chain does not join type footer".into()));
     }
     Ok(Meta {
+        version,
         id,
         name,
         blocks,
@@ -687,7 +776,13 @@ fn extended_trailer(
 }
 
 pub(crate) struct Record {
+    /// Address used by stored references: the block slot (Meta8) or the dense
+    /// record index (Meta6/7, whose block table also holds layer markers).
     pub ordinal: usize,
+    /// Block slot of the record's length word.
+    pub block: usize,
+    /// Meta6/7 layer markers listed after the length word, in section pre-order.
+    pub layers: Vec<u32>,
     pub kind: [u8; 16],
     pub selector: u32,
     pub start: usize,
@@ -713,13 +808,68 @@ pub(crate) fn record_table(
     work: &mut usize,
     keep_references: bool,
 ) -> Result<RecordTable> {
-    charge(work, meta.blocks.len())?;
+    framed_records(data, meta, major, work, keep_references, false)
+}
+
+/// Meta6/7 framing, admitted only by drawing profiles that expect it. Production
+/// drawings saved by Inventor 11 and 2008-2010 end every class layer and nested
+/// section of a record with a u32 marker holding the section's byte length;
+/// the block table lists the same values after the record's length word, in
+/// section pre-order. Those words are not record slots: stored references
+/// count records only. A marker must fit inside its record; the field decoder
+/// later checks each one at its position.
+pub(crate) fn layered_record_table(
+    data: &[u8],
+    meta: &Meta,
+    major: u8,
+    work: &mut usize,
+    keep_references: bool,
+) -> Result<RecordTable> {
+    if meta.version >= 8 {
+        return Err(Error(
+            "layered records require a Meta6/7 block table".into(),
+        ));
+    }
+    framed_records(data, meta, major, work, keep_references, true)
+}
+
+fn framed_records(
+    data: &[u8],
+    meta: &Meta,
+    major: u8,
+    work: &mut usize,
+    keep_references: bool,
+    layered: bool,
+) -> Result<RecordTable> {
+    // Every record is charged here and in its Meta block slot. Meta6/7 layer
+    // markers were already charged once when the block table was read.
+    charge(
+        work,
+        if layered {
+            meta.blocks
+                .iter()
+                .filter(|b| **b & 0x8000_0000 != 0)
+                .count()
+        } else {
+            meta.blocks.len()
+        },
+    )?;
     let mut r = Reader::new(data);
-    let mut records = Vec::new();
-    for (ordinal, block) in meta.blocks.iter().enumerate() {
+    let mut records: Vec<Record> = Vec::new();
+    for (index, block) in meta.blocks.iter().enumerate() {
         if block & 0x8000_0000 == 0 {
+            if layered {
+                let owner = records
+                    .last_mut()
+                    .ok_or_else(|| Error("Meta6/7 layer marker without a record".into()))?;
+                if *block as usize + 4 > owner.end - owner.start {
+                    return Err(Error("Meta6/7 layer marker exceeds its record".into()));
+                }
+                owner.layers.push(*block);
+            }
             continue;
         }
+        let ordinal = if layered { records.len() } else { index };
         let selector = r.u32()?;
         let kind = *meta
             .types
@@ -740,6 +890,8 @@ pub(crate) fn record_table(
         };
         records.push(Record {
             ordinal,
+            block: index,
+            layers: Vec::new(),
             kind,
             selector,
             start,
@@ -769,14 +921,14 @@ mod meta_version_tests {
     }
     #[test]
     fn meta_version_admits_observed_versions_only() {
-        for version in [7u16, 8] {
+        for version in [6u16, 7, 8] {
             let bytes = header(&format!("RSe Meta Stream Version {version}"), version);
             let mut r = Reader::new(&bytes);
             assert_eq!(meta_version(&mut r).unwrap(), version);
             assert_eq!(r.pos, bytes.len());
         }
         for (text, version) in [
-            ("RSe Meta Stream Version 6", 6u16),
+            ("RSe Meta Stream Version 5", 5u16),
             ("RSe Meta Stream Version 9", 9),
             ("RSe Meta Stream Version 8", 7),
             ("RSe Meta Stream Version 7", 8),

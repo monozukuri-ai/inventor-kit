@@ -386,7 +386,7 @@ Path(sys.argv[3]).write_bytes(with_segment_major(Path(sys.argv[2]).read_bytes(),
 for (const [major, file, count, views] of [
   [24, 'iacs/Template_IACS', 70, 0],
   [29, 'versions/Toys-R-Us-Rex', 166, 3],
-  [28, 'versions/mateolikescats', 1650, 5],
+  [28, 'versions/mateolikescats', 1651, 5],
   [26, 'versions/RespiraWorks', 543, 3],
   [26, 'versions/starliliko', 90, 0],
   [26, 'versions/RespiraWorks-bottom-assembly', 550, 3],

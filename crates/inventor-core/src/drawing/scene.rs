@@ -426,7 +426,7 @@ fn fonts(
     };
     let profile =
         super::profile::get(tables[0].0).ok_or_else(|| error("unsupported font profile"))?;
-    let stride = if profile.legacy_fonts { 10 } else { 7 };
+    let stride = 7 + profile.font_tail().1;
     if last.name != "font_next_id" || entries.len() % stride != 0 {
         return Err(error("unsupported font directory fields"));
     }

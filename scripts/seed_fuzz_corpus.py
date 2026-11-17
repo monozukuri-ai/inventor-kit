@@ -10,6 +10,27 @@ from drawing_corpus import drawing_rows
 from check_corpus import ROOT, verify
 
 
+def layered_pair(record):
+    """An independently authored Meta7/B pair: one record and its two markers."""
+    line_type = bytes.fromhex('c7ac9ea7d11181c26000a38ab46bceb0')
+    blocks = (0x80000000 | len(record), 30, 6)
+    body = bytes(14) + struct.pack('<I', len(blocks)) + struct.pack(f'<{len(blocks)}I', *blocks)
+    body += struct.pack('<I', 4 + 4 * len(blocks)) + struct.pack('<4I', 0, 4, 0, 4)
+    body += struct.pack('<I', 1) + line_type + bytes(12) + struct.pack('<I', 32)
+    for n in range(5, 11):
+        body += struct.pack('<2I', 0xff00ff00 if n == 5 else 0, 4)
+    body += struct.pack('<I', 18) + bytes(88)
+    version = b'RSe Meta Stream Version 7'
+    name = 'DLSheet1DLSegment'.encode('utf-16le')
+    meta = struct.pack('<I', len(version)) + version + struct.pack('<H', 7) + bytes(16)
+    meta += struct.pack('<I', len(name) // 2) + name + bytes(16) + bytes(12)
+    meta += struct.pack('<I', 0) + struct.pack('<I', 0) + b'\x01' + zlib.compress(body)
+    records = struct.pack('<I', 0x100) + record + struct.pack('<I', len(record))
+    records += struct.pack('<I', 0xffffffff)
+    bulk = bytes.fromhex('9ec22ba4d411e80160002db3ee29fbb00401') + zlib.compress(records)
+    return struct.pack('<I', len(meta)) + meta + bulk
+
+
 def seed(fixtures, output):
     inventory = verify(fixtures)
     allowed = {r['file'] for r in inventory['files'] if r['split'] == 'regression'}
@@ -78,6 +99,11 @@ def seed(fixtures, output):
         # Major28 combines the compact tag with modern flags; vary them independently.
         for flags in (0, 0x10):
             write('drawing', b'\x03'+bytes(26)+refs+struct.pack('<2IB', flags, 0x80000002, 0))
+    # Synthetic Meta6/7 (layered) line record and a Meta7/B pair framing it.
+    line = bytes(6) + struct.pack('<I', 6) + bytes(20) + struct.pack('<I', 30)
+    line += struct.pack('<6d', 0., 0., 0., 1., 1., 0.)
+    write('drawing', b'\x03' + line)
+    write('drawing', b'\x01' + layered_pair(line))
     write('drawing', b'\x03'+bytes(6)+b'\x01\x01'+struct.pack('<2I', 2, 1)+bytes(5)
           +bytes([11, 22, 33, 255, 44, 55, 66, 0, 1]))
     write('drawing', b'\x03'+bytes(15)+struct.pack('<2I',0x30000002,0)+struct.pack('<IBI',1,1,2)+

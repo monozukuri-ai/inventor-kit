@@ -31,6 +31,7 @@ pub fn inspect(data: &[u8], source_id: &str, limits: &Limits) -> Result<DrawingI
 
 /// Inspect with a separately bounded typed-payload allowance. Container record
 /// and decompression limits are unchanged; every decoded scalar is still charged.
+/// Like container framing, the typed-payload allowance scales with RSe size.
 pub fn inspect_with_limits(
     data: &[u8],
     source_id: &str,
@@ -67,7 +68,8 @@ pub fn inspect_with_limits(
     let mut file = cfb::CompoundFile::open(Cursor::new(data)).map_err(|e| Error(e.to_string()))?;
     // Every record is charged for its Meta block slot and again for its bulk
     // frame, so one `max_records` allowance frames only about 220,000 records;
-    // large multi-sheet drawings earn further allowances by their RSe size.
+    // large multi-sheet drawings earn further allowances by their RSe size,
+    // and so does the typed-payload work their records need.
     let rse_bytes = summary
         .streams
         .iter()
@@ -75,7 +77,8 @@ pub fn inspect_with_limits(
         .fold(0usize, |n, s| n.saturating_add(s.bytes as usize));
     let framing = super::limits::scaled_allowance(limits.max_records, rse_bytes);
     let mut work = framing;
-    let mut field_work = drawing.max_field_values;
+    let fields = super::limits::scaled_allowance(drawing.max_field_values, rse_bytes);
+    let mut field_work = fields;
     let mut expanded = limits.max_total_inflated_bytes;
     let result = scan(
         &mut file,
@@ -87,7 +90,7 @@ pub fn inspect_with_limits(
         &mut out,
     );
     out.usage.work_items = framing - work;
-    out.usage.field_work_items = drawing.max_field_values - field_work;
+    out.usage.field_work_items = fields - field_work;
     out.usage.expanded_bytes = limits.max_total_inflated_bytes - expanded;
     if let Err(e) = result {
         out.diagnostics.push(diagnostic(
@@ -138,12 +141,12 @@ fn scan(
         }
     }
     if out.metadata.databases.len() != 1
-        || out.metadata.databases[0].schema != Some(31)
+        || !matches!(out.metadata.databases[0].schema, Some(29..=31))
         || out.metadata.databases[0].status != "decoded"
     {
         out.diagnostics.push(diagnostic(
             "drawing.ambiguous_owner",
-            "requires exactly one decoded schema-31 database; no database selected",
+            "requires exactly one decoded schema-29, schema-30 or schema-31 database; no database selected",
             None,
         ));
         for s in streams
@@ -172,8 +175,11 @@ fn scan(
             )),
         }
     }
-    let registry =
-        rse::registry_budgeted(&stream(file, registry_path, limits.max_stream_bytes)?, work)?;
+    let registry = rse::registry_with_grammar(
+        &stream(file, registry_path, limits.max_stream_bytes)?,
+        work,
+        rse::RegistryGrammar::for_schema(out.metadata.databases[0].schema),
+    )?;
     let mut registry_ids = BTreeMap::<[u8; 16], Vec<usize>>::new();
     for (index, reg) in registry.iter().enumerate() {
         registry_ids.entry(reg.id).or_default().push(index);
@@ -312,6 +318,17 @@ fn scan(
             let bytes = encoded[mi].take().unwrap();
             code = "drawing.meta_framing_unavailable";
             failure_source = owner.source.clone();
+            // The block-table grammar follows the Meta stream version; each
+            // profile admits only the version it was observed with, before
+            // any decompression.
+            let version = rse::meta_stream_version(&bytes)?;
+            if super::profile::get(reg.major).map(|p| p.meta_version()) != Some(version) {
+                return Err(Error(format!(
+                    "Meta stream version {version} does not match the major {} profile",
+                    reg.major
+                )));
+            }
+            let layered = version < 8;
             let meta = rse::meta_layout_budgeted(
                 &bytes,
                 limits,
@@ -389,7 +406,11 @@ fn scan(
             let compressed = super::profile::bulk_for_major(&bytes, reg.major)?;
             let (body, codec) =
                 rse::inflate_budgeted(compressed, limits.max_inflated_bytes, expanded)?;
-            let table = rse::record_table(&body, &meta, reg.major, work, true)?;
+            let table = if layered {
+                rse::layered_record_table(&body, &meta, reg.major, work, true)?
+            } else {
+                rse::record_table(&body, &meta, reg.major, work, true)?
+            };
             segment.bulk = Some(BulkInventory {
                 source: bulk.clone(),
                 compressed_source: span(&id, bpath, 18, bytes.len(), false),
@@ -401,7 +422,8 @@ fn scan(
                 let payload = span(&id, bpath, record.start, record.end, true);
                 match super::fields::decode(
                     &reg.kind,
-                    super::fields::Context::new(reg.major, &meta.types),
+                    super::fields::Context::new(reg.major, &meta.types)
+                        .layers(layered.then_some(record.layers.as_slice())),
                     &guid(&record.kind),
                     record.ordinal,
                     &body[record.start..record.end],
@@ -428,11 +450,12 @@ fn scan(
                     type_id: guid(&record.kind),
                     selector_word: record.selector,
                     type_index: record.selector as u8 as usize,
+                    // The record's length word and, for Meta6/7, its layer markers.
                     meta_block_source: span(
                         &id,
                         mpath,
-                        meta.block_table_offset + record.ordinal * 4,
-                        meta.block_table_offset + (record.ordinal + 1) * 4,
+                        meta.block_table_offset + record.block * 4,
+                        meta.block_table_offset + (record.block + 1 + record.layers.len()) * 4,
                         true,
                     ),
                     source: payload,

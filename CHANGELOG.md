@@ -5,6 +5,61 @@ Release notes of published versions are in [docs](docs/README.md)
 
 ## Unreleased
 
+- IDW drawings saved by Inventor 11 and 2008 to 2010 (segment majors 11 to 14)
+  are read as candidate profiles
+  (`idw-rse29-meta6-major11-zlib-framing-candidate`,
+  `idw-rse30-meta7-major12-zlib-framing-candidate` and likewise for 13,
+  `idw-rse31-meta7-major14-zlib-framing-candidate`; typed fields
+  `idw-majorNN-typed-fields-candidate`). Major 14 was rejected with
+  `drawing.unsupported_profile`, majors 11 to 13 already at their RSeDb schema
+  (`drawing.ambiguous_owner`). They store the major 15 layouts, but every class
+  layer and nested section of a record ends with a u32 marker holding its byte
+  length, and the Meta block table lists the same values after each record's
+  length word. Records are therefore numbered without those words, and each
+  decoded record must close exactly the listed sections. Sheets, saved views
+  (RGBA caches where stored), annotations (including the local annotation and
+  leader displays that majors 15 to 22 now frame, below), triangle batches with
+  index flags 0 and border placements are displayed, and color mask 8 is read
+  as on the other majors (below); sheet definitions keep the prefix-only
+  observation. Observed per-major differences are listed in
+  [the drawing guide](docs/drawing.md#observed-segment-profiles). Point markers of
+  these majors keep two floats in `marker_parameters_unresolved`, a short (a
+  byte on major 11) in `marker_suffix_unresolved` and the new
+  `marker_layer_tail_unresolved`. Their displays are `experimental_partial`;
+  nothing about them is qualified.
+- RSeDb schemas 29 and 30 are admitted for drawings only. Their registry keeps
+  the schema 31 entries but ends with two lists of class names, and schema 29
+  node records are 18 bytes. Meta stream version 6, which stores a fourth state
+  word and a 32-bit time value in its header, is read. Parts and assemblies
+  still require schema 31. Schemas 26 and 21 (no RSeSegInfo stream, Meta stream
+  versions 5 and 4) remain unsupported.
+- Each drawing profile admits only the Meta stream version it was observed with
+  (6 for major 11, 7 for majors 12 to 14, 8 from major 15); a mismatch fails
+  before decompression with `drawing.meta_framing_unavailable`. Version 7
+  streams were also read for majors 15 to 31 before.
+- In Meta6/7 block tables `Limits.max_records` bounds the records, not the
+  words, and framing charges the layer markers once.
+- `scripts/check_legacy_drawings.py` rechecks a local directory of private
+  major 11 to 14 drawings (`--input` or `INVENTOR_KIT_LEGACY_DRAWINGS`) and
+  reports structural counts only.
+- Saved views of IDW drawings saved by Inventor 2026 (segment major 30) decode.
+  Their view placements store two reference lists before the view name, like
+  majors 26 to 29; the candidate profile expected the third list of major 31,
+  so every view placement failed to frame and its model edges were not
+  displayed (`not_reached_from_stored_sheet_bindings`). Major 30 also frames
+  the splines, ellipses, filled SM disks and the local, leader, sketch, table,
+  border and external annotation placements with the layouts of majors 25 to
+  28; they were omitted (`display_type_not_decoded`, `sheet_node_not_decoded`).
+  The display stays `experimental_partial`.
+- Display color mask 8 outside major 24 is read like the native-matched
+  major 24 override and flagged `display_color_mask8_unverified`, as
+  `docs/drawing.md` describes; the element and its subtree were omitted
+  (`display_color_mask_not_interpreted`). Other masks still omit their subtree.
+  The pinned major 28 regression drawing displays one more element (1,651).
+- The candidate majors 15 to 22 and 27 frame the local annotation displays of
+  majors 25, 26 and 28, majors 15 to 22 also the leader display of majors 26
+  and 28, and major 27 the local display of majors 23 and 25 and the border
+  placement. Their annotations were omitted (`sheet_node_not_decoded`).
 - IDW drawings saved by Inventor 2015 and 2016 (segment majors 19 and 20) and
   Inventor 2021 (segment major 25) are read as candidate profiles
   (`idw-rse31-meta8-major19-zlib-framing-candidate` and likewise for 20 and 25;
@@ -36,6 +91,14 @@ Release notes of published versions are in [docs](docs/README.md)
   highly compressed ones, keep a single allowance, and lowering a limit lowers
   every allowance. The inventory's `usage.work_items` can therefore exceed
   `max_records`.
+- Typed-field parsing (`DrawingLimits.max_field_values`) earns the same
+  allowances: one per started 2 MiB of RSe stream bytes, at most four
+  (4,000,000 typed field values with the default limit). Drawings whose typed
+  fields needed more than one allowance lost the remaining record observations
+  (`drawing.fields_unavailable`, `RSe aggregate work limit exceeded`) and could
+  end without a display. Smaller inputs keep a single allowance, lowering the
+  limit lowers every allowance, and the inventory's `usage.field_work_items` can
+  therefore exceed `max_field_values`.
 - A stroke override of width 0 keeps the inherited width and is flagged
   `stroke_override_width_zero_unverified`; it made the whole sheet display
   unavailable (`invalid stroke override width`). Other negative widths than the
