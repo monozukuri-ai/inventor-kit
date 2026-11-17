@@ -1831,6 +1831,33 @@ fn bitmap_placement_requires_a_local_typed_target_and_valid_bounds() {
     let no_cache = experimental_scene(&absent, &Limits::default());
     assert!(no_cache.spaces[0].views[0].cache_bounds.is_none());
     assert!(no_cache.spaces[0].views[0].image_reference.is_none());
+    // A cache whose extent is the empty box keeps its view and the rest of the
+    // sheet; only the image is left out, and the record is accounted for.
+    let mut empty = make();
+    empty.segments[0].observations[0].fields[5].value = FieldValue::F64(vec![
+        f64::MAX,
+        f64::MAX,
+        f64::MAX,
+        -f64::MAX,
+        -f64::MAX,
+        -f64::MAX,
+    ]);
+    let unplaced = experimental_scene(&empty, &Limits::default());
+    assert_eq!(unplaced.spaces[0].views.len(), 1);
+    assert!(unplaced.spaces[0].views[0].cache_bounds.is_none());
+    assert!(unplaced.spaces[0].views[0].image_reference.is_none());
+    assert!(unplaced.spaces[0].views[0]
+        .diagnostics
+        .contains(&"view_cache_bounds_empty"));
+    assert!(unplaced.spaces[0]
+        .omitted
+        .iter()
+        .any(|o| o.record_ordinal == 1 && o.reason == "view_cache_bounds_empty"));
+    assert!(unplaced.spaces[0]
+        .items
+        .iter()
+        .all(|i| !matches!(i.geometry, DisplayGeometry::Image { .. })));
+    assert_eq!(unplaced.spaces[0].items.len(), s.spaces[0].items.len() - 1);
     let limited = experimental_scene_with_limits(
         &d,
         &Limits::default(),

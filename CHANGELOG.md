@@ -5,6 +5,13 @@ Release notes of published versions are in [docs](docs/README.md)
 
 ## Unreleased
 
+- A saved view whose bitmap cache has the empty box as its bounds (minimum
+  `+DBL_MAX`, maximum `-DBL_MAX`) no longer makes its sheet `unavailable`
+  (`invalid view bitmap bounds`). The view is kept without its image and
+  flagged `view_cache_bounds_empty`, and the cache record is listed in the
+  sheet's omissions with the same reason. Since saved views of major 30 decode,
+  one such view discarded the border, the other views and the annotations of
+  its sheet. Other inverted or zero-sized bounds are still rejected.
 - IDW drawings saved by Inventor 11 and 2008 to 2010 (segment majors 11 to 14)
   are read as candidate profiles
   (`idw-rse29-meta6-major11-zlib-framing-candidate`,

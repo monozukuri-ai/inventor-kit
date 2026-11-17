@@ -1164,50 +1164,64 @@ pub fn experimental_scene_with_limits(
                             return Err(error("invalid view bitmap target"));
                         }
                         let b = doubles(node, "view_bitmap_bounds", 6)?;
-                        if b[3] <= b[0] || b[4] <= b[1] {
-                            return Err(error("invalid view bitmap bounds"));
-                        }
-                        view.cache_bounds = Some(b.try_into().unwrap());
-                        let next = 0x80000000u32
-                            .checked_add(bitmap_ids.len() as u32)
-                            .ok_or_else(|| error("view bitmap identifier overflow"))?;
-                        let reference = *bitmap_ids
-                            .entry((sm.registry.id.clone(), id))
-                            .or_insert(next);
-                        if let Some(old) = out
-                            .bitmap_majors
-                            .insert(bitmap.source.stream.clone(), sm.registry.major)
+                        if b[..3].iter().all(|&x| x == f64::MAX)
+                            && b[3..].iter().all(|&x| x == -f64::MAX)
                         {
-                            if old != sm.registry.major {
-                                return Err(error("conflicting view bitmap profiles"));
+                            // The empty box (minimum +MAX, maximum -MAX): the cache
+                            // has no extent to place it with. Keep the view without
+                            // its image instead of discarding the sheet.
+                            view.diagnostics.push("view_cache_bounds_empty");
+                            space.omitted.push(Omission {
+                                segment_id: sm.registry.id.clone(),
+                                record_ordinal: id,
+                                reason: "view_cache_bounds_empty",
+                            });
+                        } else {
+                            if b[3] <= b[0] || b[4] <= b[1] {
+                                return Err(error("invalid view bitmap bounds"));
                             }
-                        }
-                        view.image_reference = Some(reference);
-                        budget.item()?;
-                        space.items.push(DisplayItem {
-                            segment_id: sm.registry.id.clone(),
-                            record_ordinal: id,
-                            source: bitmap.source.clone(),
-                            placement_record: node.record_ordinal,
-                            group_path: vec![],
-                            transform: world,
-                            style: DisplayStyle::default(),
-                            geometry: DisplayGeometry::Image {
-                                reference,
-                                format: 3,
-                                origin: transform(&world, &[b[0], b[4], 0.], 1.)?,
-                                u: transform(&world, &[b[3] - b[0], 0., 0.], 0.)?,
-                                v: transform(&world, &[0., b[1] - b[4], 0.], 0.)?,
-                            },
-                        });
-                        // The major23/28 shaded cache is the background of the
-                        // view's saved vector edges. Keep annotations above it.
-                        // General drawing z-order remains unqualified.
-                        if super::profile::get(sm.registry.major)
-                            .is_some_and(|p| p.bitmap == Some(super::profile::BitmapLayout::Rgba))
-                        {
-                            let cache = space.items.pop().unwrap();
-                            space.items.insert(display_start, cache);
+                            view.cache_bounds = Some(b.try_into().unwrap());
+                            let next = 0x80000000u32
+                                .checked_add(bitmap_ids.len() as u32)
+                                .ok_or_else(|| error("view bitmap identifier overflow"))?;
+                            let reference = *bitmap_ids
+                                .entry((sm.registry.id.clone(), id))
+                                .or_insert(next);
+                            if let Some(old) = out
+                                .bitmap_majors
+                                .insert(bitmap.source.stream.clone(), sm.registry.major)
+                            {
+                                if old != sm.registry.major {
+                                    return Err(error("conflicting view bitmap profiles"));
+                                }
+                            }
+                            view.image_reference = Some(reference);
+                            budget.item()?;
+                            space.items.push(DisplayItem {
+                                segment_id: sm.registry.id.clone(),
+                                record_ordinal: id,
+                                source: bitmap.source.clone(),
+                                placement_record: node.record_ordinal,
+                                group_path: vec![],
+                                transform: world,
+                                style: DisplayStyle::default(),
+                                geometry: DisplayGeometry::Image {
+                                    reference,
+                                    format: 3,
+                                    origin: transform(&world, &[b[0], b[4], 0.], 1.)?,
+                                    u: transform(&world, &[b[3] - b[0], 0., 0.], 0.)?,
+                                    v: transform(&world, &[0., b[1] - b[4], 0.], 0.)?,
+                                },
+                            });
+                            // The major23/28 shaded cache is the background of the
+                            // view's saved vector edges. Keep annotations above it.
+                            // General drawing z-order remains unqualified.
+                            if super::profile::get(sm.registry.major).is_some_and(|p| {
+                                p.bitmap == Some(super::profile::BitmapLayout::Rgba)
+                            }) {
+                                let cache = space.items.pop().unwrap();
+                                space.items.insert(display_start, cache);
+                            }
                         }
                     }
                     if raw == 0 {

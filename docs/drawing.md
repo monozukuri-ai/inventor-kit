@@ -319,7 +319,9 @@ override width (`stroke_override_width_zero_unverified`, observed on production
 major17/25 drawings; the inherited width is kept), zero layer width
 (`layer_width_zero_unverified`), trailing bytes after the sheet definition
 suffix on major29/30 (`sheet_link_tail_unresolved`, the bytes stay visible),
-view caches that are not decoded (`view_cache_not_decoded`), invalid image
+view caches that are not decoded (`view_cache_not_decoded`), view caches whose
+bounds are the empty box (`view_cache_bounds_empty`: minimum `+DBL_MAX`,
+maximum `-DBL_MAX`; the view is kept without its image), invalid image
 placements (`unsupported_image_placement`) and color mask 8 outside major24
 (`display_color_mask8_unverified`: read like the native-matched major24
 override instead of omitting the subtree; observed on production drawings of

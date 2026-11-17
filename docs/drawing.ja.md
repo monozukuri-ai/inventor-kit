@@ -234,6 +234,8 @@ version 4はヘッダだけが同じです。これらは保存表示の無い�
 上書き線幅0(`stroke_override_width_zero_unverified`、本番のmajor17・25の図面で観測。継承した線幅を残す)、
 線幅0のレイヤ(`layer_width_zero_unverified`)、major29/30のシート定義suffix後の余剰バイト
 (`sheet_link_tail_unresolved`、バイト列を保持)、未デコードのビュー画像キャッシュ(`view_cache_not_decoded`)、
+範囲が空の箱のビュー画像キャッシュ(`view_cache_bounds_empty`、最小が`+DBL_MAX`・最大が`-DBL_MAX`。
+ビューは画像なしで残す)、
 不正な画像配置(`unsupported_image_placement`)、major24 以外の色マスク 8
 (`display_color_mask8_unverified`、native と照合済みの major24 と同じ並びで読み、部分木を捨てない。
 本番の多くの版の図面で観測)。ほかの色マスクは従来どおり部分木を省きます
