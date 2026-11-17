@@ -111,10 +111,15 @@ and its bulk frame), so one `max_records` allowance frames about 220,000
 records, fewer than a large multi-sheet drawing stores. Container framing,
 typed-field parsing, sheet binding and display expansion therefore earn one
 allowance of `max_records`, `max_field_values` or `max_reference_visits` per
-started 2 MiB of RSe stream bytes, at most four (2,000,000 framing work items,
+started MiB of RSe stream bytes, at most four (2,000,000 framing work items,
 4,000,000 typed field values and 12,000,000 reference visits with the
-defaults). Smaller inputs, including highly compressed ones, keep a single
-allowance, and lowering a limit lowers every allowance.
+defaults). Saved view caches expand far past their stored size, so the
+expanded bytes of the bulk streams earn the same allowances:
+`Limits.max_inflated_bytes` for one bulk stream and
+`Limits.max_total_inflated_bytes` for the document (at most 256 MiB and
+512 MiB with the defaults; Meta streams keep the unscaled limit). Smaller
+inputs, including highly compressed ones, keep a single allowance, and
+lowering a limit lowers every allowance.
 Raw cache pixels are bounded by expanded-stream bytes and `max_image_pixels`; each source stream is expanded once. Unknown view layouts remain omissions; the view budget counts decoded placements,
 not all possible model projections. These budgets do not bound process RSS or elapsed time. The Viewer uses the defaults; programmatic `Options`
 also accepts `drawing_limits`.
@@ -236,7 +241,7 @@ observed on production drawings without native captures. They are framed as
 *candidate profiles* (`idw-rse31-meta8-majorNN-…-framing-candidate`): major27
 keeps the 30-byte document prefix of major26 with the major28 layouts; major30
 uses the zstd envelope, monochrome view caches and PART31 App-segment Meta
-layout of major31 with the historical target context of major23. Its view
+layout of major31. Its view
 placements keep the two reference lists of majors 26–29 (the third list is
 major31 only), and it frames the splines, ellipses, filled SM disks and the
 local, leader, sketch, table, border and external annotation placements with
@@ -255,10 +260,17 @@ the local display record kept by major23 also frames. The local annotation
 displays of majors 25, 26 and 28 also frame on majors 15–22 and 27, as does the
 major26/28 leader display on majors 15–22; major27 also frames the major23 local
 display and the border placement. Their displays are
-`experimental_partial` and nothing about them is qualified. Major26 drawings,
-and the major25 candidate, may also reference a historical target context; as
-for major23 and major30 it is admitted only inside the target's own ordered
-revision ranges.
+`experimental_partial` and nothing about them is qualified.
+
+A display reference may name a historical target context on every profile: a
+sheet whose saved display was not rewritten by the document's last save keeps
+naming the context it was saved with (native major23 saves; production
+drawings of majors 24 to 27 and 29 to 31). It is admitted only inside the
+target's own ordered revision ranges, after the object's creation. A display
+group with a cross-segment child is omitted
+(`cross_segment_display_children_not_supported`) instead of discarding its
+sheet, also on every profile (native major23 saves and a production major29
+drawing).
 
 Majors 11 to 14 (Inventor 11 and 2008 to 2010) were also observed on production
 drawings without native captures and are framed as candidate profiles:

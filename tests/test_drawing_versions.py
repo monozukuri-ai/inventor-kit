@@ -28,16 +28,16 @@ CASES = [
 class DrawingVersions(unittest.TestCase):
     def test_dense_curves_have_a_separate_bounded_field_budget(self):
         path = ROOT/'fixtures/public/drawings/versions/RespiraWorks-filter-panel-assembly.idw'
-        # Its RSe streams exceed 2 MiB, so the field budget earns two allowances.
-        short = read_drawing_file(path, drawing_limits=DrawingLimits(max_field_values=250000))
+        # Its RSe streams exceed 2 MiB, so the field budget earns three allowances.
+        short = read_drawing_file(path, drawing_limits=DrawingLimits(max_field_values=150000))
         self.assertEqual(short.status, 'unavailable')
         self.assertFalse(any(s.items for s in short.sheets))
         self.assertTrue(any(d['code'] == 'drawing.fields_unavailable' for d in short.diagnostics))
         # The source-span audit independently measured 573482 charged values/work units.
-        exact = read_drawing_file(path, drawing_limits=DrawingLimits(max_field_values=573482 // 2))
+        exact = read_drawing_file(path, drawing_limits=DrawingLimits(max_field_values=-(-573482 // 3)))
         self.assertEqual(len(exact.sheets[0].items),28820)
         self.assertFalse(any(d['code'] == 'drawing.fields_unavailable' for d in exact.diagnostics))
-        below = read_drawing_file(path, drawing_limits=DrawingLimits(max_field_values=573482 // 2 - 1))
+        below = read_drawing_file(path, drawing_limits=DrawingLimits(max_field_values=-(-573482 // 3) - 1))
         self.assertTrue(any(d['code'] == 'drawing.fields_unavailable' for d in below.diagnostics))
 
     def test_saved_display_reports_svg_and_viewer_keep_partial_status(self):

@@ -74,19 +74,26 @@ impl DrawingLimits {
     }
 }
 
-/// RSe stream bytes that earn one further allowance of a document-wide work
+/// RSe stream bytes that earn one further allowance of a document-wide
 /// budget: container framing (`Limits::max_records`), typed-payload decoding
 /// (`DrawingLimits::max_field_values`), sheet binding and display expansion
-/// (`DrawingLimits::max_reference_visits`).
-const ALLOWANCE_RSE_BYTES: usize = 2 * 1024 * 1024;
+/// (`DrawingLimits::max_reference_visits`) and the expansion of the bulk
+/// streams (`Limits::max_inflated_bytes` for one bulk stream and
+/// `Limits::max_total_inflated_bytes` for the document; a Meta stream keeps
+/// the unscaled limit of one stream).
+const ALLOWANCE_RSE_BYTES: usize = 1024 * 1024;
 /// At most four allowances per document (2,000,000 framing work items,
-/// 4,000,000 typed field values and 12,000,000 reference visits with the
-/// default limits).
+/// 4,000,000 typed field values, 12,000,000 reference visits, 256 MiB for one
+/// expanded bulk stream and 512 MiB of expanded streams with the default
+/// limits).
 const MAX_ALLOWANCES: usize = 4;
 
 /// Large multi-sheet drawings store more records and references than one
-/// allowance of a document-wide work budget covers. Each started 2 MiB of
-/// declared RSe stream bytes earns one allowance of `base`, at most four.
+/// allowance of a document-wide work budget covers, and their saved view
+/// caches expand to more bytes. Each started MiB of declared RSe stream
+/// bytes earns one allowance of `base`, at most four. (Dense line work needs
+/// more reference visits for its stored size than one allowance per 2 MiB
+/// gave: a sheet within `max_display_items` ran out of visits.)
 /// Small inputs, including highly compressed ones, keep a single allowance;
 /// lowering `base` lowers every allowance, and zero still denies the resource.
 pub(super) fn scaled_allowance(base: usize, rse_bytes: usize) -> usize {

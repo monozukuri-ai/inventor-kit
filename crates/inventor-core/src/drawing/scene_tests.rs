@@ -284,27 +284,28 @@ fn major23_historical_context_requires_the_targets_exact_revision_range() {
         &mut cache
     )
     .is_err());
-    for major in [24, 28, 29, 31] {
-        for s in &mut d.segments {
-            s.registry.major = major;
-        }
-        let resolved = resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100);
-        assert!(resolved.is_err(), "major {major}");
-    }
-    // Production major26 and major30 drawings also retain historical contexts;
-    // the major25 candidate shares the major26 profile.
-    for major in [25, 26, 30] {
+    // Production drawings of the later majors retain historical contexts too
+    // (sheets saved before the document's last save); every profile admits
+    // them by the same rule.
+    for major in [24, 25, 26, 27, 28, 29, 30, 31] {
         for s in &mut d.segments {
             s.registry.major = major;
         }
         let resolved = resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100);
         assert_eq!(resolved.unwrap().2.len(), 10, "major {major}");
     }
-    for s in &mut d.segments {
-        s.registry.major = 23;
-    }
+    // A context outside the target's own revision ranges is never admitted.
     d.segments[0].meta.as_mut().unwrap().reference_tables[0].bytes[16..32].fill(9);
-    assert!(resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100).is_err());
+    for major in [23, 24, 29, 31] {
+        for s in &mut d.segments {
+            s.registry.major = major;
+        }
+        let resolved = resolve(&d, &d.segments[0], 1, "DlSheetDlSegmentType", &mut 100);
+        assert!(
+            resolved.is_err_and(|e| e.to_string() == "missing or pre-creation target context"),
+            "major {major}"
+        );
+    }
 }
 
 #[test]
@@ -322,17 +323,20 @@ fn major23_external_display_child_is_omitted_without_local_slot_aliasing() {
         panic!()
     };
     refs.push(1);
-    let scene = experimental_scene(&d, &Limits::default());
-    assert_eq!(scene.spaces.len(), 1);
-    assert!(scene.spaces[0].items.is_empty());
-    assert!(scene.spaces[0]
-        .omitted
-        .iter()
-        .any(|o| o.reason == "cross_segment_display_children_not_supported"));
-    for s in &mut d.segments {
-        s.registry.major = 31;
+    // Every profile omits the group and keeps the sheet (a production major29
+    // drawing lost a sheet to one such child).
+    for major in [23, 24, 26, 29, 31] {
+        for s in &mut d.segments {
+            s.registry.major = major;
+        }
+        let scene = experimental_scene(&d, &Limits::default());
+        assert_eq!(scene.spaces.len(), 1, "major {major}");
+        assert!(scene.spaces[0].items.is_empty());
+        assert!(scene.spaces[0]
+            .omitted
+            .iter()
+            .any(|o| o.reason == "cross_segment_display_children_not_supported"));
     }
-    assert!(experimental_scene(&d, &Limits::default()).spaces.is_empty());
 }
 
 #[test]

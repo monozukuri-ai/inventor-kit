@@ -79,7 +79,11 @@ pub fn inspect_with_limits(
     let mut work = framing;
     let fields = super::limits::scaled_allowance(drawing.max_field_values, rse_bytes);
     let mut field_work = fields;
-    let mut expanded = limits.max_total_inflated_bytes;
+    // Saved view caches expand far past their stored size, so the expanded
+    // bytes of the bulk streams earn the same allowances (`scan` scales the
+    // limit of one stream).
+    let inflated = super::limits::scaled_allowance(limits.max_total_inflated_bytes, rse_bytes);
+    let mut expanded = inflated;
     let result = scan(
         &mut file,
         &summary.streams,
@@ -91,7 +95,7 @@ pub fn inspect_with_limits(
     );
     out.usage.work_items = framing - work;
     out.usage.field_work_items = fields - field_work;
-    out.usage.expanded_bytes = limits.max_total_inflated_bytes - expanded;
+    out.usage.expanded_bytes = inflated - expanded;
     if let Err(e) = result {
         out.diagnostics.push(diagnostic(
             "drawing.inventory_unavailable",
@@ -404,8 +408,11 @@ fn scan(
             failure_source = bulk.clone();
             let bytes = stream(file, bpath, limits.max_stream_bytes)?;
             let compressed = super::profile::bulk_for_major(&bytes, reg.major)?;
-            let (body, codec) =
-                rse::inflate_budgeted(compressed, limits.max_inflated_bytes, expanded)?;
+            let (body, codec) = rse::inflate_budgeted(
+                compressed,
+                super::limits::scaled_allowance(limits.max_inflated_bytes, out.usage.encoded_bytes),
+                expanded,
+            )?;
             let table = if layered {
                 rse::layered_record_table(&body, &meta, reg.major, work, true)?
             } else {

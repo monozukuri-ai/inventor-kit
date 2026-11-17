@@ -126,21 +126,16 @@ pub(super) fn binding(
     let (identity, slot) =
         identity.ok_or_else(|| Error("object key outside revision ranges".into()))?;
     let (latest, latest_slot) = last.unwrap();
-    // Major23, major26 and major30 saves (and the candidates framed like them)
-    // may retain a historical target context. Admit it only if the target's
-    // own ordered ranges contain it after this object's creation.
+    // A segment that was not rewritten by the last save keeps naming the
+    // target context it was saved with (seen on every observed profile but
+    // major28). Admit that historical context only if the target's own
+    // ordered ranges contain it after this object's creation; the latest
+    // context is the ordinary case of the same rule.
     // This binds the stored object key; it does not reconstruct that old state.
-    let (current, last_slot) =
-        if super::profile::get(target.registry.major).is_some_and(|p| p.historical_context) {
-            requested_context
-                .filter(|(r, _)| *r >= identity)
-                .ok_or_else(|| Error("missing or pre-creation target context".into()))?
-        } else {
-            (latest, latest_slot)
-        };
-    if revisions.entries[identity].id != guid(&namespace[..16])
-        || revisions.entries[current].id != guid(&segment[16..32])
-    {
+    let (current, last_slot) = requested_context
+        .filter(|(r, _)| *r >= identity)
+        .ok_or_else(|| Error("missing or pre-creation target context".into()))?;
+    if revisions.entries[identity].id != guid(&namespace[..16]) {
         return Err(Error("display revision/object identity mismatch".into()));
     }
     let span = |slot| {

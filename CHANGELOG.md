@@ -5,6 +5,30 @@ Release notes of published versions are in [docs](docs/README.md)
 
 ## Unreleased
 
+- A display reference may name a historical target context on every profile.
+  Majors 24, 27, 28, 29 and 31 required the target's latest revision, so a
+  sheet whose saved display was not rewritten by the document's last save was
+  `unavailable` (`display revision/object identity mismatch`) although its
+  display space decoded (`display_space_not_in_document_sheet_list`). Seen on
+  production drawings of majors 24, 27, 29 and 31. As before on majors 23, 25,
+  26 and 30, the context is admitted only inside the target's own ordered
+  revision ranges, after the object's creation; any other context reports
+  `missing or pre-creation target context`.
+- A display group with a cross-segment child (an untagged reference) is omitted
+  on every profile (`cross_segment_display_children_not_supported`), as on
+  major 23. On the other majors one such child made the sheet `unavailable`
+  (`unsupported local display reference tag`); seen on a production major 29
+  drawing.
+- The expanded bytes of a drawing's bulk streams earn the input-size
+  allowances of the work budgets: `Limits.max_inflated_bytes` (one bulk
+  stream) and `Limits.max_total_inflated_bytes` (the document) are multiplied
+  by the allowances, at most four (256 MiB and 512 MiB with the defaults), in
+  the inventory and when saved view caches are read again for their images. A
+  sheet whose view caches expand past 64 MiB stopped with `decompression byte
+  limit exceeded`. Meta streams, parts and assemblies keep the unscaled limits.
+- An allowance is earned per started MiB of RSe stream bytes (it was 2 MiB);
+  the maximum stays four. A sheet of dense line work within `max_display_items`
+  ran out of reference visits (`RSe aggregate work limit exceeded`).
 - A saved view whose bitmap cache has the empty box as its bounds (minimum
   `+DBL_MAX`, maximum `-DBL_MAX`) no longer makes its sheet `unavailable`
   (`invalid view bitmap bounds`). The view is kept without its image and

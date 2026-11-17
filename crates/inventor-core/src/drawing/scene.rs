@@ -18,6 +18,10 @@ pub struct ExperimentalScene {
     /// Registry-bound cache profiles; never inferred from the compression envelope.
     #[serde(skip)]
     pub(crate) bitmap_majors: BTreeMap<String, u8>,
+    /// Declared RSe stream bytes of the source: the image reader expands the
+    /// bulk streams again and earns the same allowances as the inventory.
+    #[serde(skip)]
+    pub(crate) encoded_bytes: usize,
     pub status: &'static str,
     pub qualified: bool,
     pub source_sha256: String,
@@ -781,10 +785,9 @@ fn owners_with_depth<'a>(
             if raw == 0 {
                 continue;
             }
-            if super::profile::get(s.registry.major).is_some_and(|p| p.external_children)
-                && raw & 0x80000000 == 0
-            {
-                // Observed cross-segment display child (including DC targets).
+            if raw & 0x80000000 == 0 {
+                // Observed cross-segment display child (including DC targets;
+                // native major23 saves and a production major29 drawing).
                 // Preserve the raw reference and omit this branch; never treat
                 // a foreign object key as a local slot or poison other roots.
                 external_children.insert(parent);
@@ -956,6 +959,7 @@ pub fn experimental_scene_with_limits(
 ) -> ExperimentalScene {
     let mut out = ExperimentalScene {
         bitmap_majors: BTreeMap::new(),
+        encoded_bytes: doc.usage.encoded_bytes,
         status: "unavailable",
         qualified: false,
         source_sha256: doc.source_sha256.clone(),

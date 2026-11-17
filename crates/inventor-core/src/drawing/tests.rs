@@ -1351,7 +1351,7 @@ fn typed_fields_require_framed_unique_owners_and_fail_without_partial_observatio
             usize::from(cap == required)
         );
     }
-    // Like framing work, typed fields earn one allowance per started 2 MiB of
+    // Like framing work, typed fields earn one allowance per started MiB of
     // RSe stream bytes. Bytes outside RSeStorage earn nothing, and lowering the
     // limit lowers every allowance.
     const MIB: usize = 1024 * 1024;
@@ -1362,7 +1362,7 @@ fn typed_fields_require_framed_unique_owners_and_fail_without_partial_observatio
         ("/RSeStorage/Padding", 0, false),
         ("/Padding", half, false),
     ] {
-        let padded = mutate(&good, |c| put(c, path, &vec![0; 2 * MIB]));
+        let padded = mutate(&good, |c| put(c, path, &vec![0; MIB]));
         let drawing = DrawingLimits {
             max_field_values: cap,
             ..Default::default()
@@ -2075,16 +2075,17 @@ fn large_drawings_earn_a_bounded_number_of_work_allowances() {
     use super::limits::scaled_allowance;
     const MIB: usize = 1024 * 1024;
     assert_eq!(scaled_allowance(500_000, 0), 500_000);
-    assert_eq!(scaled_allowance(500_000, 2 * MIB), 500_000);
-    assert_eq!(scaled_allowance(500_000, 2 * MIB + 1), 1_000_000);
-    assert_eq!(scaled_allowance(500_000, 6 * MIB), 1_500_000);
+    assert_eq!(scaled_allowance(500_000, MIB), 500_000);
+    assert_eq!(scaled_allowance(500_000, MIB + 1), 1_000_000);
+    assert_eq!(scaled_allowance(500_000, 3 * MIB), 1_500_000);
+    assert_eq!(scaled_allowance(500_000, 3 * MIB + 1), 2_000_000);
     assert_eq!(scaled_allowance(500_000, 128 * MIB), 2_000_000);
     assert_eq!(scaled_allowance(3_000_000, 128 * MIB), 12_000_000);
     assert_eq!(scaled_allowance(6, 128 * MIB), 24);
     assert_eq!(scaled_allowance(0, 128 * MIB), 0);
     assert_eq!(scaled_allowance(usize::MAX, 128 * MIB), usize::MAX);
     // A small database keeps the caller's single framing allowance; the same
-    // records beside 2 MiB of other RSe stream bytes earn a second one. Bytes
+    // records beside a MiB of other RSe stream bytes earn a second one. Bytes
     // outside RSeStorage earn nothing.
     let full = read(&fixture());
     let needed = full.usage.work_items;
@@ -2095,18 +2096,75 @@ fn large_drawings_earn_a_bounded_number_of_work_allowances() {
     let small = inspect(&fixture(), "test", &limits).unwrap();
     assert_eq!(small.usage.work_items, needed - 1);
     assert_ne!(small.status, full.status);
-    let outside = mutate(&fixture(), |c| put(c, "/Padding", &vec![0; 2 * MIB]));
+    let outside = mutate(&fixture(), |c| put(c, "/Padding", &vec![0; MIB]));
     assert_eq!(
         inspect(&outside, "test", &limits).unwrap().status,
         small.status
     );
     let padded = mutate(&fixture(), |c| {
-        put(c, "/RSeStorage/Padding", &vec![0; 2 * MIB]);
+        put(c, "/RSeStorage/Padding", &vec![0; MIB]);
     });
     let large = inspect(&padded, "test", &limits).unwrap();
     assert_eq!(large.usage.work_items, needed);
-    assert!(large.usage.encoded_bytes > 2 * MIB);
+    assert!(large.usage.encoded_bytes > MIB);
     assert_eq!(large.segments[0].status, "framed");
+}
+
+#[test]
+fn large_drawings_earn_allowances_of_the_inflated_byte_budgets() {
+    const MIB: usize = 1024 * 1024;
+    // Saved view caches expand far past their stored size. One byte less than
+    // a bulk stream needs, in the limit of one bulk stream or of the document,
+    // leaves the segment unframed; the same drawing beside a MiB of other RSe
+    // stream bytes earns a second allowance of both. Bytes outside RSeStorage
+    // earn nothing, and a small input keeps the caller's limits.
+    let wide = |c: &mut Cfb| {
+        // A bulk stream larger than its Meta stream, whose limit is not scaled.
+        put(
+            c,
+            "/RSeStorage/Bone",
+            &bulk(&[body(), vec![7; 1000]].concat()),
+        );
+    };
+    let base = mutate(&fixture(), wide);
+    let full = read(&base);
+    let total = full.usage.expanded_bytes;
+    let largest = full.segments[0].bulk.as_ref().unwrap().expanded_bytes;
+    assert_eq!(full.segments[0].status, "framed");
+    assert!(largest > 1000 && total > largest && total - largest < largest);
+    let padded = mutate(&base, |c| {
+        put(c, "/RSeStorage/Padding", &vec![0; MIB]);
+    });
+    let outside = mutate(&base, |c| put(c, "/Padding", &vec![0; MIB]));
+    for limits in [
+        Limits {
+            max_inflated_bytes: largest - 1,
+            ..Default::default()
+        },
+        Limits {
+            max_total_inflated_bytes: total - 1,
+            ..Default::default()
+        },
+    ] {
+        for small in [&base, &outside] {
+            let small = inspect(small, "test", &limits).unwrap();
+            assert!(small.segments[0].bulk.is_none());
+            assert!(small.segments[0]
+                .diagnostics
+                .iter()
+                .any(|d| d.message == "decompression byte limit exceeded"));
+        }
+        let large = inspect(&padded, "test", &limits).unwrap();
+        assert_eq!(large.segments[0].status, "framed");
+        assert_eq!(large.usage.expanded_bytes, total);
+    }
+    // Zero still denies the resource whatever the size of the input.
+    let denied = Limits {
+        max_total_inflated_bytes: 0,
+        ..Default::default()
+    };
+    let none = inspect(&padded, "test", &denied).unwrap();
+    assert!(none.segments.iter().all(|s| s.bulk.is_none()));
 }
 
 // ---------------------------------------------------------------------------

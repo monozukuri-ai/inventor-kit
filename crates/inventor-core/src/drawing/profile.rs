@@ -27,8 +27,6 @@ pub(super) struct Profile {
     pub view_suffix_guid: bool,
     pub bitmap: Option<BitmapLayout>,
     pub legacy_records: bool,
-    pub historical_context: bool,
-    pub external_children: bool,
     /// Majors 11-14 (Meta stream versions 6 and 7) end each class layer and
     /// nested section of a record with an inline u32 length marker.
     pub layered: bool,
@@ -168,8 +166,6 @@ pub(super) fn get(major: u8) -> Option<Profile> {
         view_suffix_guid: false,
         bitmap: Some(BitmapLayout::Rgba),
         legacy_records: true,
-        historical_context: true,
-        external_children: true,
         layered: false,
     };
     match major {
@@ -193,8 +189,6 @@ pub(super) fn get(major: u8) -> Option<Profile> {
             p.bitmap = None;
             p.views = false;
             p.legacy_records = false;
-            p.historical_context = false;
-            p.external_children = false;
         }
         // Production major25 drawings (candidate) use the major26 layouts,
         // except that their view placements have no suffix GUID.
@@ -205,10 +199,6 @@ pub(super) fn get(major: u8) -> Option<Profile> {
             p.view_suffix_guid = major == 26;
             p.bitmap = Some(BitmapLayout::Rgba);
             p.legacy_records = false;
-            // Production major26 drawings also retain historical target
-            // contexts; the binding still requires the target's own ranges.
-            p.historical_context = true;
-            p.external_children = false;
         }
         27..=31 => {
             p.zstd = major >= 30;
@@ -234,8 +224,6 @@ pub(super) fn get(major: u8) -> Option<Profile> {
                 None
             };
             p.legacy_records = false;
-            p.historical_context = major == 30;
-            p.external_children = false;
         }
         _ => return None,
     }

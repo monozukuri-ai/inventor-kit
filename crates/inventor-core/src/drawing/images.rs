@@ -85,7 +85,12 @@ pub fn read_embedded_images_with_limits(
         .min(drawing.max_image_bytes);
     let mut pixels_left = drawing.max_image_pixels as u64;
     let mut out = vec![];
-    let mut expanded = limits.max_total_inflated_bytes;
+    // The streams that hold view caches were expanded once by the inventory;
+    // reading them again earns the same allowances by the RSe size.
+    let stream_limit =
+        super::limits::scaled_allowance(limits.max_inflated_bytes, scene.encoded_bytes);
+    let mut expanded =
+        super::limits::scaled_allowance(limits.max_total_inflated_bytes, scene.encoded_bytes);
     let mut bodies = BTreeMap::new();
     for (reference, (format, source)) in refs {
         let path = format!("/RSeStorage/RefdFiles/RefdFile_{reference}");
@@ -126,11 +131,7 @@ pub fn read_embedded_images_with_limits(
                         .get(&source.stream)
                         .ok_or_else(|| Error("missing registry-bound bitmap profile".into()))?;
                     let compressed = super::profile::bulk_for_major(&encoded, major)?;
-                    let (body, _) = rse::inflate_budgeted(
-                        compressed,
-                        limits.max_inflated_bytes,
-                        &mut expanded,
-                    )?;
+                    let (body, _) = rse::inflate_budgeted(compressed, stream_limit, &mut expanded)?;
                     bodies.insert(source.stream.clone(), (major, body));
                 }
                 let (major, body) = &bodies[&source.stream];
@@ -513,6 +514,7 @@ mod tests {
         };
         let mut scene = ExperimentalScene {
             bitmap_majors: BTreeMap::new(),
+            encoded_bytes: 0,
             status: "experimental_partial",
             qualified: false,
             source_sha256: format!("{:x}", Sha256::digest(&data)),

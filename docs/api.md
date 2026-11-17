@@ -133,7 +133,9 @@ The B-rep stream of a part is stored compressed. In the public regression parts
 its inflated size is at most about 1.2 times the size of the whole file, so the
 default `max_inflated_bytes` of 64 MiB is reached by parts of roughly 50 MB.
 Larger parts stop with the inflated-byte diagnostic; the defaults are ceilings
-and cannot be raised through `Limits`.
+and cannot be raised through `Limits`. Drawings alone earn further allowances
+of the two inflated-byte limits by their stored size
+([drawing guide](drawing.md)).
 
 ## Native part authoring
 
