@@ -1,7 +1,5 @@
 # inventor-kit
 
-IDWの保存2D表示は通常のViewer起動で利用できます（部分対応）。詳しくは[Python API・Viewer](docs/drawing.ja.md)を参照してください。
-
 [English](README.md) | 日本語
 
 Autodesk Inventor の文書情報と保存済み部品形状を Rust で読み、Python から利用する
@@ -18,29 +16,19 @@ IAM → 保存参照・配置 → ローカル部品解決 → CadQuery Assembly
 一緒にファイルへ保存された B-spline 近似は、派生形状として使い、警告として報告します
 （[body変換](docs/body-conversion.ja.md)）。
 
-v0.4.0では[body選択](docs/body-conversion.ja.md)と[IPT/IAMバッチ変換](docs/cli.ja.md)を追加しています。
-v0.10.0では形状ライブラリをインストール時の extra にし、CadQuery なしの OCCT の経路と、保存された
-B-spline 近似の変換を追加しています（[v0.10.0 リリースノート](docs/release-notes-v0.10.0.ja.md)）。
-
-v0.5.0では、[IDWのシート一覧・JSONレポート](docs/cli.ja.md#idwのレポートとsvg保存)と[シート単位のSVG保存](docs/drawing.ja.md#レポートとオフラインsvg)を追加しています。
-対応する図面プロファイル・線種・OS検証は[リリースノート](docs/release-notes-v0.5.0.ja.md)を参照してください。
-図面は引き続き実験的な部分対応で、実寸精度とInventor表示との一致は未検証です。
-
-リリース版数は[Cargo.toml](Cargo.toml)で管理します。更新コマンドは[バージョン管理](docs/releasing.ja.md#バージョン管理)を参照してください。writerには `inventor-kit[cadquery]` が必要です。[writerガイド](docs/part-writer.ja.md)を参照してください。
+IDW を Viewer で開くと、保存済みのシートを表示できます。シート単位で SVG に書き出すこともできます。
+図面は実験的な部分対応で、実寸精度と Inventor 表示との一致は未検証です。詳しくは[図面ガイド](docs/drawing.ja.md)を参照してください。
 
 ## インストール
 
 Python 3.11 以降、`cq-acis>=0.4.2,<0.5`、共通モデル API 2 を使用します。
-公開済みの互換 wheel がある環境では、形状ライブラリを一つ選んでインストールします。
+`pip install inventor-kit` でパーサと共通モデルが入ります。形状を変換する場合は、
+次の二つから一方を選んでください。それぞれ同じ `OCP` モジュールの別ビルドをインストールします。
 
 ```sh
 python -m pip install 'inventor-kit[cadquery]'  # CadQuery の形状、STEP 出力、IAM、writer
 python -m pip install 'inventor-kit[occt]'      # CadQuery なしで OCCT の形状だけ
 ```
-
-0.10.0 以降、`pip install inventor-kit` だけでは解析と共通モデルだけが入ります
-（それ以前は常に CadQuery を入れていました）。二つの extra は同じ `OCP` モジュールの
-別ビルドを入れるので、どちらか一方を選んでください。
 
 ソースビルドには Rust 1.93 と maturin、および `acis-core` / `acis-py-bridge`
 0.4.2 を crates.io から取得します。[開発・検証手順](docs/development.ja.md)と
@@ -113,10 +101,12 @@ print(ik.capabilities())
 | --- | --- |
 | [対応範囲](docs/support.ja.md) | 形式プロファイル、形状・状態・アセンブリの制限 |
 | [API ガイド](docs/api.ja.md) | 属性、保存候補、単位、参照解決、上限 |
+| [CLI](docs/cli.ja.md) | IPT/IAM のバッチ変換、IDW のシート一覧・レポート |
 | [検証](docs/validation.ja.md) | 回帰・保留検証、比較の根拠、実行済み範囲 |
 | [開発](docs/development.ja.md) | ビルド、テスト、fuzz、公開ディレクトリの役割 |
 | [実験段階のpart writer](docs/part-writer.ja.md) | CadQuery・STEPから単独IPTを生成 |
 | [リリース](docs/releasing.ja.md) | wheel / sdist、CI、公開前の条件 |
+| [変更履歴](CHANGELOG.md) | 未リリースの変更とリリースノートの案内 |
 | [形式資料](docs/format-reference.ja.md) | 実装に使用した資料とライセンス |
 
 生成したIPTをIAMにまとめる `new_assembly` / `write-assembly` は[アセンブリwriter](docs/assembly-writer.ja.md)を参照してください。APIの `target_year`／CLIの `--target-year` で2026または2027を選択できます（既定2027）。両版の限定profileで、実機の保存・再読込・移動後の参照解決まで検証済みです。

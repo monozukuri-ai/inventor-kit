@@ -1,7 +1,5 @@
 # inventor-kit
 
-IDW saved 2D display opens in the Viewer by default (partial support): [Python API and Viewer](docs/drawing.md).
-
 English | [日本語](README.ja.md)
 
 Read Autodesk Inventor document metadata and saved part geometry with a Rust
@@ -20,30 +18,21 @@ own approximations of unsupported geometry. A B-spline fit that the file
 stores beside a procedural curve or surface is used as derived geometry and
 reported as a warning; see [body conversion](docs/body-conversion.md).
 
-v0.4.0 adds [body selection](docs/body-conversion.md) and [IPT/IAM batch conversion](docs/cli.md).
-v0.10.0 makes the shape backend an install extra, adds an OCCT backend without CadQuery, and converts
-stored B-spline fits; see the [v0.10.0 release notes](docs/release-notes-v0.10.0.md).
-
-v0.5.0 adds [IDW sheet inventories and JSON reports](docs/cli.md#idw-reports-and-svg-export), and [per-sheet SVG export](docs/drawing.md#reports-and-offline-svg).
-See the [release notes](docs/release-notes-v0.5.0.md) for supported drawing profiles,
-line styles and platform checks. Drawing support remains experimental and partial;
-physical scale and native rendering equivalence are unverified.
-
-The release version is defined in [Cargo.toml](Cargo.toml); see [version management](docs/releasing.md#version-management) for the update command. The writer requires `inventor-kit[cadquery]`; see the [writer guide](docs/part-writer.md).
+Open an IDW in the Viewer to see its saved sheets, or export a sheet as SVG.
+Drawing support is experimental and partial. Physical scale and fidelity to
+Inventor's rendering are unverified. See the [drawing guide](docs/drawing.md).
 
 ## Installation
 
 Requires Python 3.11 or later, `cq-acis>=0.4.2,<0.5`, and shared model API 2.
-Where compatible published wheels are available, install with one shape backend:
+`pip install inventor-kit` installs the parser and shared model. For shape
+conversion, choose one backend. The two extras install different builds of
+the same `OCP` module.
 
 ```sh
 python -m pip install 'inventor-kit[cadquery]'  # CadQuery shapes, STEP export, IAM, writers
 python -m pip install 'inventor-kit[occt]'      # OCCT shapes only, without CadQuery
 ```
-
-Since 0.10.0 a plain `pip install inventor-kit` installs the parser and the
-shared model only; earlier versions always installed CadQuery. The two extras
-ship different builds of the same `OCP` module, so install one of them.
 
 Source builds use Rust 1.93, maturin, and `acis-core` / `acis-py-bridge` 0.4.2
 from crates.io. See the [development guide](docs/development.md) and
@@ -119,10 +108,12 @@ diagnostics, and saved candidate selection.
 | --- | --- |
 | [Supported scope](docs/support.md) | Format profiles and geometry, state, and assembly limitations |
 | [API](docs/api.md) | Metadata, saved candidates, units, reference resolution, and limits |
+| [CLI](docs/cli.md) | IPT/IAM batch conversion and IDW sheet reports |
 | [Validation](docs/validation.md) | Regression and holdout checks, comparison evidence, and completed validation |
 | [Development](docs/development.md) | Builds, tests, fuzzing, and public directory roles |
 | [Experimental part writer](docs/part-writer.md) | Standalone IPTs from CadQuery or STEP |
 | [Releasing](docs/releasing.md) | Wheels, sdists, CI, and publication requirements |
+| [Changelog](CHANGELOG.md) | Unreleased changes and release notes |
 | [Format references](docs/format-reference.md) | Implementation references and licenses |
 
 To bundle authored IPTs into an IAM, see the [assembly writer](docs/assembly-writer.md): `new_assembly` and `write-assembly`. Select Inventor 2026 or 2027 with `target_year` (API) or `--target-year` (CLI); 2027 remains the default. Both bounded profiles passed native open/save/reopen and moved-bundle qualification.
