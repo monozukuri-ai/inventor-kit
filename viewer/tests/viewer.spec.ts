@@ -391,6 +391,7 @@ for (const [major, file, count, views] of [
   [26, 'versions/starliliko', 90, 0],
   [26, 'versions/RespiraWorks-bottom-assembly', 550, 3],
   [26, 'versions/RespiraWorks-filter-panel-assembly', 28820, 4],
+  [26, 'versions/RespiraWorks-bottom-part', 652, 1],
 ] as const) {
   test(`IDW major${major} saved display ${file}`, async ({ page }, info) => {
     const url = await open(page, `drawings/${file}.idw`);

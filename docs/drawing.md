@@ -182,12 +182,17 @@ support. Segment major numbers are not Inventor release-year identifiers.
 | 28 | `mateolikescats.idw` | 1 / 5 | 1,651 | RGBA; one saved cache observed |
 | 26 | `RespiraWorks.idw`, `starliliko.idw` | 1 / 3 and 1 / 0 | 543 and 90 | RGBA |
 | 26 | `RespiraWorks-bottom-assembly.idw`, `RespiraWorks-filter-panel-assembly.idw` | 1 / 3 and 1 / 4 | 550 and 28,820 | RGBA; two saved caches observed |
+| 26 | `RespiraWorks-bottom-part.idw` | 1 / 1 | 652 | RGBA |
 
 Point lists resolve their encoding from the owning segment type table. Observed
 major26/28/29 triangle batches render filled saved arrowhead geometry. Major28
 also admits the observed spline, ellipse and annotation-placement layouts.
 Major26 also admits observed splines, balloons, revision tables, and section/detail
 annotation placements. The filter-panel assembly displays 28,820 saved elements.
+The bottom-part drawing pins the hole note and the set of chained dimensions:
+each is a sheet node that owns one local display, framed with the shared local
+display layout, and its texts (three hole notes with their diameter signs, and
+the values of two chained sets) are displayed.
 Shared styles, view references, placements and source bases reduce the same sheet
 content from 42,384,840 to 29,480,621 bytes (about 28.1 MiB), preserving item IDs,
 source evidence, omissions and the 32 MiB resource ceiling.
@@ -257,9 +262,14 @@ caches, triangle batches with index flags 0, the major26 extended records and
 the border, local display and filled-disk layouts) and frames the
 FBAttributeSegment like major24; its view placements have no suffix GUID, and
 the local display record kept by major23 also frames. The local annotation
-displays of majors 25, 26 and 28 also frame on majors 15–22 and 27, as does the
-major26/28 leader display on majors 15–22; major27 also frames the major23 local
-display and the border placement. Their displays are
+displays of majors 25, 26 and 28 and the local display record kept by major23
+frame on every generation, as does the major26/28 leader display on majors
+11–24, 26 and 28–31; major27 also frames the border placement. Hole notes and
+further annotation nodes that production drawings store (notes with leaders,
+ordinate and chained sets, frames and tables) frame with the same local and
+leader display layouts on the generations where they were observed; majors
+11–14 and 15–22 are each admitted as a block. A node of a generation that is
+not listed stays an omission (`sheet_node_not_decoded`). Their displays are
 `experimental_partial` and nothing about them is qualified.
 
 A display reference may name a historical target context on every profile: a

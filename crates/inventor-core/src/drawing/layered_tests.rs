@@ -423,8 +423,9 @@ fn layered_sheet_placements_and_views_frame_like_major15() {
         exact(major, SM, border, &w, true);
 
         // Local displays close an empty layer after their definition. The
-        // local annotation and leader displays admitted for majors 15-22 frame
-        // with the same layered layout.
+        // local annotation and leader displays admitted for majors 15-22 and
+        // the annotation nodes these majors store frame with the same layered
+        // layout.
         let mut w = Wire::new(true);
         w.word(0).short(6).layer().zeros(8).byte(1).layer();
         w.word(0x30000003).word(0).layer().word(0x80000004).layer();
@@ -434,12 +435,19 @@ fn layered_sheet_placements_and_views_frame_like_major15() {
             "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0",
             "648cd16a-11d1-c06c-6000-24b209e1b5b0",
             "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
+            "cdb613fa-11d3-4f4a-6000-5699f983fcb0",
         ] {
             let o = exact(major, SM, local, &w, true);
             assert_eq!(o.proposed_role, "sheet_local_display_candidate");
         }
         w.word(7);
-        for leader in [leader, "8deaf986-11d4-3763-6000-61b782b6fbb0"] {
+        for leader in [
+            leader,
+            "8deaf986-11d4-3763-6000-61b782b6fbb0",
+            "5cbe01a1-11d4-f090-1000-cdab7dd247b5",
+            "ef7d412d-49f3-ac71-dca5-df8a8738c931",
+            "502678e8-11d4-9b54-1000-aeab7dd247b5",
+        ] {
             let o = exact(major, SM, leader, &w, true);
             assert_eq!(o.proposed_role, "sheet_local_display_candidate");
         }

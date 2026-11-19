@@ -397,6 +397,20 @@
       "asset_kind": "native_drawing",
       "license_notice": "Opt-in download-only regression fixture. Upstream declares Apache-2.0 for software and hardware; see pinned LICENSE and open_source.md. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
       "license_url": "https://github.com/RespiraWorks/Ventilator/blob/6165c82de293d66b71f43040a2f145ab70bb49c0/LICENSE"
+    },
+    {
+      "file": "drawings/versions/RespiraWorks-bottom-part.idw",
+      "repo": "RespiraWorks/Ventilator",
+      "commit": "6165c82de293d66b71f43040a2f145ab70bb49c0",
+      "upstream_path": "manufacturing/enclosure/bottom_part.idw",
+      "url": "https://media.githubusercontent.com/media/RespiraWorks/Ventilator/6165c82de293d66b71f43040a2f145ab70bb49c0/manufacturing/enclosure/bottom_part.idw",
+      "bytes": 416256,
+      "sha256": "2e2a06fffd0abba8bcb9b01a26143273efef45b857cf8980e741fe2adf33f456",
+      "family_id": "respiraworks-enclosure",
+      "split": "regression",
+      "asset_kind": "native_drawing",
+      "license_notice": "Opt-in download-only regression fixture. Upstream declares Apache-2.0 for software and hardware; see pinned LICENSE and open_source.md. CAD bytes are not committed or bundled in distributions. No upstream source code incorporated.",
+      "license_url": "https://github.com/RespiraWorks/Ventilator/blob/6165c82de293d66b71f43040a2f145ab70bb49c0/LICENSE"
     }
   ],
   "drawings": [
@@ -527,6 +541,21 @@
         "file": "drawings/versions/RespiraWorks-filter-panel-assembly.idw"
       },
       "role": "assembly",
+      "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
+      "references": [],
+      "reference_completeness": "unverified",
+      "visuals": [],
+      "oracle": {
+        "status": "not_collected"
+      }
+    },
+    {
+      "id": "respiraworks-bottom-part",
+      "fixture": {
+        "manifest": "drawing-manifest.json",
+        "file": "drawings/versions/RespiraWorks-bottom-part.idw"
+      },
+      "role": "part",
       "role_basis": "Pinned upstream project path and saved drawing observations; reference completeness is unverified.",
       "references": [],
       "reference_completeness": "unverified",

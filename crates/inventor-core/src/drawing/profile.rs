@@ -94,11 +94,6 @@ impl Profile {
     }
     pub fn extended_record(self, type_id: &str) -> bool {
         self.legacy_records
-            // Production major25, major27 and major30 drawings also store the
-            // local display that major23 keeps; it frames with the shared
-            // local display layout.
-            || (matches!(self.major, 25 | 27 | 30)
-                && type_id == "9b3499d1-11d1-8626-6000-27bd351c3cb0")
             // Production major30 drawings frame all of them with the same
             // layouts.
             || (matches!(self.major, 25 | 26 | 30)
@@ -106,7 +101,6 @@ impl Profile {
                     type_id,
                     "afd5ceeb-11d1-e071-0008-87a406e5dc09"
                         | "d3a55702-11d1-ebbb-62ae-0297584063da"
-                        | "025e3388-4cbb-8851-7d1c-b0876dcb2a07"
                         | "69c12b31-11d2-1c34-6000-1c9feb49cdb0"
                         | "6589a70e-11d1-a4a7-6000-2fa5602d6bb0"
                         | "4e52b139-11d1-d3ba-6000-46bead9287b0"
@@ -119,7 +113,6 @@ impl Profile {
                         | "afd5ceeb-11d1-e071-0008-87a406e5dc09"
                         | "69c12b31-11d2-1c34-6000-1c9feb49cdb0"
                         | "4e52b139-11d1-d3ba-6000-46bead9287b0"
-                        | "025e3388-4cbb-8851-7d1c-b0876dcb2a07"
                 ))
     }
     pub fn fields_name(self) -> &'static str {

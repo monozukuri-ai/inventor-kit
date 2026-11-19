@@ -22,6 +22,7 @@ CASES = [
     (26, 'versions/starliliko', 90, 0),
     (26, 'versions/RespiraWorks-bottom-assembly', 550, 3),
     (26, 'versions/RespiraWorks-filter-panel-assembly', 28820, 4),
+    (26, 'versions/RespiraWorks-bottom-part', 652, 1),
 ]
 
 
@@ -102,6 +103,34 @@ class DrawingVersions(unittest.TestCase):
         drawing = read_drawing_file(ROOT/'fixtures/public/drawings/versions/RespiraWorks.idw')
         self.assertFalse(any(d['message'] in ('unknown circle suffix','unknown arc suffix') for d in drawing.diagnostics))
         self.assertEqual(sum(bool(i.geometry.get('filled')) for i in drawing.sheets[0].items),14)
+
+    def test_hole_notes_and_chained_dimensions_are_displayed(self):
+        drawing = read_drawing_file(ROOT/'fixtures/public/drawings/versions/RespiraWorks-bottom-part.idw')
+        sheet, = drawing.sheets
+        texts = [i for i in sheet.items if i.geometry['kind'] == 'text']
+        self.assertEqual(len(texts), 84)
+        by_layer = {}
+        for item in texts:
+            by_layer.setdefault(item.style['layer'], []).append(item)
+        # Three hole notes: a diameter sign of the symbol font, then the note.
+        notes = sorted((i.geometry['position'][1], i.geometry['font']['family'], i.geometry['text'])
+                       for i in by_layer['Symbol (ANSI)']
+                       if i.geometry['text'] == 'n' or 'THRU' in i.geometry['text'])
+        self.assertEqual([(family, text) for _, family, text in notes],
+                         [('AIGDT', 'n'), ('Tahoma', '4.50 THRU x6'),
+                          ('AIGDT', 'n'), ('Tahoma', '3.40 THRU x10'),
+                          ('AIGDT', 'n'), ('Tahoma', '8.75 THRU x4')])
+        for sign, note in zip(notes[::2], notes[1::2]):
+            self.assertEqual(sign[0], note[0])
+        # Two sets of chained dimensions, along the top and the right side.
+        chained = {}
+        for item in by_layer['Dimension (ANSI)']:
+            direction = tuple(round(v) for v in item.geometry['direction'][:2])
+            chained.setdefault(direction, []).append(item.geometry['text'])
+        self.assertEqual(sorted(chained[1, 0]).count('187.00'), 2)
+        self.assertEqual(sorted(t for t in chained[0, 1] if t in ('130.00', '58.87')),
+                         ['130.00', '130.00', '58.87'])
+        self.assertFalse(any(o['reason'] == 'sheet_node_not_decoded' for o in sheet.omissions))
 
     def test_native_hidden_major28_curves_are_omitted_with_provenance(self):
         drawing = read_drawing_file(ROOT/'fixtures/public/drawings/versions/mateolikescats.idw')

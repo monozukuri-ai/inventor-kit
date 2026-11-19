@@ -5,6 +5,25 @@ Release notes of published versions are in [docs](docs/README.md)
 
 ## Unreleased
 
+- Hole notes, sets of chained and ordinate dimensions, notes with leaders,
+  frames and tables that a sheet stores as annotation nodes of its own are
+  displayed. Each owns one local display and frames with the shared local or
+  leader display layout, but its node type was not in the decoder table, so
+  the node was an omission (`sheet_node_not_decoded`) and its texts, leaders
+  and dimension lines were not reached
+  (`not_reached_from_stored_sheet_bindings`): a part drawing lost the values
+  of its chained dimensions and its hole notes while the other dimensions were
+  shown. The hole note and the chained set are pinned by a public major 26
+  part drawing (a new regression fixture); the other node types were seen on
+  production drawings and are admitted on the generations that store them
+  (majors 11 to 14 and 15 to 22 each as a block). The local annotation
+  displays of majors 25, 26 and 28 and the local display record of major 23
+  now frame on every generation, the leader display of majors 26 and 28 also
+  on majors 23, 24, 29 and 31, the balloon display also on majors 24, 29 and
+  31, and the external display of the extended records also on majors 24, 28,
+  29 and 31. Two of the major 25 and 26 revision, section and detail nodes
+  also frame on the other generations that store them. One node type whose
+  display reference is not always a local slot stays an omission.
 - A display reference may name a historical target context on every profile.
   Majors 24, 27, 28, 29 and 31 required the target's latest revision, so a
   sheet whose saved display was not rewritten by the document's last save was

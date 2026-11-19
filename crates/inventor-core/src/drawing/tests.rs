@@ -322,8 +322,10 @@ fn major23_list_variants_and_annotation_layouts_are_exact() {
     }
     balloon.push(1);
     word(&mut balloon, 9);
+    // Pinned on majors 23, 26 and 28; production drawings of the other
+    // generations store the same layout.
     let ty = "025e3388-4cbb-8851-7d1c-b0876dcb2a07";
-    for major in [23, 26, 28, 30] {
+    for major in [23, 24, 26, 28, 29, 30, 31] {
         let balloon = list_tag_for(major, &balloon);
         assert_eq!(
             parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
@@ -342,11 +344,6 @@ fn major23_list_variants_and_annotation_layouts_are_exact() {
         bad[31] = 2;
         assert!(parse(major, "DlSheetSmSegmentType", ty, &bad, &mut 100).is_err());
         assert!(parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 0).is_err());
-    }
-    for major in [24, 29, 31] {
-        assert!(parse(major, "DlSheetSmSegmentType", ty, &balloon, &mut 100)
-            .unwrap()
-            .is_none());
     }
 }
 #[test]
@@ -1595,37 +1592,47 @@ fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts()
     local.push(1);
     let mut external = local.clone();
     word(&mut external, 7);
-    for (kind, bytes, role) in [
+    // The major25 candidate frames the same records with these layouts, and
+    // production major30 drawings store all of them. Production drawings of
+    // further generations store the first and the last one.
+    for (kind, bytes, role, majors, absent) in [
         (
             "d8727ce0-11d5-d313-1000-1198b78b7ab5",
             &local,
             "sheet_local_display_candidate",
+            &[15, 22, 25, 26, 27, 28, 30][..],
+            &[11, 14, 23, 24, 29, 31][..],
         ),
         (
             "6589a70e-11d1-a4a7-6000-2fa5602d6bb0",
             &placement,
             "sheet_placement_candidate",
+            &[25, 26, 30],
+            &[24, 29, 31],
         ),
         (
             "69c12b31-11d2-1c34-6000-1c9feb49cdb0",
             &placement,
             "sheet_placement_candidate",
+            &[25, 26, 30],
+            &[24, 29, 31],
         ),
         (
             "4e52b139-11d1-d3ba-6000-46bead9287b0",
             &placement,
             "sheet_local_transformed_display_candidate",
+            &[25, 26, 30],
+            &[24, 29, 31],
         ),
         (
             "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86",
             &external,
             "sheet_external_display_candidate",
+            &[24, 25, 26, 28, 29, 30, 31],
+            &[27],
         ),
     ] {
-        // The major25 candidate frames the same records with these layouts;
-        // production major30 drawings store all of them except d8727ce0.
-        let local_only = kind.starts_with("d8727ce0");
-        for major in [25, 26, 30].into_iter().filter(|m| *m != 30 || !local_only) {
+        for &major in majors {
             let bytes = &list_tag_for(major, bytes);
             let parse = |b: &[u8], work: &mut usize| {
                 observed_major(major, "DlSheetSmSegmentType", kind, b, work)
@@ -1639,18 +1646,12 @@ fn major26_revision_section_and_detail_nodes_reject_partial_or_unknown_layouts()
             assert!(parse(&extra, &mut 100).is_err());
             assert!(parse(bytes, &mut 0).is_err());
         }
-        for major in [24, 29, 31] {
+        for &major in absent {
             assert!(
                 observed_major(major, "DlSheetSmSegmentType", kind, bytes, &mut 100)
                     .unwrap()
-                    .is_none()
-            );
-        }
-        if local_only {
-            assert!(
-                observed_major(30, "DlSheetSmSegmentType", kind, bytes, &mut 100)
-                    .unwrap()
-                    .is_none()
+                    .is_none(),
+                "major {major}"
             );
         }
     }
@@ -1997,22 +1998,19 @@ fn major25_frames_its_records_with_the_major26_layouts() {
         assert!(dl(major, ELLIPSE_TYPE, &ellipse).unwrap().is_none());
     }
 
-    // The local display that major23 also stores is framed on major25 and on
-    // the major27 and major30 candidates.
+    // The local display that major23 also stores is framed on every later
+    // generation.
     const LOCAL_TYPE: &str = "9b3499d1-11d1-8626-6000-27bd351c3cb0";
     let mut local = vec![0; 15];
     for n in [0x30000003, 0, 0x80000018, 7] {
         word(&mut local, n);
     }
     local.push(1);
-    for major in [23, 25, 27, 30] {
+    for major in 23..=31 {
         let o = sm(major, LOCAL_TYPE, &list_tag_for(major, &local))
             .unwrap()
             .unwrap();
         assert_eq!(o.proposed_role, "sheet_local_display_candidate");
-    }
-    for major in [24, 26, 28, 29, 31] {
-        assert!(sm(major, LOCAL_TYPE, &local).unwrap().is_none());
     }
 
     // DL point markers and filled SM disks, as on major26.
@@ -2168,9 +2166,10 @@ fn large_drawings_earn_allowances_of_the_inflated_byte_budgets() {
 }
 
 // ---------------------------------------------------------------------------
-// Production drawings of the candidate majors 15-22, 27 and 30 store the local
-// annotation displays of majors 25, 26 and 28 with the same layouts, and
-// major30 drawings store the major26-28 spline and ellipse layouts.
+// Production drawings of the candidate majors 15-22, 27 and 30 and of majors
+// 23, 24, 29 and 31 store the local annotation displays of majors 25, 26 and
+// 28 with the same layouts, and major30 drawings store the major26-28 spline
+// and ellipse layouts.
 
 #[test]
 fn candidate_majors_frame_the_shared_local_annotation_displays() {
@@ -2188,26 +2187,121 @@ fn candidate_majors_frame_the_shared_local_annotation_displays() {
         (
             "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0",
             &local,
-            &[15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 30][..],
-            &[23, 24, 29, 31][..],
+            &[
+                15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+            ][..],
+            &[][..],
         ),
         (
             "648cd16a-11d1-c06c-6000-24b209e1b5b0",
             &local,
-            &[15, 22, 25, 26, 27, 28, 30],
-            &[23, 24, 29, 31],
+            &[15, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+            &[],
         ),
         (
             "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
             &local,
-            &[15, 22, 25, 26, 27, 28, 30],
-            &[23, 24, 29, 31],
+            &[15, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+            &[],
         ),
         (
             "8deaf986-11d4-3763-6000-61b782b6fbb0",
             &leader,
-            &[15, 16, 17, 18, 19, 20, 21, 22, 26, 28, 30],
-            &[23, 24, 25, 27, 29, 31],
+            &[15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 28, 29, 30, 31],
+            &[25, 27],
+        ),
+        // A hole note (pinned on major26) and a set of chained dimensions.
+        (
+            "cdb613fa-11d3-4f4a-6000-5699f983fcb0",
+            &local,
+            &[15, 22, 23, 24, 26, 27, 28, 29, 30, 31],
+            &[25],
+        ),
+        (
+            "0a136036-4cc4-8592-f497-0d8aa4d76cb5",
+            &local,
+            &[26],
+            &[22, 25, 28, 31],
+        ),
+        // Annotation nodes seen on production drawings only.
+        (
+            "fe44386f-11d2-218c-6000-38b209e1b5b0",
+            &local,
+            &[15, 22, 23, 24, 26, 29],
+            &[25, 27, 28, 30, 31],
+        ),
+        (
+            "ea9293ea-11d4-11d7-6000-5ab782b6fbb0",
+            &local,
+            &[15, 22, 24, 29, 30, 31],
+            &[23, 25, 26, 27, 28],
+        ),
+        (
+            "15a5ff94-11d4-94a3-6000-6c99f983fcb0",
+            &local,
+            &[15, 22, 27, 30],
+            &[23, 24, 25, 26, 28, 29, 31],
+        ),
+        (
+            "4b13984a-4c45-75c2-2125-8499df3ef66d",
+            &local,
+            &[15, 22, 29],
+            &[23, 24, 25, 26, 27, 28, 30, 31],
+        ),
+        (
+            "fe56bf50-11d4-9048-6000-6bb782b6fbb0",
+            &local,
+            &[15, 22, 29],
+            &[23, 24, 25, 26, 27, 28, 30, 31],
+        ),
+        (
+            "f8d224f4-435b-62b4-fd83-6b9ffb5404c4",
+            &local,
+            &[15, 22],
+            &[23, 24, 25, 26, 27, 28, 29, 30, 31],
+        ),
+        (
+            "5cbe01a1-11d4-f090-1000-cdab7dd247b5",
+            &leader,
+            &[24, 25, 28, 29, 30],
+            &[15, 22, 23, 26, 27, 31],
+        ),
+        (
+            "23f899ae-4d6c-37a2-071c-e29a4c949b68",
+            &leader,
+            &[24, 26, 27],
+            &[15, 22, 23, 25, 28, 29, 30, 31],
+        ),
+        (
+            "ef7d412d-49f3-ac71-dca5-df8a8738c931",
+            &leader,
+            &[15, 22, 25, 29, 30],
+            &[23, 24, 26, 27, 28, 31],
+        ),
+        (
+            "502678e8-11d4-9b54-1000-aeab7dd247b5",
+            &leader,
+            &[15, 22, 24, 28, 30],
+            &[23, 25, 26, 27, 29, 31],
+        ),
+        (
+            "f3f435a2-11d4-725d-6000-66b782b6fbb0",
+            &leader,
+            &[15, 22, 24, 30],
+            &[23, 25, 26, 27, 28, 29, 31],
+        ),
+        (
+            "62fef1de-4162-f18c-8932-aebf67447b99",
+            &leader,
+            &[30],
+            &[22, 29, 31],
+        ),
+        // Its display reference is not always a local slot: never framed.
+        (
+            "1513ae96-422b-edc8-088f-2a8e2f899664",
+            &local,
+            &[],
+            &[11, 15, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
         ),
     ] {
         for &major in majors {

@@ -378,14 +378,97 @@ pub(super) fn decode(
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
+        // A hole note, pinned by a public major26 part drawing. Production
+        // drawings of the other listed generations frame it with the same layout.
+        // Here and below, majors 11-14 and 15-22 are each admitted as a block once
+        // one of them stores the record; later majors are listed one by one.
+        ("DlSheetSmSegmentType", "cdb613fa-11d3-4f4a-6000-5699f983fcb0") if matches!(major, 11..=24 | 26..=31) =>
+        {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        // A set of chained dimensions, pinned by the same drawing.
+        ("DlSheetSmSegmentType", "0a136036-4cc4-8592-f497-0d8aa4d76cb5") if major == 26 => {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        // Annotation nodes seen on production drawings only (no pinned fixture).
+        // Each owns one local display and frames with the shared local display
+        // layout on the listed generations. 1513ae96-422b-edc8-088f-2a8e2f899664
+        // frames the same way but is left out: its display reference is not
+        // always a local slot.
+        ("DlSheetSmSegmentType", "fe44386f-11d2-218c-6000-38b209e1b5b0")
+            if matches!(major, 15..=24 | 26 | 29) =>
+        {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "ea9293ea-11d4-11d7-6000-5ab782b6fbb0") if matches!(major, 15..=22 | 24 | 29..=31) =>
+        {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "15a5ff94-11d4-94a3-6000-6c99f983fcb0")
+            if matches!(major, 15..=22 | 27 | 30) =>
+        {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        (
+            "DlSheetSmSegmentType",
+            "4b13984a-4c45-75c2-2125-8499df3ef66d" | "fe56bf50-11d4-9048-6000-6bb782b6fbb0",
+        ) if matches!(major, 15..=22 | 29) => {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "f8d224f4-435b-62b4-fd83-6b9ffb5404c4")
+            if matches!(major, 15..=22) =>
+        {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        // The same, with the leader layout.
+        ("DlSheetSmSegmentType", "5cbe01a1-11d4-f090-1000-cdab7dd247b5") if matches!(major, 11..=14 | 24 | 25 | 28..=30) =>
+        {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "23f899ae-4d6c-37a2-071c-e29a4c949b68")
+            if matches!(major, 24 | 26 | 27) =>
+        {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "ef7d412d-49f3-ac71-dca5-df8a8738c931")
+            if matches!(major, 11..=22 | 25 | 29 | 30) =>
+        {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "502678e8-11d4-9b54-1000-aeab7dd247b5")
+            if matches!(major, 11..=22 | 24 | 28 | 30) =>
+        {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "f3f435a2-11d4-725d-6000-66b782b6fbb0")
+            if matches!(major, 15..=22 | 24 | 30) =>
+        {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
+        ("DlSheetSmSegmentType", "62fef1de-4162-f18c-8932-aebf67447b99") if major == 30 => {
+            decoder = super::sheet::leader_display;
+            "sheet_local_display_candidate"
+        }
         ("DlSheetSmSegmentType", "b86459e3-11d4-f88c-1000-cdab7dd247b5") => {
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
         // Observed in the major26/28 captures; production drawings of the
-        // candidate majors 11-22 and 30 store the same layout.
-        ("DlSheetSmSegmentType", "8deaf986-11d4-3763-6000-61b782b6fbb0")
-            if matches!(major, 11..=22 | 26 | 28 | 30) =>
+        // candidate majors 11-22 and 30 and of majors 23, 24, 29 and 31 store the
+        // same layout.
+        ("DlSheetSmSegmentType", "8deaf986-11d4-3763-6000-61b782b6fbb0") if matches!(major, 11..=24 | 26 | 28..=31) =>
         {
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
@@ -394,40 +477,54 @@ pub(super) fn decode(
             decoder = super::sheet::leader_display;
             "sheet_external_display_candidate"
         }
-        (
-            "DlSheetSmSegmentType",
-            "f5a6ed7a-11d4-7c69-6000-69b782b6fbb0"
-            | "35ecb98a-419c-f0d7-262b-dc98b8750e13"
-            | "d8727ce0-11d5-d313-1000-1198b78b7ab5",
-        ) if matches!(major, 25 | 26) => {
+        // Pinned on major26, with major25 as its candidate; production drawings of
+        // the other listed generations store the same layout.
+        ("DlSheetSmSegmentType", "f5a6ed7a-11d4-7c69-6000-69b782b6fbb0")
+            if matches!(major, 15..=22 | 25 | 26 | 29) =>
+        {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
-        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07")
-            if profile.extended_record(type_id) =>
+        ("DlSheetSmSegmentType", "35ecb98a-419c-f0d7-262b-dc98b8750e13")
+            if matches!(major, 25 | 26) =>
         {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        // Production major14 drawings store a longer record that the shared
+        // layout does not frame; it stays undecoded on majors 11-14.
+        ("DlSheetSmSegmentType", "d8727ce0-11d5-d313-1000-1198b78b7ab5") if matches!(major, 15..=22 | 25..=28 | 30) =>
+        {
+            decoder = super::sheet::local_display;
+            "sheet_local_display_candidate"
+        }
+        // Pinned on majors 23, 26 and 28; production drawings of every other
+        // generation store the same layout.
+        ("DlSheetSmSegmentType", "025e3388-4cbb-8851-7d1c-b0876dcb2a07") => {
             decoder = super::sheet::leader_display;
             "sheet_local_display_candidate"
         }
-        // Observed in the major26/28 captures; production drawings of the
-        // candidate majors 11-22, 25, 27 and 30 store the same layout.
+        // Observed in the major26/28 captures; production drawings of every other
+        // generation store the same layout.
         (
             "DlSheetSmSegmentType",
             "c0ca9b69-11d2-54d6-6000-4ab209e1b5b0"
             | "648cd16a-11d1-c06c-6000-24b209e1b5b0"
             | "45a1b92d-11d2-6538-6000-4fb209e1b5b0",
-        ) if matches!(major, 11..=22 | 25..=28 | 30) => {
+        ) => {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
-        ("DlSheetSmSegmentType", "9b3499d1-11d1-8626-6000-27bd351c3cb0")
-            if profile.extended_record(type_id) =>
-        {
+        // The local display that major23 keeps; production drawings of every
+        // other generation store the same layout.
+        ("DlSheetSmSegmentType", "9b3499d1-11d1-8626-6000-27bd351c3cb0") => {
             decoder = super::sheet::local_display;
             "sheet_local_display_candidate"
         }
+        // Production major24, major28, major29 and major31 drawings store the
+        // external display of the extended records with the same layout.
         ("DlSheetSmSegmentType", "05a6bf7b-45c2-fb50-9998-0ab04f9c8c86")
-            if profile.extended_record(type_id) =>
+            if profile.extended_record(type_id) || matches!(major, 24 | 28 | 29 | 31) =>
         {
             decoder = super::sheet::leader_display;
             "sheet_external_display_candidate"
